@@ -1,6 +1,7 @@
 package com.yub.edu.biz.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -47,6 +48,7 @@ public class StudentUpdateReqDTO {
 
     // ===== 联系方式 =====
     /** 移动电话 */
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
     /** 移动电话是否公开（1=是 0=否） */
@@ -80,6 +82,7 @@ public class StudentUpdateReqDTO {
     private String emergencyContact;
 
     /** 紧急电话 */
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "紧急电话格式不正确")
     private String emergencyPhone;
 
     // ===== 详细信息 =====
