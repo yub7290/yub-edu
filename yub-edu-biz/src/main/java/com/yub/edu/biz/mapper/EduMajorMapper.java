@@ -83,6 +83,14 @@ public interface EduMajorMapper {
     int countExamsByMajorId(@Param("majorId") Long majorId);
 
     /**
+     * 批量查询多个专业的统计数据
+     *
+     * @param majorIds 专业ID列表
+     * @return 统计数量列表
+     */
+    List<com.yub.edu.biz.vo.EduMajorCountVO> selectCountsByMajorIds(@Param("majorIds") List<Long> majorIds);
+
+    /**
      * 新增专业
      *
      * @param major 专业

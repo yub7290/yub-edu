@@ -39,11 +39,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
-
-    private static final String DEFAULT_PASSWORD_SM3 = "667c756cf9334e328a56e44e906245c8e214c655a160f18fdb84d79c209c49cf";
-
     private final EduStudentMapper eduStudentMapper;
     private final PasswordEncoder passwordEncoder;
+
+    /** 默认密码 admin123 的 SM3 哈希值 */
+    private static final String DEFAULT_PASSWORD_SM3 = "667c756cf9334e328a56e44e906245c8e214c655a160f18fdb84d79c209c49cf";
 
     @Override
     public PageResult<StudentPageRespVO> page(PageQuery<StudentQueryDTO> pageQuery) {
@@ -97,7 +97,9 @@ public class StudentServiceImpl implements StudentService {
         EduStudent student = new EduStudent();
         student.setAvatarUrl(req.getAvatarUrl());
         student.setAccount(req.getAccount());
-        student.setPassword(passwordEncoder.encode(req.getPassword()));
+        student.setPassword(passwordEncoder.encode(
+                req.getPassword() != null && !req.getPassword().isEmpty()
+                        ? req.getPassword() : DEFAULT_PASSWORD_SM3));
         student.setName(req.getName());
         student.setPinyinAbbr(req.getPinyinAbbr());
         student.setStudentNo(req.getStudentNo());

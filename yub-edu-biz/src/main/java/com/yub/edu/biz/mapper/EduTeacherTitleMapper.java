@@ -81,4 +81,19 @@ public interface EduTeacherTitleMapper {
      * @return 职称列表
      */
     List<EduTeacherTitle> selectAllEnabled();
+
+    /**
+     * 批量查询职称（优化 N+1）
+     *
+     * @param ids 职称ID列表
+     * @return 职称列表
+     */
+    List<EduTeacherTitle> selectBatchByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 批量统计各职称下的教师数量（优化 N+1）
+     *
+     * @return 各职称对应的教师数量
+     */
+    List<com.yub.edu.biz.vo.TeacherTitleCountVO> selectTeacherCountGroupByTitleId();
 }

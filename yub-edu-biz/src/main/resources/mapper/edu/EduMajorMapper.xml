@@ -123,4 +123,22 @@
     <delete id="deletePhysicallyById">
         DELETE FROM edu_major WHERE id = #{id} AND deleted = 1
     </delete>
+
+    <!-- 批量查询专业统计数据（课程/试题/试卷数量） -->
+    <select id="selectCountsByMajorIds" resultType="com.yub.edu.biz.vo.EduMajorCountVO">
+        SELECT
+            m.id AS majorId,
+            COALESCE(c.course_count, 0) AS courseCount,
+            COALESCE(q.question_count, 0) AS questionCount,
+            COALESCE(e.exam_count, 0) AS examCount
+        FROM edu_major m
+        LEFT JOIN (SELECT major_id, COUNT(*) AS course_count FROM edu_course WHERE deleted = 0 GROUP BY major_id) c ON c.major_id = m.id
+        LEFT JOIN (SELECT major_id, COUNT(*) AS question_count FROM edu_question WHERE deleted = 0 GROUP BY major_id) q ON q.major_id = m.id
+        LEFT JOIN (SELECT major_id, COUNT(*) AS exam_count FROM edu_exam WHERE deleted = 0 GROUP BY major_id) e ON e.major_id = m.id
+        WHERE m.id IN
+        <foreach collection="majorIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND m.deleted = 0
+    </select>
 </mapper>

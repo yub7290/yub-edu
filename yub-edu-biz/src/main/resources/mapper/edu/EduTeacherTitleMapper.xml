@@ -68,12 +68,28 @@
         WHERE id = #{id} AND deleted = 0
     </update>
 
-    <update id="deleteById">
-        UPDATE edu_teacher_title SET deleted = 1 WHERE id = #{id}
-    </update>
-
     <update id="updateStatus">
         UPDATE edu_teacher_title SET status = #{status} WHERE id = #{id} AND deleted = 0
     </update>
 
+    <update id="deleteById">
+        UPDATE edu_teacher_title SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <select id="selectBatchByIds" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_teacher_title
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND deleted = 0
+    </select>
+
+    <select id="selectTeacherCountGroupByTitleId" resultType="com.yub.edu.biz.vo.TeacherTitleCountVO">
+        SELECT title_id AS titleId, COUNT(*) AS teacherCount
+        FROM edu_teacher
+        WHERE deleted = 0 AND title_id IS NOT NULL
+        GROUP BY title_id
+    </select>
 </mapper>

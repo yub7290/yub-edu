@@ -28,7 +28,10 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toMap;
 
 /**
  * 教师 Service 实现
@@ -55,22 +58,22 @@ public class TeacherServiceImpl implements TeacherService {
         List<EduTeacher> list = eduTeacherMapper.selectPage(pageQuery.getQueryParam());
         PageInfo<EduTeacher> pageInfo = new PageInfo<>(list);
 
+        // 批量加载职称名称（优化 N+1）
+        Map<Long, String> titleMap = loadTitleNames(list);
+
         List<TeacherPageRespVO> records = list.stream()
-                .map(this::convertToPageVO)
+                .map(teacher -> convertToPageVO(teacher, titleMap))
                 .collect(Collectors.toList());
 
         return PageResult.of(records, pageInfo.getTotal());
     }
 
-    private TeacherPageRespVO convertToPageVO(EduTeacher teacher) {
+    private TeacherPageRespVO convertToPageVO(EduTeacher teacher, Map<Long, String> titleMap) {
         TeacherPageRespVO vo = BeanUtils.copy(teacher, TeacherPageRespVO.class);
 
-        // 查询职称名称
+        // 职称名称从批量加载的 Map 中获取
         if (teacher.getTitleId() != null) {
-            var title = eduTeacherTitleMapper.selectById(teacher.getTitleId());
-            if (title != null) {
-                vo.setTitleName(title.getName());
-            }
+            vo.setTitleName(titleMap.getOrDefault(teacher.getTitleId(), null));
         }
 
         // 计算年龄
@@ -82,6 +85,20 @@ public class TeacherServiceImpl implements TeacherService {
         vo.setCourseCount(0);
 
         return vo;
+    }
+
+    /**
+     * 批量加载职称名称 Map
+     */
+    private Map<Long, String> loadTitleNames(List<EduTeacher> teachers) {
+        List<Long> titleIds = teachers.stream()
+                .map(EduTeacher::getTitleId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        if (titleIds.isEmpty()) return Map.of();
+        return eduTeacherTitleMapper.selectBatchByIds(titleIds).stream()
+                .collect(toMap(t -> t.getId(), t -> t.getName()));
     }
 
     @Override
@@ -115,7 +132,9 @@ public class TeacherServiceImpl implements TeacherService {
         EduTeacher teacher = new EduTeacher();
         teacher.setAvatarUrl(req.getAvatarUrl());
         teacher.setAccount(req.getAccount());
-        teacher.setPassword(passwordEncoder.encode(req.getPassword()));
+        teacher.setPassword(passwordEncoder.encode(
+                req.getPassword() != null && !req.getPassword().isEmpty()
+                        ? req.getPassword() : DEFAULT_PASSWORD_SM3));
         teacher.setName(req.getName());
         teacher.setTitleId(req.getTitleId());
         teacher.setPinyinAbbr(req.getPinyinAbbr());

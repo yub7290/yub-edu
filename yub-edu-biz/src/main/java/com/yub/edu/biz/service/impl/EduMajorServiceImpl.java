@@ -248,18 +248,41 @@ public class EduMajorServiceImpl implements EduMajorService {
     }
 
     /**
-     * 递归填充统计数量
+     * 递归填充统计数量（批量查询优化，减少 N+1）
      */
     private void populateCountsRecursively(List<EduMajor> majors) {
+        // 第一步：收集所有节点 ID
+        List<Long> allIds = new ArrayList<>();
+        collectIds(majors, allIds);
+        if (allIds.isEmpty()) return;
+
+        // 第二步：批量查询统计数据
+        Map<Long, EduMajorCountVO> countMap = eduMajorMapper.selectCountsByMajorIds(allIds)
+                .stream().collect(Collectors.toMap(EduMajorCountVO::getMajorId, c -> c));
+
+        // 第三步：回填统计值
+        fillCounts(majors, countMap);
+    }
+
+    private void collectIds(List<EduMajor> majors, List<Long> collector) {
         for (EduMajor major : majors) {
-            int courseCount = eduMajorMapper.countCoursesByMajorId(major.getId());
-            int questionCount = eduMajorMapper.countQuestionsByMajorId(major.getId());
-            int examCount = eduMajorMapper.countExamsByMajorId(major.getId());
-            major.setCourseCount(courseCount);
-            major.setQuestionCount(questionCount);
-            major.setExamCount(examCount);
+            collector.add(major.getId());
             if (major.getChildren() != null && !major.getChildren().isEmpty()) {
-                populateCountsRecursively(major.getChildren());
+                collectIds(major.getChildren(), collector);
+            }
+        }
+    }
+
+    private void fillCounts(List<EduMajor> majors, Map<Long, EduMajorCountVO> countMap) {
+        for (EduMajor major : majors) {
+            EduMajorCountVO vo = countMap.get(major.getId());
+            if (vo != null) {
+                major.setCourseCount(vo.getCourseCount());
+                major.setQuestionCount(vo.getQuestionCount());
+                major.setExamCount(vo.getExamCount());
+            }
+            if (major.getChildren() != null && !major.getChildren().isEmpty()) {
+                fillCounts(major.getChildren(), countMap);
             }
         }
     }

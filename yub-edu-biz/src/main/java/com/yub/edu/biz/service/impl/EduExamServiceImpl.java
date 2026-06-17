@@ -212,36 +212,39 @@ public class EduExamServiceImpl implements EduExamService {
 
         Long examId = dto.getId();
 
-        // 先删除旧的配置，再插入新的配置
-        // 试题类型配置
-        eduExamQuestionTypeConfigMapper.deleteByExamId(examId);
-        if (dto.getTypeConfigs() != null && !dto.getTypeConfigs().isEmpty()) {
-            List<EduExamQuestionTypeConfig> typeConfigs = dto.getTypeConfigs().stream()
-                    .map(item -> {
-                        EduExamQuestionTypeConfig config = new EduExamQuestionTypeConfig();
-                        config.setExamId(examId);
-                        config.setQuestionType(item.getQuestionType());
-                        config.setQuestionCount(item.getQuestionCount());
-                        config.setScorePerQuestion(item.getScorePerQuestion());
-                        return config;
-                    }).toList();
-            eduExamQuestionTypeConfigMapper.insertBatch(typeConfigs);
+        // 试题类型配置：仅在传入新配置时才先删后插
+        if (dto.getTypeConfigs() != null) {
+            eduExamQuestionTypeConfigMapper.deleteByExamId(examId);
+            if (!dto.getTypeConfigs().isEmpty()) {
+                List<EduExamQuestionTypeConfig> typeConfigs = dto.getTypeConfigs().stream()
+                        .map(item -> {
+                            EduExamQuestionTypeConfig config = new EduExamQuestionTypeConfig();
+                            config.setExamId(examId);
+                            config.setQuestionType(item.getQuestionType());
+                            config.setQuestionCount(item.getQuestionCount());
+                            config.setScorePerQuestion(item.getScorePerQuestion());
+                            return config;
+                        }).toList();
+                eduExamQuestionTypeConfigMapper.insertBatch(typeConfigs);
+            }
         }
 
-        // 章节出题配置
-        eduExamChapterQuestionConfigMapper.deleteByExamId(examId);
-        if (dto.getChapterConfigs() != null && !dto.getChapterConfigs().isEmpty()) {
-            List<EduExamChapterQuestionConfig> chapterConfigs = dto.getChapterConfigs().stream()
-                    .map(item -> {
-                        EduExamChapterQuestionConfig config = new EduExamChapterQuestionConfig();
-                        config.setExamId(examId);
-                        config.setChapterId(item.getChapterId());
-                        config.setQuestionType(item.getQuestionType());
-                        config.setQuestionCount(item.getQuestionCount());
-                        config.setScorePerQuestion(item.getScorePerQuestion());
-                        return config;
-                    }).toList();
-            eduExamChapterQuestionConfigMapper.insertBatch(chapterConfigs);
+        // 章节出题配置：仅在传入新配置时才先删后插
+        if (dto.getChapterConfigs() != null) {
+            eduExamChapterQuestionConfigMapper.deleteByExamId(examId);
+            if (!dto.getChapterConfigs().isEmpty()) {
+                List<EduExamChapterQuestionConfig> chapterConfigs = dto.getChapterConfigs().stream()
+                        .map(item -> {
+                            EduExamChapterQuestionConfig config = new EduExamChapterQuestionConfig();
+                            config.setExamId(examId);
+                            config.setChapterId(item.getChapterId());
+                            config.setQuestionType(item.getQuestionType());
+                            config.setQuestionCount(item.getQuestionCount());
+                            config.setScorePerQuestion(item.getScorePerQuestion());
+                            return config;
+                        }).toList();
+                eduExamChapterQuestionConfigMapper.insertBatch(chapterConfigs);
+            }
         }
     }
 
@@ -252,6 +255,9 @@ public class EduExamServiceImpl implements EduExamService {
         if (exam == null) {
             throw new EduException(EduErrorCode.EXAM_NOT_FOUND);
         }
+        // 级联清理关联配置
+        eduExamQuestionTypeConfigMapper.deleteByExamId(id);
+        eduExamChapterQuestionConfigMapper.deleteByExamId(id);
         eduExamMapper.deleteById(id);
     }
 

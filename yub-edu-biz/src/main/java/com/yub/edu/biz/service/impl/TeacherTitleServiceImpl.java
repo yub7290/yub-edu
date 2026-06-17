@@ -22,8 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
+import static java.util.stream.Collectors.toMap;/**
  * 教师职称 Service 实现
  *
  * @Author: bing.yu
@@ -46,11 +48,14 @@ public class TeacherTitleServiceImpl implements TeacherTitleService {
 
         List<TeacherTitlePageRespVO> records = BeanUtils.copyList(list, TeacherTitlePageRespVO.class);
 
-        // 填充教师数量和课程数
+        // 批量查询教师数量（优化 N+1）
+        Map<Long, Integer> teacherCountMap = eduTeacherTitleMapper.selectTeacherCountGroupByTitleId()
+                .stream().collect(toMap(vo -> vo.getTitleId(), vo -> vo.getTeacherCount()));
+
+        // 填充教师数量
         for (TeacherTitlePageRespVO vo : records) {
-            int teacherCount = eduTeacherTitleMapper.countTeachersByTitleId(vo.getId());
-            vo.setTeacherCount(teacherCount);
-            vo.setCourseCount(0); // 课程数暂为0，后续可通过课程表关联统计
+            vo.setTeacherCount(teacherCountMap.getOrDefault(vo.getId(), 0));
+            vo.setCourseCount(0); // 课程数暂为0
         }
 
         return PageResult.of(records, pageInfo.getTotal());

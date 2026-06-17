@@ -11,6 +11,7 @@
         <result column="major_id" property="majorId"/>
         <result column="course_id" property="courseId"/>
         <result column="chapter_id" property="chapterId"/>
+        <result column="answer" property="answer"/>
         <result column="analysis" property="analysis"/>
         <result column="knowledge_points" property="knowledgePoints"/>
         <result column="create_time" property="createTime"/>
