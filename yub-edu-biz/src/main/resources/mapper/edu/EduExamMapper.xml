@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduExamMapper">
+
+    <resultMap id="EduExamMap" type="com.yub.edu.biz.entity.EduExam">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="subtitle" property="subtitle"/>
+        <result column="major_id" property="majorId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="is_final_exam" property="isFinalExam"/>
+        <result column="status" property="status"/>
+        <result column="recommended" property="recommended"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="duration" property="duration"/>
+        <result column="total_score" property="totalScore"/>
+        <result column="pass_score" property="passScore"/>
+        <result column="introduction" property="introduction"/>
+        <result column="notes" property="notes"/>
+        <result column="examiner" property="examiner"/>
+        <result column="logo" property="logo"/>
+        <result column="question_range_type" property="questionRangeType"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+        <result column="major_name" property="majorName"/>
+        <result column="course_name" property="courseName"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, title, subtitle, major_id, course_id, is_final_exam, status, recommended,
+        difficulty, duration, total_score, pass_score,
+        introduction, notes, examiner, logo, question_range_type,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectById" resultMap="EduExamMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_exam (title, subtitle, major_id, course_id, is_final_exam, status, recommended,
+                              difficulty, duration, total_score, pass_score,
+                              introduction, notes, examiner, logo, question_range_type,
+                              create_time, update_time, create_by, update_by)
+        VALUES (#{title}, #{subtitle}, #{majorId}, #{courseId}, #{isFinalExam}, #{status}, #{recommended},
+                #{difficulty}, #{duration}, #{totalScore}, #{passScore},
+                #{introduction}, #{notes}, #{examiner}, #{logo}, #{questionRangeType},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_exam SET title = #{title}, subtitle = #{subtitle}, major_id = #{majorId},
+            course_id = #{courseId}, is_final_exam = #{isFinalExam}, status = #{status},
+            recommended = #{recommended}, difficulty = #{difficulty}, duration = #{duration},
+            total_score = #{totalScore}, pass_score = #{passScore},
+            introduction = #{introduction}, notes = #{notes}, examiner = #{examiner},
+            logo = #{logo}, question_range_type = #{questionRangeType},
+            update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_exam SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="restoreById">
+        UPDATE edu_exam SET deleted = 0 WHERE id = #{id}
+    </update>
+
+    <select id="selectRecycleList" resultMap="EduExamMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam
+        WHERE deleted = 1
+        ORDER BY update_time DESC
+    </select>
+
+    <delete id="deletePhysicallyById">
+        DELETE FROM edu_exam WHERE id = #{id} AND deleted = 1
+    </delete>
+
+    <select id="selectPage" resultMap="EduExamMap">
+        SELECT e.id, e.title, e.subtitle, e.major_id, e.course_id, e.is_final_exam, e.status, e.recommended,
+               e.difficulty, e.duration, e.total_score, e.pass_score,
+               e.introduction, e.notes, e.examiner, e.logo, e.question_range_type,
+               e.create_time, e.update_time, e.create_by, e.update_by, e.deleted,
+               m.name AS major_name, c.name AS course_name
+        FROM edu_exam e
+        LEFT JOIN edu_major m ON e.major_id = m.id AND m.deleted = 0
+        LEFT JOIN edu_course c ON e.course_id = c.id AND c.deleted = 0
+        WHERE e.deleted = 0
+        <if test="query.title != null and query.title != ''">
+            AND e.title LIKE CONCAT('%', #{query.title}, '%')
+        </if>
+        <if test="query.courseId != null">
+            AND e.course_id = #{query.courseId}
+        </if>
+        <if test="query.status != null">
+            AND e.status = #{query.status}
+        </if>
+        ORDER BY e.id DESC
+    </select>
+
+    <select id="selectPageCount" resultType="long">
+        SELECT COUNT(*)
+        FROM edu_exam e
+        WHERE e.deleted = 0
+        <if test="query.title != null and query.title != ''">
+            AND e.title LIKE CONCAT('%', #{query.title}, '%')
+        </if>
+        <if test="query.courseId != null">
+            AND e.course_id = #{query.courseId}
+        </if>
+        <if test="query.status != null">
+            AND e.status = #{query.status}
+        </if>
+    </select>
+
+    <select id="selectByTitle" resultMap="EduExamMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam
+        WHERE title = #{title} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <update id="updateStatus">
+        UPDATE edu_exam SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+</mapper>

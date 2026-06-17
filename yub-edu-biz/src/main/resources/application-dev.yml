@@ -13,3 +13,10 @@ spring:
 
 jwt:
   secret: "/fpXjBn1LuNfzSZADKEP6x8scSsUIrg2lMXLnJZj3W4="
+
+# 七牛云配置
+qiniu:
+  access-key: bTvYj1nirulPnfusmg-vG-sAGzSMZUbGbCvBRGdW
+  secret-key: qogThvZIYKj9ZMheSBPmbYrm9fPVMzv2Okh_4BXv
+  bucket: yub-learn-system
+  domain: http://tgnxos2ym.hn-bkt.clouddn.com

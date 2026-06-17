@@ -1,0 +1,22 @@
+CREATE TABLE `edu_chapter` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `course_id` bigint NOT NULL COMMENT '所属课程ID',
+  `parent_id` bigint NOT NULL DEFAULT '0' COMMENT '上级章节ID（0=顶级）',
+  `name` varchar(200) NOT NULL COMMENT '章节名称',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态 1:启用 0:禁用',
+  `is_completed` tinyint NOT NULL DEFAULT '0' COMMENT '是否完结 1:是 0:否',
+  `is_free` tinyint NOT NULL DEFAULT '0' COMMENT '是否免费 1:是 0:否',
+  `content_text` text COMMENT '图文资料（富文本）',
+  `is_live` tinyint NOT NULL DEFAULT '0' COMMENT '是否直播课 1:是 0:否',
+  `live_start_time` datetime DEFAULT NULL COMMENT '直播开始时间',
+  `live_duration` int DEFAULT NULL COMMENT '直播时长（分钟）',
+  `sort` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标记 0:正常 1:已删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_course_id` (`course_id`),
+  KEY `idx_parent_id` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='章节表';

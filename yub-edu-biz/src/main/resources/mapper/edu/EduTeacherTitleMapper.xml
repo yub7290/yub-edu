@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduTeacherTitleMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduTeacherTitle">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="remark" property="remark"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, name, remark, status,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_teacher_title
+        WHERE deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.status != null">
+            AND status = #{query.status}
+        </if>
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_teacher_title
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectAllEnabled" resultMap="BaseResultMap">
+        SELECT id, name
+        FROM edu_teacher_title
+        WHERE status = 1 AND deleted = 0
+        ORDER BY id ASC
+    </select>
+
+    <select id="countTeachersByTitleId" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_teacher
+        WHERE title_id = #{titleId} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_teacher_title (name, remark, status,
+                                       create_time, update_time, create_by, update_by)
+        VALUES (#{name}, #{remark}, #{status},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_teacher_title
+        SET name        = #{name},
+            remark      = #{remark},
+            status      = #{status},
+            update_time = NOW(),
+            update_by   = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_teacher_title SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_teacher_title SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

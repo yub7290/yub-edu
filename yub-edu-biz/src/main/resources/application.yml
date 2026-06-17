@@ -8,9 +8,12 @@ spring:
     name: learn-system
   profiles:
     active: dev
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
 
 mybatis:
-  mapper-locations: classpath:mapper/**/*.xml
+  mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduMajorMapper">
+
+    <resultMap id="EduMajorMap" type="com.yub.edu.biz.entity.EduMajor">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="name" property="name"/>
+        <result column="alias" property="alias"/>
+        <result column="status" property="status"/>
+        <result column="recommended" property="recommended"/>
+        <result column="description" property="description"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="detail" property="detail"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, parent_id, name, alias, status, recommended, description, image_url, detail, sort,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectTree" resultMap="EduMajorMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_major
+        WHERE deleted = 0
+        ORDER BY parent_id ASC, sort ASC, id ASC
+    </select>
+
+    <select id="selectList" resultMap="EduMajorMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_major
+        WHERE deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.status != null">
+            AND status = #{query.status}
+        </if>
+        ORDER BY parent_id ASC, sort ASC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="EduMajorMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_major
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByNameAndParentId" resultMap="EduMajorMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_major
+        WHERE name = #{name} AND parent_id = #{parentId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="countByParentId" resultType="int">
+        SELECT COUNT(1) FROM edu_major WHERE parent_id = #{parentId} AND deleted = 0
+    </select>
+
+    <select id="countCoursesByMajorId" resultType="int">
+        SELECT COUNT(1) FROM edu_course WHERE major_id = #{majorId} AND deleted = 0
+    </select>
+
+    <select id="countQuestionsByMajorId" resultType="int">
+        SELECT COUNT(1) FROM edu_question WHERE major_id = #{majorId} AND deleted = 0
+    </select>
+
+    <select id="countExamsByMajorId" resultType="int">
+        SELECT COUNT(1) FROM edu_exam WHERE major_id = #{majorId} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_major (parent_id, name, alias, status, recommended, description, image_url, detail, sort,
+                               create_time, update_time, create_by, update_by)
+        VALUES (#{parentId}, #{name}, #{alias}, #{status}, #{recommended}, #{description}, #{imageUrl}, #{detail}, #{sort},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_major
+        SET parent_id    = #{parentId},
+            name         = #{name},
+            alias        = #{alias},
+            status       = #{status},
+            recommended  = #{recommended},
+            description  = #{description},
+            image_url    = #{imageUrl},
+            detail       = #{detail},
+            sort         = #{sort},
+            update_time  = NOW(),
+            update_by    = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_major SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="restoreById">
+        UPDATE edu_major SET deleted = 0 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_major SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateRecommended">
+        UPDATE edu_major SET recommended = #{recommended} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectRecycleList" resultMap="EduMajorMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_major
+        WHERE deleted = 1
+        ORDER BY update_time DESC
+    </select>
+
+    <delete id="deletePhysicallyById">
+        DELETE FROM edu_major WHERE id = #{id} AND deleted = 1
+    </delete>
+</mapper>

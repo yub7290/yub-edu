@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduAnnouncementMapper">
+
+    <resultMap id="EduAnnouncementMap" type="com.yub.edu.biz.entity.EduAnnouncement">
+        <id column="id" property="id"/>
+        <result column="course_id" property="courseId"/>
+        <result column="title" property="title"/>
+        <result column="long_title" property="longTitle"/>
+        <result column="category" property="category"/>
+        <result column="summary" property="summary"/>
+        <result column="source" property="source"/>
+        <result column="status" property="status"/>
+        <result column="content" property="content"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, course_id, title, long_title, category, summary, source, status, content,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="EduAnnouncementMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_announcement
+        WHERE deleted = 0
+        <if test="courseId != null">
+            AND course_id = #{courseId}
+        </if>
+        <if test="title != null and title != ''">
+            AND title LIKE CONCAT('%', #{title}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectPageCount" resultType="int">
+        SELECT COUNT(*)
+        FROM edu_announcement
+        WHERE deleted = 0
+        <if test="courseId != null">
+            AND course_id = #{courseId}
+        </if>
+        <if test="title != null and title != ''">
+            AND title LIKE CONCAT('%', #{title}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="selectById" resultMap="EduAnnouncementMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_announcement
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_announcement (course_id, title, long_title, category, summary, source, status, content,
+                                      create_time, update_time, create_by, update_by)
+        VALUES (#{courseId}, #{title}, #{longTitle}, #{category}, #{summary}, #{source}, #{status}, #{content},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_announcement
+        SET course_id = #{courseId}, title = #{title}, long_title = #{longTitle},
+            category = #{category}, summary = #{summary}, source = #{source},
+            status = #{status}, content = #{content},
+            update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_announcement SET deleted = 1 WHERE id = #{id}
+    </update>
+</mapper>

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduTeacherMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduTeacher">
+        <id column="id" property="id"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="account" property="account"/>
+        <result column="password" property="password"/>
+        <result column="name" property="name"/>
+        <result column="title_id" property="titleId"/>
+        <result column="pinyin_abbr" property="pinyinAbbr"/>
+        <result column="gender" property="gender"/>
+        <result column="phone" property="phone"/>
+        <result column="id_card" property="idCard"/>
+        <result column="status" property="status"/>
+        <result column="fixed_phone" property="fixedPhone"/>
+        <result column="email" property="email"/>
+        <result column="qq" property="qq"/>
+        <result column="wechat" property="wechat"/>
+        <result column="address" property="address"/>
+        <result column="mailing_address" property="mailingAddress"/>
+        <result column="zip_code" property="zipCode"/>
+        <result column="emergency_contact" property="emergencyContact"/>
+        <result column="emergency_phone" property="emergencyPhone"/>
+        <result column="birth_date" property="birthDate"/>
+        <result column="education" property="education"/>
+        <result column="major" property="major"/>
+        <result column="native_place" property="nativePlace"/>
+        <result column="work_unit" property="workUnit"/>
+        <result column="nationality" property="nationality"/>
+        <result column="signature" property="signature"/>
+        <result column="bio" property="bio"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, avatar_url, account, password, name, title_id, pinyin_abbr, gender,
+        phone, id_card, status, fixed_phone, email, qq, wechat, address,
+        mailing_address, zip_code, emergency_contact, emergency_phone,
+        birth_date, education, major, native_place, work_unit, nationality,
+        signature, bio, last_login_time,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT t.id, t.avatar_url, t.account, t.name, t.title_id, t.pinyin_abbr, t.gender,
+               t.phone, t.id_card, t.status, t.fixed_phone, t.email, t.qq, t.wechat,
+               t.address, t.mailing_address, t.zip_code, t.emergency_contact, t.emergency_phone,
+               t.birth_date, t.education, t.major, t.native_place, t.work_unit, t.nationality,
+               t.signature, t.bio, t.last_login_time,
+               t.create_time, t.update_time, t.create_by, t.update_by
+        FROM edu_teacher t
+        WHERE t.deleted = 0
+        <if test="query.account != null and query.account != ''">
+            AND t.account LIKE CONCAT('%', #{query.account}, '%')
+        </if>
+        <if test="query.name != null and query.name != ''">
+            AND t.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.phone != null and query.phone != ''">
+            AND t.phone LIKE CONCAT('%', #{query.phone}, '%')
+        </if>
+        <if test="query.titleId != null">
+            AND t.title_id = #{query.titleId}
+        </if>
+        <if test="query.education != null and query.education != ''">
+            AND t.education = #{query.education}
+        </if>
+        <if test="query.status != null">
+            AND t.status = #{query.status}
+        </if>
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_teacher
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByAccountIncludeDeleted" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_teacher
+        WHERE account = #{account}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_teacher (avatar_url, account, password, name, title_id, pinyin_abbr, gender,
+                                 phone, id_card, status, fixed_phone, email, qq, wechat,
+                                 address, mailing_address, zip_code, emergency_contact, emergency_phone,
+                                 birth_date, education, major, native_place, work_unit, nationality,
+                                 signature, bio,
+                                 create_time, update_time, create_by, update_by)
+        VALUES (#{avatarUrl}, #{account}, #{password}, #{name}, #{titleId}, #{pinyinAbbr}, #{gender},
+                #{phone}, #{idCard}, #{status}, #{fixedPhone}, #{email}, #{qq}, #{wechat},
+                #{address}, #{mailingAddress}, #{zipCode}, #{emergencyContact}, #{emergencyPhone},
+                #{birthDate}, #{education}, #{major}, #{nativePlace}, #{workUnit}, #{nationality},
+                #{signature}, #{bio},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_teacher
+        SET avatar_url         = #{avatarUrl},
+            name               = #{name},
+            title_id           = #{titleId},
+            pinyin_abbr        = #{pinyinAbbr},
+            gender             = #{gender},
+            phone              = #{phone},
+            id_card            = #{idCard},
+            status             = #{status},
+            fixed_phone        = #{fixedPhone},
+            email              = #{email},
+            qq                 = #{qq},
+            wechat             = #{wechat},
+            address            = #{address},
+            mailing_address    = #{mailingAddress},
+            zip_code           = #{zipCode},
+            emergency_contact  = #{emergencyContact},
+            emergency_phone    = #{emergencyPhone},
+            birth_date         = #{birthDate},
+            education          = #{education},
+            major              = #{major},
+            native_place       = #{nativePlace},
+            work_unit          = #{workUnit},
+            nationality        = #{nationality},
+            signature          = #{signature},
+            bio                = #{bio},
+            update_time        = NOW(),
+            update_by          = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_teacher SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="deleteBatch">
+        UPDATE edu_teacher SET deleted = 1 WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_teacher SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updatePassword">
+        UPDATE edu_teacher SET password = #{password} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectAllEnabled" resultType="com.yub.edu.biz.entity.EduTeacher">
+        SELECT id, name FROM edu_teacher WHERE status = 1 AND deleted = 0 ORDER BY id ASC
+    </select>
+
+</mapper>

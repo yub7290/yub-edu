@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduCourseMapper">
+
+    <resultMap id="EduCourseMap" type="com.yub.edu.biz.entity.EduCourse">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="major_id" property="majorId"/>
+        <result column="course_type" property="courseType"/>
+        <result column="status" property="status"/>
+        <result column="recommended" property="recommended"/>
+        <result column="sort" property="sort"/>
+        <result column="learning_objectives" property="learningObjectives"/>
+        <result column="introduction" property="introduction"/>
+        <result column="months_required" property="monthsRequired"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="is_free" property="isFree"/>
+        <result column="is_free_limited" property="isFreeLimited"/>
+        <result column="free_start_time" property="freeStartTime"/>
+        <result column="free_end_time" property="freeEndTime"/>
+        <result column="allow_trial" property="allowTrial"/>
+        <result column="teacher" property="teacher"/>
+        <result column="student_count" property="studentCount"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="chapter_count" property="chapterCount"/>
+        <result column="question_count" property="questionCount"/>
+        <result column="exam_count" property="examCount"/>
+        <result column="video_count" property="videoCount"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <resultMap id="CoursePageVOMap" type="com.yub.edu.biz.vo.CoursePageRespVO">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="is_free" property="isFree"/>
+        <result column="status" property="status"/>
+        <result column="recommended" property="recommended"/>
+        <result column="course_type" property="courseType"/>
+        <result column="major_name" property="majorName"/>
+        <result column="teacher" property="teacher"/>
+        <result column="chapter_count" property="chapterCount"/>
+        <result column="question_count" property="questionCount"/>
+        <result column="exam_count" property="examCount"/>
+        <result column="video_count" property="videoCount"/>
+        <result column="student_count" property="studentCount"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, name, image_url, major_id, course_type, status, recommended, sort,
+        learning_objectives, introduction, months_required, total_price,
+        is_free, is_free_limited, free_start_time, free_end_time, allow_trial,
+        teacher, student_count, view_count, chapter_count, question_count,
+        exam_count, video_count, create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="CoursePageVOMap">
+        SELECT c.id, c.name, c.image_url, c.total_price, c.is_free, c.status, c.recommended,
+               c.course_type, c.teacher, c.chapter_count, c.question_count, c.exam_count,
+               c.video_count, c.student_count, c.view_count, c.create_time,
+               m.name AS major_name
+        FROM edu_course c
+        LEFT JOIN edu_major m ON c.major_id = m.id AND m.deleted = 0
+        WHERE c.deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND c.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.majorId != null">
+            AND c.major_id = #{query.majorId}
+        </if>
+        <if test="query.status != null">
+            AND c.status = #{query.status}
+        </if>
+        ORDER BY c.sort ASC, c.id DESC
+    </select>
+
+    <select id="selectById" resultMap="EduCourseMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_course
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByName" resultMap="EduCourseMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_course
+        WHERE name = #{name} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_course (name, image_url, major_id, course_type, status, recommended, sort,
+                                learning_objectives, introduction, months_required, total_price,
+                                is_free, is_free_limited, free_start_time, free_end_time, allow_trial,
+                                teacher, create_time, update_time, create_by, update_by)
+        VALUES (#{name}, #{imageUrl}, #{majorId}, #{courseType}, #{status}, #{recommended}, #{sort},
+                #{learningObjectives}, #{introduction}, #{monthsRequired}, #{totalPrice},
+                #{isFree}, #{isFreeLimited}, #{freeStartTime}, #{freeEndTime}, #{allowTrial},
+                #{teacher}, NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_course
+        SET name = #{name}, image_url = #{imageUrl}, major_id = #{majorId},
+            course_type = #{courseType}, status = #{status}, recommended = #{recommended},
+            sort = #{sort}, learning_objectives = #{learningObjectives},
+            introduction = #{introduction}, months_required = #{monthsRequired},
+            total_price = #{totalPrice}, is_free = #{isFree},
+            is_free_limited = #{isFreeLimited}, free_start_time = #{freeStartTime},
+            free_end_time = #{freeEndTime}, allow_trial = #{allowTrial},
+            teacher = #{teacher}, update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_course SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="restoreById">
+        UPDATE edu_course SET deleted = 0 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_course SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateRecommended">
+        UPDATE edu_course SET recommended = #{recommended} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectRecycleList" resultMap="EduCourseMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_course
+        WHERE deleted = 1
+        ORDER BY update_time DESC
+    </select>
+
+    <delete id="deletePhysicallyById">
+        DELETE FROM edu_course WHERE id = #{id} AND deleted = 1
+    </delete>
+</mapper>

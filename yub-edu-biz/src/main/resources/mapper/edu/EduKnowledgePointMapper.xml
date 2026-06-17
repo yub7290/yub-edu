@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduKnowledgePointMapper">
+
+    <resultMap id="EduKnowledgePointMap" type="com.yub.edu.biz.entity.EduKnowledgePoint">
+        <id column="id" property="id"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, category_id, title, content, status,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="EduKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_point
+        WHERE deleted = 0
+        <if test="query.categoryId != null">
+            AND category_id = #{query.categoryId}
+        </if>
+        <if test="query.status != null">
+            AND status = #{query.status}
+        </if>
+        <if test="query.title != null and query.title != ''">
+            AND title LIKE CONCAT('%', #{query.title}, '%')
+        </if>
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectById" resultMap="EduKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_point
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByCategoryId" resultMap="EduKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_point
+        WHERE category_id = #{categoryId} AND deleted = 0 AND status = 1
+        ORDER BY id DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_knowledge_point (category_id, title, content, status, create_time, update_time, create_by, update_by)
+        VALUES (#{categoryId}, #{title}, #{content}, #{status}, NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_knowledge_point
+        SET category_id = #{categoryId}, title = #{title}, content = #{content},
+            status = #{status}, update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_knowledge_point SET deleted = 1 WHERE id = #{id}
+    </update>
+</mapper>

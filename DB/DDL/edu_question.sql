@@ -1,0 +1,22 @@
+CREATE TABLE `edu_question` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `question_type` tinyint NOT NULL COMMENT '试题类型 0:单选 1:多选 2:判断 3:简答 4:填空',
+  `content` text NOT NULL COMMENT '题干（富文本）',
+  `difficulty` tinyint NOT NULL DEFAULT '3' COMMENT '难度 1-5',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态 1:启用 0:禁用',
+  `major_id` bigint DEFAULT NULL COMMENT '所属专业ID',
+  `course_id` bigint DEFAULT NULL COMMENT '所属课程ID',
+  `chapter_id` bigint DEFAULT NULL COMMENT '所属章节ID',
+  `analysis` text COMMENT '解析（富文本）',
+  `knowledge_points` varchar(500) DEFAULT NULL COMMENT '知识点（逗号分隔）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标记 0:正常 1:已删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_course_id` (`course_id`),
+  KEY `idx_question_type` (`question_type`),
+  KEY `idx_difficulty` (`difficulty`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='试题表';

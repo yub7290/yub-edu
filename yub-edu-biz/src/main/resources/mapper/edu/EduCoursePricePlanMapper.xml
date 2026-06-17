@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduCoursePricePlanMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduCoursePricePlan">
+        <id column="id" property="id"/>
+        <result column="course_id" property="courseId"/>
+        <result column="months" property="months"/>
+        <result column="price" property="price"/>
+        <result column="voucher_amount" property="voucherAmount"/>
+        <result column="status" property="status"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, course_id, months, price, voucher_amount, status, sort,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectByCourseId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_course_price_plan
+        WHERE course_id = #{courseId} AND deleted = 0
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_course_price_plan WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_course_price_plan (course_id, months, price, voucher_amount, status, sort,
+                                           create_time, update_time, create_by, update_by)
+        VALUES (#{courseId}, #{months}, #{price}, #{voucherAmount}, #{status}, #{sort},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_course_price_plan
+        SET months         = #{months},
+            price          = #{price},
+            voucher_amount = #{voucherAmount},
+            status         = #{status},
+            sort           = #{sort},
+            update_time    = NOW(),
+            update_by      = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_course_price_plan SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="deleteByCourseId">
+        UPDATE edu_course_price_plan SET deleted = 1 WHERE course_id = #{courseId}
+    </update>
+
+</mapper>

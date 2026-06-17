@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduKnowledgeCategoryMapper">
+
+    <resultMap id="EduKnowledgeCategoryMap" type="com.yub.edu.biz.entity.EduKnowledgeCategory">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, parent_id, name, description, sort,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectTree" resultMap="EduKnowledgeCategoryMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_category
+        WHERE deleted = 0
+        ORDER BY parent_id ASC, sort ASC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="EduKnowledgeCategoryMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_category
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByNameAndParentId" resultMap="EduKnowledgeCategoryMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_category
+        WHERE name = #{name} AND parent_id = #{parentId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="countByParentId" resultType="int">
+        SELECT COUNT(1) FROM edu_knowledge_category WHERE parent_id = #{parentId} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_knowledge_category (parent_id, name, description, sort, create_time, update_time, create_by, update_by)
+        VALUES (#{parentId}, #{name}, #{description}, #{sort}, NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_knowledge_category
+        SET parent_id = #{parentId}, name = #{name}, description = #{description},
+            sort = #{sort}, update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_knowledge_category SET deleted = 1 WHERE id = #{id}
+    </update>
+</mapper>

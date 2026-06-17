@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduChapterMapper">
+
+    <resultMap id="EduChapterMap" type="com.yub.edu.biz.entity.EduChapter">
+        <id column="id" property="id"/>
+        <result column="course_id" property="courseId"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="name" property="name"/>
+        <result column="status" property="status"/>
+        <result column="is_completed" property="isCompleted"/>
+        <result column="is_free" property="isFree"/>
+        <result column="content_text" property="contentText"/>
+        <result column="is_live" property="isLive"/>
+        <result column="live_start_time" property="liveStartTime"/>
+        <result column="live_duration" property="liveDuration"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, course_id, parent_id, name, status, is_completed, is_free, content_text,
+        is_live, live_start_time, live_duration, sort,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectTreeByCourseId" resultMap="EduChapterMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_chapter
+        WHERE course_id = #{courseId} AND deleted = 0
+        ORDER BY parent_id ASC, sort ASC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="EduChapterMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_chapter
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="countByParentId" resultType="int">
+        SELECT COUNT(1) FROM edu_chapter WHERE parent_id = #{parentId} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_chapter (course_id, parent_id, name, status, is_completed, is_free, content_text,
+                                 is_live, live_start_time, live_duration, sort,
+                                 create_time, update_time, create_by, update_by)
+        VALUES (#{courseId}, #{parentId}, #{name}, #{status}, #{isCompleted}, #{isFree}, #{contentText},
+                #{isLive}, #{liveStartTime}, #{liveDuration}, #{sort},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_chapter
+        SET parent_id = #{parentId}, name = #{name}, status = #{status},
+            is_completed = #{isCompleted}, is_free = #{isFree},
+            content_text = #{contentText}, is_live = #{isLive},
+            live_start_time = #{liveStartTime}, live_duration = #{liveDuration},
+            sort = #{sort}, update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_chapter SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <select id="selectRecycleList" resultMap="EduChapterMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_chapter
+        WHERE deleted = 1
+        ORDER BY update_time DESC
+    </select>
+
+    <delete id="deletePhysicallyById">
+        DELETE FROM edu_chapter WHERE id = #{id} AND deleted = 1
+    </delete>
+</mapper>

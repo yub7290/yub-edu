@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduQuestionOptionMapper">
+
+    <resultMap id="EduQuestionOptionMap" type="com.yub.edu.biz.entity.EduQuestionOption">
+        <id column="id" property="id"/>
+        <result column="question_id" property="questionId"/>
+        <result column="label" property="label"/>
+        <result column="content" property="content"/>
+        <result column="is_correct" property="isCorrect"/>
+        <result column="sort" property="sort"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, question_id, label, content, is_correct, sort
+    </sql>
+
+    <select id="selectByQuestionId" resultMap="EduQuestionOptionMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_question_option
+        WHERE question_id = #{questionId}
+        ORDER BY sort ASC
+    </select>
+
+    <insert id="insertBatch">
+        INSERT INTO edu_question_option (question_id, label, content, is_correct, sort) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.questionId}, #{item.label}, #{item.content}, #{item.isCorrect}, #{item.sort})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByQuestionId">
+        DELETE FROM edu_question_option WHERE question_id = #{questionId}
+    </delete>
+</mapper>

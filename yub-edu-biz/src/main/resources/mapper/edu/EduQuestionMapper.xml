@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduQuestionMapper">
+
+    <resultMap id="EduQuestionMap" type="com.yub.edu.biz.entity.EduQuestion">
+        <id column="id" property="id"/>
+        <result column="question_type" property="questionType"/>
+        <result column="content" property="content"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="status" property="status"/>
+        <result column="major_id" property="majorId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="chapter_id" property="chapterId"/>
+        <result column="analysis" property="analysis"/>
+        <result column="knowledge_points" property="knowledgePoints"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <resultMap id="QuestionPageVOMap" type="com.yub.edu.biz.vo.QuestionPageRespVO">
+        <id column="id" property="id"/>
+        <result column="question_type" property="questionType"/>
+        <result column="content" property="content"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="status" property="status"/>
+        <result column="course_name" property="courseName"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, question_type, content, difficulty, status, major_id, course_id, chapter_id,
+        analysis, knowledge_points, answer, create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="QuestionPageVOMap">
+        SELECT q.id, q.question_type, SUBSTRING(q.content, 1, 100) AS content, q.difficulty, q.status,
+               c.name AS course_name, q.create_time
+        FROM edu_question q
+        LEFT JOIN edu_course c ON q.course_id = c.id AND c.deleted = 0
+        WHERE q.deleted = 0
+        <if test="query.questionType != null">
+            AND q.question_type = #{query.questionType}
+        </if>
+        <if test="query.difficulty != null">
+            AND q.difficulty = #{query.difficulty}
+        </if>
+        <if test="query.courseId != null">
+            AND q.course_id = #{query.courseId}
+        </if>
+        <if test="query.status != null">
+            AND q.status = #{query.status}
+        </if>
+        ORDER BY q.id DESC
+    </select>
+
+    <select id="selectById" resultMap="EduQuestionMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_question
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_question (question_type, content, difficulty, status, major_id, course_id, chapter_id,
+                                  analysis, knowledge_points, answer, create_time, update_time, create_by, update_by)
+        VALUES (#{questionType}, #{content}, #{difficulty}, #{status}, #{majorId}, #{courseId}, #{chapterId},
+                #{analysis}, #{knowledgePoints}, #{answer}, NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_question
+        SET question_type = #{questionType}, content = #{content}, difficulty = #{difficulty},
+            status = #{status}, major_id = #{majorId}, course_id = #{courseId},
+            chapter_id = #{chapterId}, analysis = #{analysis},
+            knowledge_points = #{knowledgePoints}, answer = #{answer},
+            update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_question SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="restoreById">
+        UPDATE edu_question SET deleted = 0 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_question SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectRecycleList" resultMap="EduQuestionMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_question
+        WHERE deleted = 1
+        ORDER BY update_time DESC
+    </select>
+
+    <delete id="deletePhysicallyById">
+        DELETE FROM edu_question WHERE id = #{id} AND deleted = 1
+    </delete>
+</mapper>

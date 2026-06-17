@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduExamQuestionTypeConfigMapper">
+
+    <resultMap id="EduExamQuestionTypeConfigMap" type="com.yub.edu.biz.entity.EduExamQuestionTypeConfig">
+        <id column="id" property="id"/>
+        <result column="exam_id" property="examId"/>
+        <result column="question_type" property="questionType"/>
+        <result column="question_count" property="questionCount"/>
+        <result column="score_per_question" property="scorePerQuestion"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, exam_id, question_type, question_count, score_per_question
+    </sql>
+
+    <insert id="insertBatch">
+        INSERT INTO edu_exam_question_type_config (exam_id, question_type, question_count, score_per_question)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.examId}, #{item.questionType}, #{item.questionCount}, #{item.scorePerQuestion})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByExamId">
+        DELETE FROM edu_exam_question_type_config WHERE exam_id = #{examId}
+    </delete>
+
+    <select id="selectByExamId" resultMap="EduExamQuestionTypeConfigMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_question_type_config
+        WHERE exam_id = #{examId}
+        ORDER BY question_type ASC
+    </select>
+</mapper>
