@@ -5,12 +5,8 @@ import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduExam;
 import com.yub.edu.biz.entity.EduMajor;
 import com.yub.edu.biz.entity.EduQuestion;
-import com.yub.edu.biz.mapper.EduCourseMapper;
-import com.yub.edu.biz.mapper.EduExamMapper;
-import com.yub.edu.biz.mapper.EduMajorMapper;
-import com.yub.edu.biz.mapper.EduQuestionMapper;
+import com.yub.edu.biz.service.RecycleService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,29 +29,24 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EduRecycleController {
 
-    private final EduMajorMapper eduMajorMapper;
-    private final EduCourseMapper eduCourseMapper;
-    private final EduQuestionMapper eduQuestionMapper;
-    private final EduExamMapper eduExamMapper;
+    private final RecycleService recycleService;
 
     // ========== 专业回收 ==========
 
     @GetMapping("/major")
     public Response<List<EduMajor>> majorList() {
-        return Response.success(eduMajorMapper.selectRecycleList());
+        return Response.success(recycleService.getMajorList());
     }
 
     @PutMapping("/major/{id}/restore")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> majorRestore(@PathVariable Long id) {
-        eduMajorMapper.restoreById(id);
+        recycleService.restoreMajor(id);
         return Response.success();
     }
 
     @DeleteMapping("/major/{id}")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> majorDelete(@PathVariable Long id) {
-        eduMajorMapper.deletePhysicallyById(id);
+        recycleService.deleteMajor(id);
         return Response.success();
     }
 
@@ -63,20 +54,18 @@ public class EduRecycleController {
 
     @GetMapping("/course")
     public Response<List<EduCourse>> courseList() {
-        return Response.success(eduCourseMapper.selectRecycleList());
+        return Response.success(recycleService.getCourseList());
     }
 
     @PutMapping("/course/{id}/restore")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> courseRestore(@PathVariable Long id) {
-        eduCourseMapper.restoreById(id);
+        recycleService.restoreCourse(id);
         return Response.success();
     }
 
     @DeleteMapping("/course/{id}")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> courseDelete(@PathVariable Long id) {
-        eduCourseMapper.deletePhysicallyById(id);
+        recycleService.deleteCourse(id);
         return Response.success();
     }
 
@@ -84,20 +73,18 @@ public class EduRecycleController {
 
     @GetMapping("/question")
     public Response<List<EduQuestion>> questionList() {
-        return Response.success(eduQuestionMapper.selectRecycleList());
+        return Response.success(recycleService.getQuestionList());
     }
 
     @PutMapping("/question/{id}/restore")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> questionRestore(@PathVariable Long id) {
-        eduQuestionMapper.restoreById(id);
+        recycleService.restoreQuestion(id);
         return Response.success();
     }
 
     @DeleteMapping("/question/{id}")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> questionDelete(@PathVariable Long id) {
-        eduQuestionMapper.deletePhysicallyById(id);
+        recycleService.deleteQuestion(id);
         return Response.success();
     }
 
@@ -105,20 +92,18 @@ public class EduRecycleController {
 
     @GetMapping("/exam")
     public Response<List<EduExam>> examList() {
-        return Response.success(eduExamMapper.selectRecycleList());
+        return Response.success(recycleService.getExamList());
     }
 
     @PutMapping("/exam/{id}/restore")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> examRestore(@PathVariable Long id) {
-        eduExamMapper.restoreById(id);
+        recycleService.restoreExam(id);
         return Response.success();
     }
 
     @DeleteMapping("/exam/{id}")
-    @Transactional(rollbackFor = Exception.class)
     public Response<Void> examDelete(@PathVariable Long id) {
-        eduExamMapper.deletePhysicallyById(id);
+        recycleService.deleteExam(id);
         return Response.success();
     }
 }

@@ -10,12 +10,11 @@ import com.yub.edu.biz.dto.TeacherUpdateReqDTO;
 import com.yub.edu.biz.service.TeacherService;
 import com.yub.edu.biz.entity.EduTeacher;
 import com.yub.edu.biz.vo.TeacherDetailRespVO;
+import com.yub.edu.biz.vo.TeacherOptionVO;
 import com.yub.edu.biz.vo.TeacherPageRespVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import java.util.List;
 
@@ -132,7 +131,11 @@ public class TeacherController {
      * 获取所有启用的教师列表（下拉框用）
      */
     @GetMapping("/options")
-    public Response<List<EduTeacher>> options() {
-        return Response.success(teacherService.selectAllEnabled());
+    public Response<List<TeacherOptionVO>> options() {
+        List<EduTeacher> teachers = teacherService.selectAllEnabled();
+        List<TeacherOptionVO> voList = teachers.stream()
+                .map(t -> TeacherOptionVO.builder().id(t.getId()).name(t.getName()).build())
+                .toList();
+        return Response.success(voList);
     }
 }

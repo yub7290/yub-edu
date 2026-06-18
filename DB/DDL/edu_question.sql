@@ -9,6 +9,7 @@ CREATE TABLE `edu_question` (
   `chapter_id` bigint DEFAULT NULL COMMENT '所属章节ID',
   `analysis` text COMMENT '解析（富文本）',
   `knowledge_points` varchar(500) DEFAULT NULL COMMENT '知识点（逗号分隔）',
+  `answer` text COMMENT '答案（判断题/简答题/填空题）',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `create_by` bigint DEFAULT NULL COMMENT '创建人',

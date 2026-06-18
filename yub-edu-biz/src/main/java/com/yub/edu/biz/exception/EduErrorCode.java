@@ -41,6 +41,9 @@ public enum EduErrorCode implements ErrorCode {
     /** 章节不存在 */
     CHAPTER_NOT_FOUND(200041, "章节不存在"),
 
+    /** 章节下存在子章节 */
+    CHAPTER_HAS_CHILDREN(200042, "该章节下存在子章节，无法删除"),
+
     /** 知识点不存在 */
     KNOWLEDGE_POINT_NOT_FOUND(200051, "知识点不存在"),
 

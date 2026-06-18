@@ -74,7 +74,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
         String fileName = generateFileName(file, directory);
 
-        Response response = uploadManager.put(file.getBytes(), fileName, upToken);
+        Response response = uploadManager.put(file.getInputStream(), fileName, upToken);
         DefaultPutRet putRet = new Gson().fromJson(response.bodyString(), DefaultPutRet.class);
 
         String fileUrl = qiniuConfig.getDomain() + "/" + putRet.key;
