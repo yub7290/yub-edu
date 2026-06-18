@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.StudyRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduStudyRecord">
+        <id column="id" property="id"/>
+        <result column="student_id" property="studentId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="chapter_id" property="chapterId"/>
+        <result column="play_second" property="playSecond"/>
+        <result column="total_study_second" property="totalStudySecond"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByStudentAndChapter" resultMap="BaseResultMap">
+        SELECT id, student_id, course_id, chapter_id, play_second, total_study_second, create_time, update_time
+        FROM edu_study_record
+        WHERE student_id = #{studentId} AND course_id = #{courseId} AND chapter_id = #{chapterId}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_study_record (student_id, course_id, chapter_id, play_second, total_study_second, create_time, update_time)
+        VALUES (#{studentId}, #{courseId}, #{chapterId}, #{playSecond}, #{totalStudySecond}, NOW(), NOW())
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_study_record
+        SET play_second = #{playSecond},
+            total_study_second = #{totalStudySecond},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectTotalStudySecond" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(total_study_second), 0)
+        FROM edu_study_record
+        WHERE student_id = #{studentId}
+    </select>
+
+    <select id="selectCourseCount" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT course_id)
+        FROM edu_study_record
+        WHERE student_id = #{studentId}
+    </select>
+
+</mapper>

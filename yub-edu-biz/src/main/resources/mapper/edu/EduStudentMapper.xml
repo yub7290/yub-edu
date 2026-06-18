@@ -174,4 +174,8 @@
         UPDATE edu_student SET password = #{password} WHERE id = #{id} AND deleted = 0
     </update>
 
+    <update id="updateLastLoginTime">
+        UPDATE edu_student SET last_login_time = NOW() WHERE id = #{id} AND deleted = 0
+    </update>
+
 </mapper>

@@ -66,7 +66,27 @@ public enum EduErrorCode implements ErrorCode {
     /** 学员不存在 */
     STUDENT_NOT_FOUND(200101, "学员不存在"),
     /** 学员账号已存在 */
-    STUDENT_ACCOUNT_EXISTS(200102, "学员账号已存在");
+    STUDENT_ACCOUNT_EXISTS(200102, "学员账号已存在"),
+
+    /** 验证码错误 */
+    CAPTCHA_ERROR(200201, "验证码错误"),
+    /** 账号或密码错误 */
+    STUDENT_PASSWORD_ERROR(200202, "账号或密码错误"),
+    /** 账号已被禁用 */
+    STUDENT_ACCOUNT_DISABLED(200203, "账号已被禁用"),
+    /** Token已过期 */
+    TOKEN_EXPIRED(200204, "Token已过期"),
+    /** Token无效 */
+    TOKEN_INVALID(200205, "Token无效"),
+
+    /** 学员未学习该课程 */
+    COURSE_NOT_STUDIED(200301, "请先学习该课程后再使用AI助教"),
+    /** AI服务调用异常 */
+    AI_SERVICE_ERROR(200302, "AI服务暂时不可用，请稍后重试"),
+    /** AI会话不存在 */
+    AI_CONVERSATION_NOT_FOUND(200303, "会话不存在"),
+    /** 今日对话次数已达上限 */
+    AI_DAILY_LIMIT_EXCEEDED(200304, "今日对话次数已达上限，请明天再试");
 
     private final int code;
     private final String message;

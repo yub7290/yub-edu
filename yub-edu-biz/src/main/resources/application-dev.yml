@@ -20,3 +20,11 @@ qiniu:
   secret-key: qogThvZIYKj9ZMheSBPmbYrm9fPVMzv2Okh_4BXv
   bucket: yub-learn-system
   domain: http://tgnxos2ym.hn-bkt.clouddn.com
+
+# AI助教配置
+ai:
+  api-key: ${AI_API_KEY:tp-c2ajmdwscpit7ihqkxcyaqiwkrjpmxfnal2yob2ygvtztxxf}
+  base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
+  model: ${AI_MODEL:mimo-v2.5}
+  max-tokens: 200000
+  timeout: 60

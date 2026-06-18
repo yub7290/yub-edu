@@ -108,4 +108,12 @@ public interface EduStudentMapper {
      * @return 影响行数
      */
     int updatePassword(@Param("id") Long id, @Param("password") String encodedPwd);
+
+    /**
+     * 更新最后登录时间
+     *
+     * @param id 学员ID
+     * @return 影响行数
+     */
+    int updateLastLoginTime(@Param("id") Long id);
 }

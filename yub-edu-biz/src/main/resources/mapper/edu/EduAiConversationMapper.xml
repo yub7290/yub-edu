@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduAiConversationMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduAiConversation">
+        <id column="id" property="id"/>
+        <result column="student_id" property="studentId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="title" property="title"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT id, student_id, course_id, title, create_time, update_time
+        FROM edu_ai_conversation
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_ai_conversation (student_id, course_id, title, create_time, update_time)
+        VALUES (#{studentId}, #{courseId}, #{title}, NOW(), NOW())
+    </insert>
+
+</mapper>

@@ -8,6 +8,7 @@ import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduMajorMapper;
 import com.yub.edu.biz.service.EduMajorService;
+import com.yub.edu.biz.vo.EduMajorCountVO;
 import com.yub.edu.biz.vo.MajorDetailRespVO;
 import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
