@@ -11,8 +11,6 @@ import com.yub.edu.biz.vo.TeacherPageRespVO;
 
 import java.util.List;
 
-import java.util.List;
-
 /**
  * 教师 Service 接口
  *
@@ -89,4 +87,26 @@ public interface TeacherService {
      * @return 教师列表
      */
     List<EduTeacher> selectAllEnabled();
+
+    /**
+     * 查询推荐教师列表
+     *
+     * @return 推荐教师列表
+     */
+    List<EduTeacher> selectRecommended();
+
+    /**
+     * 查询所有启用教师列表（学生端）
+     *
+     * @return 教师列表
+     */
+    List<EduTeacher> selectStudentList();
+
+    /**
+     * 设置教师推荐状态
+     *
+     * @param id          教师ID
+     * @param recommended 推荐状态（1=推荐 0=不推荐）
+     */
+    void setRecommended(Long id, Integer recommended);
 }

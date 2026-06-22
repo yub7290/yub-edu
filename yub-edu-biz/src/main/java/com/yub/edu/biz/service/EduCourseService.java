@@ -8,6 +8,9 @@ import com.yub.edu.biz.dto.CourseUpdateReqDTO;
 import com.yub.edu.biz.vo.CourseDetailRespVO;
 import com.yub.edu.biz.vo.CourseOverviewRespVO;
 import com.yub.edu.biz.vo.CoursePageRespVO;
+import com.yub.edu.biz.entity.EduCourse;
+
+import java.util.List;
 
 /**
  * 课程服务接口
@@ -80,4 +83,21 @@ public interface EduCourseService {
      * @param recommended 是否推荐
      */
     void setRecommended(Long id, Integer recommended);
+
+    /**
+     * 查询推荐课程列表
+     *
+     * @return 推荐课程列表
+     */
+    List<EduCourse> listRecommended();
+
+    /**
+     * 学生端查询课程列表
+     *
+     * @param cateId  分类ID（可为null）
+     * @param tabType tab类型（0=推荐 1=热门 2=直播 3=免费 4=会员）
+     * @param keyword 搜索关键词（可为null）
+     * @return 课程列表
+     */
+    List<EduCourse> studentList(Long cateId, Integer tabType, String keyword);
 }

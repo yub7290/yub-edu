@@ -44,7 +44,7 @@
         phone, id_card, status, fixed_phone, email, qq, wechat, address,
         mailing_address, zip_code, emergency_contact, emergency_phone,
         birth_date, education, major, native_place, work_unit, nationality,
-        signature, bio, last_login_time,
+        signature, bio, recommended, last_login_time,
         create_time, update_time, create_by, update_by, deleted
     </sql>
 
@@ -53,7 +53,7 @@
                t.phone, t.id_card, t.status, t.fixed_phone, t.email, t.qq, t.wechat,
                t.address, t.mailing_address, t.zip_code, t.emergency_contact, t.emergency_phone,
                t.birth_date, t.education, t.major, t.native_place, t.work_unit, t.nationality,
-               t.signature, t.bio, t.last_login_time,
+               t.signature, t.bio, t.recommended, t.last_login_time,
                t.create_time, t.update_time, t.create_by, t.update_by
         FROM edu_teacher t
         WHERE t.deleted = 0
@@ -156,8 +156,26 @@
         UPDATE edu_teacher SET password = #{password} WHERE id = #{id} AND deleted = 0
     </update>
 
+    <update id="updateRecommended">
+        UPDATE edu_teacher SET recommended = #{recommended} WHERE id = #{id} AND deleted = 0
+    </update>
+
     <select id="selectAllEnabled" resultType="com.yub.edu.biz.entity.EduTeacher">
         SELECT id, name FROM edu_teacher WHERE status = 1 AND deleted = 0 ORDER BY id ASC
+    </select>
+
+    <select id="selectRecommended" resultType="com.yub.edu.biz.entity.EduTeacher">
+        SELECT id, avatar_url, name, title_id, signature
+        FROM edu_teacher
+        WHERE recommended = 1 AND status = 1 AND deleted = 0
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectStudentList" resultType="com.yub.edu.biz.entity.EduTeacher">
+        SELECT id, avatar_url, name, title_id, signature
+        FROM edu_teacher
+        WHERE status = 1 AND deleted = 0
+        ORDER BY id ASC
     </select>
 
 </mapper>

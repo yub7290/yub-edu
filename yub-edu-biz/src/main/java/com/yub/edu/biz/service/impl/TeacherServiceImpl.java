@@ -26,7 +26,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -132,9 +131,7 @@ public class TeacherServiceImpl implements TeacherService {
         EduTeacher teacher = new EduTeacher();
         teacher.setAvatarUrl(req.getAvatarUrl());
         teacher.setAccount(req.getAccount());
-        teacher.setPassword(passwordEncoder.encode(
-                req.getPassword() != null && !req.getPassword().isEmpty()
-                        ? req.getPassword() : DEFAULT_PASSWORD_SM3));
+        teacher.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD_SM3));
         teacher.setName(req.getName());
         teacher.setTitleId(req.getTitleId());
         teacher.setPinyinAbbr(req.getPinyinAbbr());
@@ -250,5 +247,25 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     public List<EduTeacher> selectAllEnabled() {
         return eduTeacherMapper.selectAllEnabled();
+    }
+
+    @Override
+    public List<EduTeacher> selectRecommended() {
+        return eduTeacherMapper.selectRecommended();
+    }
+
+    @Override
+    public List<EduTeacher> selectStudentList() {
+        return eduTeacherMapper.selectStudentList();
+    }
+
+    @Override
+    @Transactional
+    public void setRecommended(Long id, Integer recommended) {
+        EduTeacher exist = eduTeacherMapper.selectById(id);
+        if (exist == null) {
+            throw new EduException(EduErrorCode.TEACHER_NOT_FOUND);
+        }
+        eduTeacherMapper.updateRecommended(id, recommended);
     }
 }

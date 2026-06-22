@@ -57,4 +57,7 @@ public class TeacherPageRespVO {
 
     /** 状态（1=启用 0=禁用） */
     private Integer status;
+
+    /** 是否推荐（1是 0否） */
+    private Integer recommended;
 }

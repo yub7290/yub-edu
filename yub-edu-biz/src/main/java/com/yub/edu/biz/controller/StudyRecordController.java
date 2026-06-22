@@ -3,6 +3,7 @@ package com.yub.edu.biz.controller;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.mapper.StudyRecordMapper;
 import com.yub.edu.biz.entity.EduStudyRecord;
+import com.yub.edu.biz.vo.StudyStatsRespVO;
 import com.yub.framework.security.JwtProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -72,17 +73,17 @@ public class StudyRecordController {
      * 学习统计
      */
     @GetMapping("/stats")
-    public Response<Map<String, Object>> stats(HttpServletRequest request) {
+    public Response<StudyStatsRespVO> stats(HttpServletRequest request) {
         Long studentId = getStudentId(request);
 
         Integer totalStudySecond = studyRecordMapper.selectTotalStudySecond(studentId);
         Integer courseCount = studyRecordMapper.selectCourseCount(studentId);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("courseCount", courseCount != null ? courseCount : 0);
-        data.put("studyHours", totalStudySecond != null ? totalStudySecond / 3600 : 0);
-        data.put("certCount", 0);
-        return Response.success(data);
+        return Response.success(StudyStatsRespVO.builder()
+                .courseCount(courseCount != null ? courseCount : 0)
+                .studyHours(totalStudySecond != null ? totalStudySecond / 3600 : 0)
+                .certCount(0)
+                .build());
     }
 
     private Long getStudentId(HttpServletRequest request) {

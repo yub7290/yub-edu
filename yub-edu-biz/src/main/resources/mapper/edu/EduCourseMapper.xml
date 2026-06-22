@@ -135,6 +135,34 @@
         UPDATE edu_course SET recommended = #{recommended} WHERE id = #{id} AND deleted = 0
     </update>
 
+    <select id="selectByRecommended" resultMap="EduCourseMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_course
+        WHERE recommended = 1 AND status = 1 AND deleted = 0
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectStudentList" resultMap="EduCourseMap">
+        SELECT id, name, image_url, course_type, teacher, view_count, is_free, recommended
+        FROM edu_course
+        WHERE status = 1 AND deleted = 0
+        <if test="tabType == 0">
+            AND recommended = 1
+        </if>
+        <if test="tabType == 3">
+            AND is_free = 1
+        </if>
+        <if test="cateId != null and cateId > 0">
+            AND major_id = #{cateId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY
+        <if test="tabType == 1">view_count DESC,</if>
+        sort ASC, id DESC
+    </select>
+
     <select id="selectRecycleList" resultMap="EduCourseMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_course

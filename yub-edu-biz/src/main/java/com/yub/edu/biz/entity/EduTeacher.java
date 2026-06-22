@@ -60,6 +60,10 @@ public class EduTeacher {
      */
     private Integer status;
     /**
+     * 是否推荐（1是 0否）
+     */
+    private Integer recommended;
+    /**
      * 固定电话
      */
     private String fixedPhone;

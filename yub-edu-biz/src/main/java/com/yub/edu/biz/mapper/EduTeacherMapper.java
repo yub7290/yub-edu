@@ -98,4 +98,27 @@ public interface EduTeacherMapper {
      * @return 教师列表
      */
     List<EduTeacher> selectAllEnabled();
+
+    /**
+     * 查询推荐教师列表
+     *
+     * @return 推荐教师列表
+     */
+    List<EduTeacher> selectRecommended();
+
+    /**
+     * 查询所有启用教师（学生端列表，包含头像/签名等）
+     *
+     * @return 教师列表
+     */
+    List<EduTeacher> selectStudentList();
+
+    /**
+     * 更新教师推荐状态
+     *
+     * @param id          教师ID
+     * @param recommended 推荐状态（1=推荐 0=不推荐）
+     * @return 影响行数
+     */
+    int updateRecommended(@Param("id") Long id, @Param("recommended") Integer recommended);
 }

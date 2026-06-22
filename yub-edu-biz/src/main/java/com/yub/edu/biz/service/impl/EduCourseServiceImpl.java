@@ -8,6 +8,7 @@ import com.yub.edu.biz.dto.CourseCreateReqDTO;
 import com.yub.edu.biz.dto.CourseQueryDTO;
 import com.yub.edu.biz.dto.CourseUpdateReqDTO;
 import com.yub.edu.biz.entity.EduCourse;
+import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduMajor;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
@@ -225,5 +226,15 @@ public class EduCourseServiceImpl implements EduCourseService {
             throw new EduException(EduErrorCode.COURSE_NOT_FOUND);
         }
         eduCourseMapper.updateRecommended(id, recommended);
+    }
+
+    @Override
+    public List<EduCourse> listRecommended() {
+        return eduCourseMapper.selectByRecommended();
+    }
+
+    @Override
+    public List<EduCourse> studentList(Long cateId, Integer tabType, String keyword) {
+        return eduCourseMapper.selectStudentList(cateId, tabType, keyword);
     }
 }

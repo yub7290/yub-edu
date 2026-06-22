@@ -1,14 +1,30 @@
 package com.yub.edu.biz.controller;
 
 import com.yub.common.model.Response;
+import com.yub.edu.biz.entity.EduCourse;
+import com.yub.edu.biz.entity.EduTeacher;
+import com.yub.edu.biz.entity.EduTeacherTitle;
+import com.yub.edu.biz.mapper.EduTeacherTitleMapper;
 import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.service.TeacherService;
-import com.yub.edu.biz.vo.CourseOverviewRespVO;
-import com.yub.edu.biz.vo.TeacherOptionVO;
+import com.yub.edu.biz.vo.CourseRecommendedRespVO;
+import com.yub.edu.biz.vo.TeacherListRespVO;
+import com.yub.edu.biz.vo.TeacherRecommendedRespVO;
+import com.yub.edu.biz.vo.BannerItemRespVO;
+import com.yub.edu.biz.vo.HomeBaseRespVO;
+import com.yub.edu.biz.vo.HomeCourseRespVO;
+import com.yub.edu.biz.vo.HomeSearchRespVO;
+import com.yub.edu.biz.vo.HomeTeacherListRespVO;
+import com.yub.edu.biz.vo.HomeTeacherRespVO;
+import com.yub.edu.biz.vo.NavItemRespVO;
+import com.yub.edu.biz.vo.TeacherInfoRespVO;
+import com.yub.system.entity.system.SysBanner;
+import com.yub.system.mapper.system.SysBannerMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 学生端首页 Controller
@@ -16,7 +32,7 @@ import java.util.*;
  * @Author: bing.yu
  * @CreateTime: 2026-06-18
  * @Description: 学生端首页接口
- * @Version: 1.0.0
+ * @Version: 2.0.0
  */
 @RestController
 @RequestMapping("/student/home")
@@ -25,21 +41,29 @@ public class StudentHomeController {
 
     private final EduCourseService eduCourseService;
     private final TeacherService teacherService;
+    private final SysBannerMapper sysBannerMapper;
+    private final EduTeacherTitleMapper eduTeacherTitleMapper;
 
     /**
      * 首页基础数据（Logo、Banner、导航）
      */
     @GetMapping("/base")
-    public Response<Map<String, Object>> base() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("logo", "/static/logo.png");
-        data.put("banner", new ArrayList<>());
-        data.put("nav", Arrays.asList(
-            Map.of("img", "/static/nav/course.png", "name", "全部课程", "link", "/pages/course/course"),
-            Map.of("img", "/static/nav/exam.png", "name", "在线考试", "link", "/pages/exam/exam"),
-            Map.of("img", "/static/nav/study.png", "name", "我的学习", "link", "/pages/mine/mine"),
-            Map.of("img", "/static/nav/teacher.png", "name", "名师风采", "link", "")
-        ));
+    public Response<HomeBaseRespVO> base() {
+        // 查询启用的Banner
+        List<SysBanner> banners = sysBannerMapper.selectAllEnabled();
+        List<BannerItemRespVO> bannerList = banners.stream().map(b ->
+            BannerItemRespVO.builder()
+                    .id(b.getId())
+                    .imageUrl(b.getImageUrl())
+                    .linkUrl(b.getLinkUrl())
+                    .build()
+        ).toList();
+
+        HomeBaseRespVO data = HomeBaseRespVO.builder()
+                .logo("/static/logo.png")
+                .banner(bannerList)
+                .nav(new ArrayList<>())
+                .build();
         return Response.success(data);
     }
 
@@ -47,45 +71,90 @@ public class StudentHomeController {
      * 推荐教师列表
      */
     @GetMapping("/teacher")
-    public Response<Map<String, Object>> teacher() {
-        Map<String, Object> data = new HashMap<>();
-        List<Map<String, Object>> teacherList = new ArrayList<>();
-        // TODO: 从数据库查询推荐教师，当前返回空列表
-        data.put("list", teacherList);
-        return Response.success(data);
+    public Response<HomeTeacherRespVO> teacher() {
+        List<EduTeacher> teachers = teacherService.selectRecommended();
+        List<Long> titleIds = teachers.stream()
+                .map(EduTeacher::getTitleId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> titleMap = titleIds.isEmpty() ? Collections.emptyMap() :
+                eduTeacherTitleMapper.selectBatchByIds(titleIds).stream()
+                .collect(Collectors.toMap(EduTeacherTitle::getId, EduTeacherTitle::getName));
+
+        List<TeacherRecommendedRespVO> voList = teachers.stream().map(t -> {
+            String titleName = titleMap.get(t.getTitleId());
+            return TeacherRecommendedRespVO.builder()
+                    .id(t.getId())
+                    .avatarUrl(t.getAvatarUrl())
+                    .name(t.getName())
+                    .titleName(titleName)
+                    .build();
+        }).toList();
+        return Response.success(HomeTeacherRespVO.builder().list(voList).build());
     }
 
     /**
      * 推荐课程列表
      */
     @GetMapping("/course")
-    public Response<Map<String, Object>> course() {
-        Map<String, Object> data = new HashMap<>();
-        // TODO: 查询推荐课程（recommended=1），当前返回空列表
-        data.put("list", new ArrayList<>());
-        return Response.success(data);
+    public Response<HomeCourseRespVO> course() {
+        List<EduCourse> courses = eduCourseService.listRecommended();
+        List<CourseRecommendedRespVO> voList = courses.stream().map(c ->
+            CourseRecommendedRespVO.builder()
+                    .id(c.getId())
+                    .imageUrl(c.getImageUrl())
+                    .name(c.getName())
+                    .courseType(c.getCourseType())
+                    .teacherName(c.getTeacher())
+                    .build()
+        ).toList();
+        return Response.success(HomeCourseRespVO.builder().list(voList).build());
     }
 
     /**
      * 搜索课程
      */
     @GetMapping("/search")
-    public Response<Map<String, Object>> search(@RequestParam(required = false) String keyword) {
-        Map<String, Object> data = new HashMap<>();
-        // TODO: 根据关键词搜索课程，当前返回空列表
-        data.put("list", new ArrayList<>());
-        return Response.success(data);
+    public Response<HomeSearchRespVO> search(@RequestParam(required = false) String keyword) {
+        return Response.success(HomeSearchRespVO.builder().list(new ArrayList<>()).build());
     }
 
     /**
      * 教师详情
      */
     @GetMapping("/teacher/info")
-    public Response<Map<String, Object>> teacherInfo(@RequestParam Long tid) {
-        Map<String, Object> data = new HashMap<>();
-        // TODO: 查询教师详情，当前返回空
-        data.put("info", new HashMap<>());
-        data.put("course", new ArrayList<>());
-        return Response.success(data);
+    public Response<TeacherInfoRespVO> teacherInfo(@RequestParam Long tid) {
+        return Response.success(TeacherInfoRespVO.builder()
+                .info(new HashMap<>())
+                .course(new ArrayList<>())
+                .build());
+    }
+
+    /**
+     * 教师列表（所有启用教师）
+     */
+    @GetMapping("/teacher/list")
+    public Response<HomeTeacherListRespVO> teacherList() {
+        List<EduTeacher> teachers = teacherService.selectStudentList();
+        List<Long> titleIds = teachers.stream()
+                .map(EduTeacher::getTitleId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> titleMap = titleIds.isEmpty() ? Collections.emptyMap() :
+                eduTeacherTitleMapper.selectBatchByIds(titleIds).stream()
+                .collect(Collectors.toMap(EduTeacherTitle::getId, EduTeacherTitle::getName));
+
+        List<TeacherListRespVO> voList = teachers.stream().map(t ->
+            TeacherListRespVO.builder()
+                    .id(t.getId())
+                    .avatarUrl(t.getAvatarUrl())
+                    .name(t.getName())
+                    .titleName(titleMap.get(t.getTitleId()))
+                    .signature(t.getSignature())
+                    .build()
+        ).toList();
+        return Response.success(HomeTeacherListRespVO.builder().list(voList).build());
     }
 }

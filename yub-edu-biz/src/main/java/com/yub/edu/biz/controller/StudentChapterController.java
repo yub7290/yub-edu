@@ -3,6 +3,9 @@ package com.yub.edu.biz.controller;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduChapter;
 import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.vo.ChapterDetailRespVO;
+import com.yub.edu.biz.vo.ChapterItemRespVO;
+import com.yub.edu.biz.vo.ChapterListRespVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,37 +30,34 @@ public class StudentChapterController {
      * 章节详情
      */
     @GetMapping("/detail")
-    public Response<Map<String, Object>> detail(@RequestParam Long chId, @RequestParam Long cid) {
+    public Response<ChapterDetailRespVO> detail(@RequestParam Long chId, @RequestParam Long cid) {
         EduChapter chapter = eduChapterMapper.selectById(chId);
         if (chapter == null) {
             return Response.success(null);
         }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("id", chapter.getId());
-        data.put("mediaSrc", "");
-        data.put("mediaType", chapter.getIsLive() != null && chapter.getIsLive() == 1 ? "live" : "video");
-        data.put("article", chapter.getContentText() != null ? chapter.getContentText() : "");
-        data.put("attachList", new ArrayList<>());
-        return Response.success(data);
+        return Response.success(ChapterDetailRespVO.builder()
+                .id(chapter.getId())
+                .mediaSrc("")
+                .mediaType(chapter.getIsLive() != null && chapter.getIsLive() == 1 ? "live" : "video")
+                .article(chapter.getContentText() != null ? chapter.getContentText() : "")
+                .attachList(new ArrayList<>())
+                .build());
     }
 
     /**
      * 章节列表（按课程）
      */
     @GetMapping("/list")
-    public Response<Map<String, Object>> list(@RequestParam Long cid) {
+    public Response<ChapterListRespVO> list(@RequestParam Long cid) {
         List<EduChapter> chapters = eduChapterMapper.selectTreeByCourseId(cid);
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (EduChapter ch : chapters) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", ch.getId());
-            item.put("chapterName", ch.getName());
-            list.add(item);
-        }
+        List<ChapterItemRespVO> list = chapters.stream().map(ch ->
+            ChapterItemRespVO.builder()
+                    .id(ch.getId())
+                    .chapterName(ch.getName())
+                    .build()
+        ).toList();
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
-        return Response.success(data);
+        return Response.success(ChapterListRespVO.builder().list(list).build());
     }
 }

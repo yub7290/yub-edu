@@ -94,6 +94,21 @@ public interface EduCourseMapper {
     int updateRecommended(@Param("id") Long id, @Param("recommended") Integer recommended);
 
     /**
+     * 查询推荐课程列表
+     *
+     * @return 推荐课程列表
+     */
+    List<EduCourse> selectByRecommended();
+
+    /**
+     * 查询学生端课程列表（分页用，返回全部字段）
+     *
+     * @param params 查询参数（cateId, tabType, keyword）
+     * @return 课程列表
+     */
+    List<EduCourse> selectStudentList(@Param("cateId") Long cateId, @Param("tabType") Integer tabType, @Param("keyword") String keyword);
+
+    /**
      * 查询回收站列表
      *
      * @return 已删除的课程列表

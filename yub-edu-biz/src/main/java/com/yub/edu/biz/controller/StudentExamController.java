@@ -3,6 +3,8 @@ package com.yub.edu.biz.controller;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduExam;
 import com.yub.edu.biz.mapper.EduExamMapper;
+import com.yub.edu.biz.vo.ExamInfoRespVO;
+import com.yub.edu.biz.vo.ExamListRespVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,34 +29,31 @@ public class StudentExamController {
      * 考试列表
      */
     @GetMapping("/list")
-    public Response<Map<String, Object>> list(
+    public Response<ExamListRespVO> list(
             @RequestParam(defaultValue = "1") Integer status,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        Map<String, Object> data = new HashMap<>();
-        // TODO: 实现考试列表查询，当前返回空列表
-        data.put("list", new ArrayList<>());
-        return Response.success(data);
+        return Response.success(ExamListRespVO.builder().list(new ArrayList<>()).build());
     }
 
     /**
      * 考试详情
      */
     @GetMapping("/info/{id}")
-    public Response<Map<String, Object>> info(@PathVariable Long id) {
+    public Response<ExamInfoRespVO> info(@PathVariable Long id) {
         EduExam exam = eduExamMapper.selectById(id);
         if (exam == null) {
             return Response.success(null);
         }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("id", exam.getId());
-        data.put("name", exam.getTitle());
-        data.put("duration", exam.getDuration());
-        data.put("totalScore", exam.getTotalScore());
-        data.put("startTime", "");
-        data.put("endTime", "");
-        return Response.success(data);
+        return Response.success(ExamInfoRespVO.builder()
+                .id(exam.getId())
+                .name(exam.getTitle())
+                .duration(exam.getDuration())
+                .totalScore(exam.getTotalScore())
+                .startTime("")
+                .endTime("")
+                .build());
     }
 
     /**

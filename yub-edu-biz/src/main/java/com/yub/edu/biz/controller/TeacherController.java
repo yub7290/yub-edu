@@ -138,4 +138,17 @@ public class TeacherController {
                 .toList();
         return Response.success(voList);
     }
+
+    /**
+     * 设置教师推荐状态
+     *
+     * @param id          教师ID
+     * @param recommended 推荐状态（1=推荐 0=不推荐）
+     * @return 响应
+     */
+    @PutMapping("/{id}/recommended")
+    public Response<Void> setRecommended(@PathVariable("id") Long id, @RequestParam Integer recommended) {
+        teacherService.setRecommended(id, recommended);
+        return Response.success();
+    }
 }
