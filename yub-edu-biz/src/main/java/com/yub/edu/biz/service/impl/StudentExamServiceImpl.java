@@ -138,14 +138,22 @@ public class StudentExamServiceImpl implements StudentExamService {
         Map<Integer, Integer> expectedTypeCountMap = new HashMap<>();
         Map<Long, Integer> questionIdScoreMap = new HashMap<>();
         Set<Long> validQuestionIdPool = new HashSet<>();
+        int expectedTotalCount = 0;
         if (questionRangeType == 0) {
-            var configs = eduExamQuestionTypeConfigMapper.selectByExamId(exam.getId());
-            for (var cfg : configs) {
-                expectedTypeCountMap.put(cfg.getQuestionType(), cfg.getQuestionCount());
-                var candidates = eduQuestionMapper.selectIdsByCourseIdAndType(courseId, cfg.getQuestionType());
-                validQuestionIdPool.addAll(candidates);
-                candidates.forEach(id -> questionIdScoreMap.put(id, cfg.getScorePerQuestion()));
+            var candidates = eduQuestionMapper.selectQuestionIdsByCourseId(courseId);
+            if (candidates.isEmpty()) {
+                throw new EduException(EduErrorCode.EXAM_QUESTION_NOT_ENOUGH);
             }
+            int count = candidates.size();
+            int totalScore = exam.getTotalScore() != null ? exam.getTotalScore() : 0;
+            int baseScore = totalScore > 0 ? totalScore / count : 0;
+            int remainder = totalScore > 0 ? totalScore % count : 0;
+            for (int i = 0; i < count; i++) {
+                int score = baseScore + (i == count - 1 ? remainder : 0);
+                questionIdScoreMap.put(candidates.get(i), score);
+            }
+            validQuestionIdPool.addAll(candidates);
+            expectedTotalCount = count;
         } else {
             var configs = eduExamChapterQuestionConfigMapper.selectByExamId(exam.getId());
             for (var cfg : configs) {
@@ -154,13 +162,14 @@ public class StudentExamServiceImpl implements StudentExamService {
                 validQuestionIdPool.addAll(candidates);
                 candidates.forEach(id -> questionIdScoreMap.put(id, cfg.getScorePerQuestion()));
             }
+            expectedTotalCount = expectedTypeCountMap.values().stream().mapToInt(Integer::intValue).sum();
+        }
+        if (CollectionUtils.isEmpty(dto.getAnswers())) {
+            throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
         }
         List<Long> submittedIds = dto.getAnswers().stream()
                 .map(ExamSubmitReqDTO.AnswerItem::getQuestionId)
                 .toList();
-        if (CollectionUtils.isEmpty(dto.getAnswers())) {
-            throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
-        }
         for (Long id : submittedIds) {
             if (!validQuestionIdPool.contains(id)) {
                 throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
@@ -168,14 +177,20 @@ public class StudentExamServiceImpl implements StudentExamService {
         }
         Map<Long, EduQuestion> questionMap = getQuestionMap(submittedIds);
         Map<Long, List<EduQuestionOption>> optionMap = getOptionMap(submittedIds);
-        Map<Integer, Long> actualTypeCountMap = submittedIds.stream()
-                .map(questionMap::get)
-                .filter(Objects::nonNull)
-                .collect(Collectors.groupingBy(EduQuestion::getQuestionType, Collectors.counting()));
-        for (Map.Entry<Integer, Integer> entry : expectedTypeCountMap.entrySet()) {
-            long actual = actualTypeCountMap.getOrDefault(entry.getKey(), 0L);
-            if (actual != entry.getValue()) {
+        if (questionRangeType == 0) {
+            if (submittedIds.size() != expectedTotalCount) {
                 throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
+            }
+        } else {
+            Map<Integer, Long> actualTypeCountMap = submittedIds.stream()
+                    .map(questionMap::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(EduQuestion::getQuestionType, Collectors.counting()));
+            for (Map.Entry<Integer, Integer> entry : expectedTypeCountMap.entrySet()) {
+                long actual = actualTypeCountMap.getOrDefault(entry.getKey(), 0L);
+                if (actual != entry.getValue()) {
+                    throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
+                }
             }
         }
         LocalDateTime now = LocalDateTime.now();
@@ -199,8 +214,10 @@ public class StudentExamServiceImpl implements StudentExamService {
         EduExamRecord record = buildRecord(userId, exam, totalScore, dto.getDuration(), now);
         eduExamRecordMapper.insert(record);
         saveDetails(details, record.getId());
-        return buildResult(record, correctCount, wrongCount, submittedIds.size(), questionResults);
-    }   @Override
+        return buildResult(record, correctCount, wrongCount, expectedTotalCount, questionResults);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void clearHistory(Long examId) {
         Long userId = getUserId();
@@ -222,25 +239,25 @@ public class StudentExamServiceImpl implements StudentExamService {
 
     private Map<Long, Integer> pickQuestions(EduExam exam, Long courseId, Integer questionRangeType) {
         if (questionRangeType == 0) {
-            List<EduExamQuestionTypeConfig> configs = eduExamQuestionTypeConfigMapper.selectByExamId(exam.getId());
-            return pickByTypeConfig(courseId, configs);
+            return pickByCourseAll(courseId, exam.getTotalScore());
         } else {
             List<EduExamChapterQuestionConfig> configs = eduExamChapterQuestionConfigMapper.selectByExamId(exam.getId());
             return pickByChapterConfig(configs);
         }
     }
 
-    private Map<Long, Integer> pickByTypeConfig(Long courseId, List<EduExamQuestionTypeConfig> configs) {
+    private Map<Long, Integer> pickByCourseAll(Long courseId, Integer totalScore) {
+        List<Long> candidates = eduQuestionMapper.selectQuestionIdsByCourseId(courseId);
+        if (candidates.isEmpty()) {
+            throw new EduException(EduErrorCode.EXAM_QUESTION_NOT_ENOUGH);
+        }
+        int count = candidates.size();
+        int baseScore = totalScore != null && totalScore > 0 ? totalScore / count : 0;
+        int remainder = totalScore != null && totalScore > 0 ? totalScore % count : 0;
         Map<Long, Integer> result = new LinkedHashMap<>();
-        for (EduExamQuestionTypeConfig cfg : configs) {
-            List<Long> candidates = eduQuestionMapper.selectIdsByCourseIdAndType(courseId, cfg.getQuestionType());
-            if (candidates.size() < cfg.getQuestionCount()) {
-                throw new EduException(EduErrorCode.EXAM_QUESTION_NOT_ENOUGH);
-            }
-            Collections.shuffle(candidates);
-            for (int i = 0; i < cfg.getQuestionCount(); i++) {
-                result.put(candidates.get(i), cfg.getScorePerQuestion());
-            }
+        for (int i = 0; i < count; i++) {
+            int score = baseScore + (i == count - 1 ? remainder : 0);
+            result.put(candidates.get(i), score);
         }
         return result;
     }
@@ -258,6 +275,23 @@ public class StudentExamServiceImpl implements StudentExamService {
             }
         }
         return result;
+    }
+
+    
+    private Map<Long, EduQuestion> getQuestionMap(List<Long> questionIds) {
+        if (CollectionUtils.isEmpty(questionIds)) {
+            return Collections.emptyMap();
+        }
+        return eduQuestionMapper.selectBatchByIds(questionIds).stream()
+                .collect(Collectors.toMap(EduQuestion::getId, q -> q));
+    }
+
+    private Map<Long, List<EduQuestionOption>> getOptionMap(List<Long> questionIds) {
+        if (CollectionUtils.isEmpty(questionIds)) {
+            return Collections.emptyMap();
+        }
+        return eduQuestionOptionMapper.selectByQuestionIds(questionIds).stream()
+                .collect(Collectors.groupingBy(EduQuestionOption::getQuestionId));
     }
 
     private boolean judgeCorrect(EduQuestion question, List<EduQuestionOption> options, String userAnswer) {
