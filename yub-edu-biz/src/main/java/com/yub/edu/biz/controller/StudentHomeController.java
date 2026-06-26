@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 /**
  * 学生端首页 Controller
@@ -89,6 +90,7 @@ public class StudentHomeController {
                     .avatarUrl(t.getAvatarUrl())
                     .name(t.getName())
                     .titleName(titleName)
+                    .rating(t.getRating())
                     .build();
         }).toList();
         return Response.success(HomeTeacherRespVO.builder().list(voList).build());
@@ -100,15 +102,28 @@ public class StudentHomeController {
     @GetMapping("/course")
     public Response<HomeCourseRespVO> course() {
         List<EduCourse> courses = eduCourseService.listRecommended();
-        List<CourseRecommendedRespVO> voList = courses.stream().map(c ->
-            CourseRecommendedRespVO.builder()
+        LocalDateTime now = LocalDateTime.now();
+        List<CourseRecommendedRespVO> voList = courses.stream().map(c -> {
+            // 计算资费类型：免费 > 限免 > 试学（互斥取最高优先）
+            String feeType = null;
+            if (c.getIsFree() != null && c.getIsFree() == 1) {
+                feeType = "免费";
+            } else if (c.getIsFreeLimited() != null && c.getIsFreeLimited() == 1
+                    && c.getFreeStartTime() != null && c.getFreeEndTime() != null
+                    && !now.isBefore(c.getFreeStartTime()) && !now.isAfter(c.getFreeEndTime())) {
+                feeType = "限免";
+            } else if (c.getAllowTrial() != null && c.getAllowTrial() == 1) {
+                feeType = "试学";
+            }
+            return CourseRecommendedRespVO.builder()
                     .id(c.getId())
                     .imageUrl(c.getImageUrl())
                     .name(c.getName())
                     .courseType(c.getCourseType())
                     .teacherName(c.getTeacher())
-                    .build()
-        ).toList();
+                    .feeType(feeType)
+                    .build();
+        }).toList();
         return Response.success(HomeCourseRespVO.builder().list(voList).build());
     }
 
@@ -153,6 +168,7 @@ public class StudentHomeController {
                     .name(t.getName())
                     .titleName(titleMap.get(t.getTitleId()))
                     .signature(t.getSignature())
+                    .rating(t.getRating())
                     .build()
         ).toList();
         return Response.success(HomeTeacherListRespVO.builder().list(voList).build());

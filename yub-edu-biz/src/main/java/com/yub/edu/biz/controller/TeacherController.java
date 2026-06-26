@@ -51,7 +51,7 @@ public class TeacherController {
      * @return 教师详情
      */
     @GetMapping("/{id}")
-    public Response<TeacherDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<TeacherDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(teacherService.getDetail(id));
     }
 
@@ -85,7 +85,7 @@ public class TeacherController {
      * @return 响应
      */
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         teacherService.delete(id);
         return Response.success();
     }
@@ -109,7 +109,7 @@ public class TeacherController {
      * @return 响应
      */
     @PutMapping("/{id}/password")
-    public Response<Void> resetPassword(@PathVariable Long id) {
+    public Response<Void> resetPassword(@PathVariable("id") Long id) {
         teacherService.resetPassword(id);
         return Response.success();
     }

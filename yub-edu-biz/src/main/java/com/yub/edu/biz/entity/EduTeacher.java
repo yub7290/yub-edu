@@ -64,6 +64,10 @@ public class EduTeacher {
      */
     private Integer recommended;
     /**
+     * 评分（1-5分）
+     */
+    private Integer rating;
+    /**
      * 固定电话
      */
     private String fixedPhone;

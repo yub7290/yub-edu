@@ -139,6 +139,7 @@ public class TeacherServiceImpl implements TeacherService {
         teacher.setPhone(req.getPhone());
         teacher.setIdCard(req.getIdCard());
         teacher.setStatus(req.getStatus());
+        teacher.setRating(req.getRating());
         teacher.setFixedPhone(req.getFixedPhone());
         teacher.setEmail(req.getEmail());
         teacher.setQq(req.getQq());
@@ -182,6 +183,7 @@ public class TeacherServiceImpl implements TeacherService {
         teacher.setPhone(req.getPhone());
         teacher.setIdCard(req.getIdCard());
         teacher.setStatus(req.getStatus());
+        teacher.setRating(req.getRating());
         teacher.setFixedPhone(req.getFixedPhone());
         teacher.setEmail(req.getEmail());
         teacher.setQq(req.getQq());

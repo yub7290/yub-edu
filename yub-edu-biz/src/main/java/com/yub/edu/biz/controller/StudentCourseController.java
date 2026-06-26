@@ -6,7 +6,9 @@ import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduChapter;
 import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.entity.EduTeacher;
 import com.yub.edu.biz.mapper.EduCourseMapper;
+import com.yub.edu.biz.mapper.EduTeacherMapper;
 import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.vo.CourseCategoryRespVO;
 import com.yub.edu.biz.vo.CourseListRespVO;
@@ -32,6 +34,7 @@ public class StudentCourseController {
 
     private final EduCourseMapper eduCourseMapper;
     private final EduChapterMapper eduChapterMapper;
+    private final EduTeacherMapper eduTeacherMapper;
     private final EduCourseService eduCourseService;
 
     /**
@@ -91,7 +94,7 @@ public class StudentCourseController {
      * 课程详情
      */
     @GetMapping("/detail")
-    public Response<StudentCourseDetailRespVO> detail(@RequestParam Long cid) {
+    public Response<StudentCourseDetailRespVO> detail(@RequestParam("cid") Long cid) {
         EduCourse course = eduCourseMapper.selectById(cid);
         if (course == null) {
             return Response.success(null);
@@ -118,9 +121,23 @@ public class StudentCourseController {
 
         // 教师信息
         Map<String, Object> teacherInfo = new HashMap<>();
-        teacherInfo.put("avatar", "");
-        teacherInfo.put("name", course.getTeacher() != null ? course.getTeacher() : "");
-        teacherInfo.put("intro", "");
+        String teacherName = course.getTeacher();
+        if (teacherName != null && !teacherName.isEmpty()) {
+            EduTeacher teacher = eduTeacherMapper.selectByName(teacherName);
+            if (teacher != null) {
+                teacherInfo.put("avatar", teacher.getAvatarUrl() != null ? teacher.getAvatarUrl() : "");
+                teacherInfo.put("name", teacher.getName() != null ? teacher.getName() : "");
+                teacherInfo.put("intro", teacher.getSignature() != null ? teacher.getSignature() : "");
+            } else {
+                teacherInfo.put("avatar", "");
+                teacherInfo.put("name", teacherName);
+                teacherInfo.put("intro", "");
+            }
+        } else {
+            teacherInfo.put("avatar", "");
+            teacherInfo.put("name", "");
+            teacherInfo.put("intro", "");
+        }
 
         return Response.success(StudentCourseDetailRespVO.builder()
                 .course(courseInfo)

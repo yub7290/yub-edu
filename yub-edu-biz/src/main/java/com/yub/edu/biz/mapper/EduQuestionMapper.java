@@ -90,4 +90,62 @@ public interface EduQuestionMapper {
      * @return 影响行数
      */
     int deletePhysicallyById(@Param("id") Long id);
+
+    /**
+     * 统计课程下题目总数
+     *
+     * @param courseId 课程ID
+     * @return 题目总数
+     */
+    int countByCourseId(@Param("courseId") Long courseId);
+
+    /**
+     * 统计章节下题目总数
+     *
+     * @param chapterId 章节ID
+     * @return 题目总数
+     */
+    int countByChapterId(@Param("chapterId") Long chapterId);
+
+    /**
+     * 根据课程ID查询题目ID列表
+     *
+     * @param courseId 课程ID
+     * @return 题目ID列表
+     */
+    List<Long> selectQuestionIdsByCourseId(@Param("courseId") Long courseId);
+
+    /**
+     * 根据章节ID查询题目ID列表
+     *
+     * @param chapterId 章节ID
+     * @return 题目ID列表
+     */
+    List<Long> selectQuestionIdsByChapterId(@Param("chapterId") Long chapterId);
+
+    /**
+     * 根据ID批量查询题目
+     *
+     * @param ids 题目ID列表
+     * @return 题目列表
+     */
+    List<EduQuestion> selectBatchByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 根据课程ID和题型查询启用的题目ID列表
+     *
+     * @param courseId     课程ID
+     * @param questionType 试题类型
+     * @return 题目ID列表
+     */
+    List<Long> selectIdsByCourseIdAndType(@Param("courseId") Long courseId, @Param("questionType") Integer questionType);
+
+    /**
+     * 根据章节ID和题型查询启用的题目ID列表
+     *
+     * @param chapterId    章节ID
+     * @param questionType 试题类型
+     * @return 题目ID列表
+     */
+    List<Long> selectIdsByChapterIdAndType(@Param("chapterId") Long chapterId, @Param("questionType") Integer questionType);
 }

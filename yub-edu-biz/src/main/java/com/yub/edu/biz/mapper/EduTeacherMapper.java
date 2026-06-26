@@ -114,6 +114,14 @@ public interface EduTeacherMapper {
     List<EduTeacher> selectStudentList();
 
     /**
+     * 根据姓名查询教师（学生端详情用）
+     *
+     * @param name 教师姓名
+     * @return 教师
+     */
+    EduTeacher selectByName(@Param("name") String name);
+
+    /**
      * 更新教师推荐状态
      *
      * @param id          教师ID

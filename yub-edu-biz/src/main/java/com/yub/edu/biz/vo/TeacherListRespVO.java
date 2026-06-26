@@ -33,4 +33,7 @@ public class TeacherListRespVO {
 
     /** 个人签名 */
     private String signature;
+
+    /** 评分（1-5分） */
+    private Integer rating;
 }

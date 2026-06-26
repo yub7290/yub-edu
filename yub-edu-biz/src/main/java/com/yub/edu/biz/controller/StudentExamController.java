@@ -1,14 +1,23 @@
 package com.yub.edu.biz.controller;
 
 import com.yub.common.model.Response;
-import com.yub.edu.biz.entity.EduExam;
-import com.yub.edu.biz.mapper.EduExamMapper;
+import com.yub.edu.biz.dto.ExamSubmitReqDTO;
+import com.yub.edu.biz.service.StudentExamService;
 import com.yub.edu.biz.vo.ExamInfoRespVO;
 import com.yub.edu.biz.vo.ExamListRespVO;
+import com.yub.edu.biz.vo.ExamQuestionRespVO;
+import com.yub.edu.biz.vo.ExamResultRespVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * 学生端考试 Controller
@@ -23,54 +32,68 @@ import java.util.*;
 @RequiredArgsConstructor
 public class StudentExamController {
 
-    private final EduExamMapper eduExamMapper;
+    private final StudentExamService studentExamService;
 
     /**
      * 考试列表
+     *
+     * @param courseId 课程ID
+     * @param keyword  关键词
+     * @param page     页码
+     * @param pageSize 每页条数
+     * @return 考试列表
      */
     @GetMapping("/list")
     public Response<ExamListRespVO> list(
-            @RequestParam(defaultValue = "1") Integer status,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        return Response.success(ExamListRespVO.builder().list(new ArrayList<>()).build());
+        return Response.success(studentExamService.list(courseId, keyword, page, pageSize));
     }
 
     /**
-     * 考试详情
+     * 考试详情（含历史成绩）
+     *
+     * @param id 试卷ID
+     * @return 考试详情
      */
     @GetMapping("/info/{id}")
     public Response<ExamInfoRespVO> info(@PathVariable Long id) {
-        EduExam exam = eduExamMapper.selectById(id);
-        if (exam == null) {
-            return Response.success(null);
-        }
-
-        return Response.success(ExamInfoRespVO.builder()
-                .id(exam.getId())
-                .name(exam.getTitle())
-                .duration(exam.getDuration())
-                .totalScore(exam.getTotalScore())
-                .startTime("")
-                .endTime("")
-                .build());
+        return Response.success(studentExamService.info(id));
     }
 
     /**
-     * 上报异常行为
+     * 获取考试题目（不含正确答案）
+     *
+     * @param examId 试卷ID
+     * @return 题目列表
      */
-    @PostMapping("/abnormal/add")
-    public Response<Void> abnormalAdd(@RequestBody Map<String, Object> params) {
-        // TODO: 保存异常行为记录
-        return Response.success();
+    @GetMapping("/questions")
+    public Response<List<ExamQuestionRespVO>> questions(@RequestParam Long examId) {
+        return Response.success(studentExamService.questions(examId));
     }
 
     /**
-     * 提交考试结果
+     * 提交考试
+     *
+     * @param dto 提交请求
+     * @return 判分结果
      */
-    @PostMapping("/result/submit")
-    public Response<Void> resultSubmit(@RequestBody Map<String, Object> params) {
-        // TODO: 保存考试结果
+    @PostMapping("/submit")
+    public Response<ExamResultRespVO> submit(@RequestBody ExamSubmitReqDTO dto) {
+        return Response.success(studentExamService.submit(dto));
+    }
+
+    /**
+     * 清空当前用户指定考试的历史成绩
+     *
+     * @param examId 试卷ID
+     * @return 响应
+     */
+    @DeleteMapping("/history/{examId}")
+    public Response<Void> clearHistory(@PathVariable Long examId) {
+        studentExamService.clearHistory(examId);
         return Response.success();
     }
 }

@@ -37,9 +37,15 @@
     </sql>
 
     <select id="selectById" resultMap="EduExamMap">
-        SELECT <include refid="baseColumns"/>
-        FROM edu_exam
-        WHERE id = #{id} AND deleted = 0
+        SELECT e.id, e.title, e.subtitle, e.major_id, e.course_id, e.is_final_exam, e.status, e.recommended,
+               e.difficulty, e.duration, e.total_score, e.pass_score,
+               e.introduction, e.notes, e.examiner, e.logo, e.question_range_type,
+               e.create_time, e.update_time, e.create_by, e.update_by, e.deleted,
+               m.name AS major_name, c.name AS course_name
+        FROM edu_exam e
+        LEFT JOIN edu_major m ON e.major_id = m.id AND m.deleted = 0
+        LEFT JOIN edu_course c ON e.course_id = c.id AND c.deleted = 0
+        WHERE e.id = #{id} AND e.deleted = 0
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">

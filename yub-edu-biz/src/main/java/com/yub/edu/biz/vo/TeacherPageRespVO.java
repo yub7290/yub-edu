@@ -60,4 +60,7 @@ public class TeacherPageRespVO {
 
     /** 是否推荐（1是 0否） */
     private Integer recommended;
+
+    /** 评分（1-5分） */
+    private Integer rating;
 }

@@ -1,5 +1,7 @@
 package com.yub.edu.biz.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -54,6 +56,11 @@ public class TeacherCreateReqDTO {
 
     /** 状态（1=启用 0=禁用，默认启用） */
     private Integer status = 1;
+
+    /** 评分（1-5分，默认5分） */
+    @Min(value = 1, message = "评分最低为1分")
+    @Max(value = 5, message = "评分最高为5分")
+    private Integer rating = 5;
 
     // ===== 联系方式 =====
     /** 固定电话 */

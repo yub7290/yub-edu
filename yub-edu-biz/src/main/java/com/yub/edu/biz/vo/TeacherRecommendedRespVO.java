@@ -30,4 +30,7 @@ public class TeacherRecommendedRespVO {
 
     /** 职称名称 */
     private String titleName;
+
+    /** 评分（1-5分） */
+    private Integer rating;
 }

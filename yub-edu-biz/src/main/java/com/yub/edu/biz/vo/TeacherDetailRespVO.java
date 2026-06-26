@@ -47,6 +47,9 @@ public class TeacherDetailRespVO {
     /** 状态（1=启用 0=禁用） */
     private Integer status;
 
+    /** 评分（1-5分） */
+    private Integer rating;
+
     // ===== 联系方式 =====
     /** 固定电话 */
     private String fixedPhone;

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduExamQuestionMapper">
+
+    <resultMap id="ExamQuestionMap" type="com.yub.edu.biz.vo.ExamQuestionRespVO">
+        <id column="question_id" property="questionId"/>
+        <result column="question_type" property="questionType"/>
+        <result column="content" property="content"/>
+        <result column="score" property="score"/>
+        <result column="sort" property="sort"/>
+        <collection property="options" ofType="com.yub.edu.biz.vo.ExamQuestionOptionRespVO"
+                    notNullColumn="option_label">
+            <result column="option_label" property="label"/>
+            <result column="option_content" property="content"/>
+            <result column="option_sort" property="sort"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectQuestionsByExamId" resultMap="ExamQuestionMap">
+        SELECT eq.question_id,
+               q.question_type,
+               q.content,
+               eq.score,
+               eq.sort,
+               qo.label   AS option_label,
+               qo.content AS option_content,
+               qo.sort    AS option_sort
+        FROM edu_exam_question eq
+                 INNER JOIN edu_question q ON eq.question_id = q.id AND q.deleted = 0 AND q.status = 1
+                 LEFT JOIN edu_question_option qo ON qo.question_id = q.id
+        WHERE eq.exam_id = #{examId}
+        ORDER BY eq.sort ASC, qo.sort ASC
+    </select>
+
+    <select id="selectQuestionIdsByExamId" resultType="java.lang.Long">
+        SELECT question_id
+        FROM edu_exam_question
+        WHERE exam_id = #{examId}
+        ORDER BY sort ASC
+    </select>
+
+</mapper>

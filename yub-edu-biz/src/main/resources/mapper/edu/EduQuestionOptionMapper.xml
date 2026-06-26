@@ -29,6 +29,16 @@
         </foreach>
     </insert>
 
+    <select id="selectByQuestionIds" resultMap="EduQuestionOptionMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_question_option
+        WHERE question_id IN
+        <foreach collection="questionIds" item="questionId" open="(" separator="," close=")">
+            #{questionId}
+        </foreach>
+        ORDER BY sort ASC
+    </select>
+
     <delete id="deleteByQuestionId">
         DELETE FROM edu_question_option WHERE question_id = #{questionId}
     </delete>

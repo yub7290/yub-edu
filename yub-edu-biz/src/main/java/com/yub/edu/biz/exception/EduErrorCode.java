@@ -37,6 +37,14 @@ public enum EduErrorCode implements ErrorCode {
     EXAM_FINAL_EXAM_EXISTS(200032, "该课程已设置结课考试"),
     /** 试卷标题已存在 */
     EXAM_NAME_EXISTS(200062, "试卷标题已存在"),
+    /** 考试已被禁用 */
+    EXAM_DISABLED(200063, "考试已被禁用"),
+    /** 考试中存在未作答题目 */
+    EXAM_ANSWER_EMPTY(200064, "存在未作答题目"),
+    /** 题库题目数量不足 */
+    EXAM_QUESTION_NOT_ENOUGH(200065, "题库题目数量不足，无法生成试卷"),
+    /** 提交答案与试卷规则不匹配 */
+    EXAM_ANSWER_INVALID(200066, "提交答案与试卷规则不匹配"),
 
     /** 章节不存在 */
     CHAPTER_NOT_FOUND(200041, "章节不存在"),
@@ -86,7 +94,16 @@ public enum EduErrorCode implements ErrorCode {
     /** AI会话不存在 */
     AI_CONVERSATION_NOT_FOUND(200303, "会话不存在"),
     /** 今日对话次数已达上限 */
-    AI_DAILY_LIMIT_EXCEEDED(200304, "今日对话次数已达上限，请明天再试");
+    AI_DAILY_LIMIT_EXCEEDED(200304, "今日对话次数已达上限，请明天再试"),
+
+    /** 练习记录不存在 */
+    PRACTICE_RECORD_NOT_FOUND(200401, "练习记录不存在"),
+    /** 笔记不存在 */
+    NOTE_NOT_FOUND(200402, "笔记不存在"),
+    /** 没有更多题目 */
+    NO_MORE_QUESTIONS(200403, "没有更多题目"),
+    /** 当前章节没有试题 */
+    CHAPTER_NO_QUESTIONS(200404, "当前章节没有试题");
 
     private final int code;
     private final String message;

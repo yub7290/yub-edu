@@ -34,6 +34,14 @@ public interface EduQuestionOptionMapper {
     int insertBatch(List<EduQuestionOption> list);
 
     /**
+     * 根据试题ID列表批量查询选项列表
+     *
+     * @param questionIds 试题ID列表
+     * @return 选项列表
+     */
+    List<EduQuestionOption> selectByQuestionIds(@Param("questionIds") List<Long> questionIds);
+
+    /**
      * 根据试题ID删除所有选项
      *
      * @param questionId 试题ID

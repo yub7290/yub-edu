@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPracticeRecordMapper">
+
+    <resultMap id="EduPracticeRecordMap" type="com.yub.edu.biz.entity.EduPracticeRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="chapter_id" property="chapterId"/>
+        <result column="question_id" property="questionId"/>
+        <result column="user_answer" property="userAnswer"/>
+        <result column="is_correct" property="isCorrect"/>
+        <result column="answer_duration" property="answerDuration"/>
+        <result column="practice_mode" property="practiceMode"/>
+        <result column="source_record_id" property="sourceRecordId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, user_id, course_id, chapter_id, question_id, user_answer, is_correct,
+        answer_duration, practice_mode, source_record_id, create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_practice_record (user_id, course_id, chapter_id, question_id, user_answer,
+            is_correct, answer_duration, practice_mode, source_record_id, create_time, update_time, deleted)
+        VALUES (#{userId}, #{courseId}, #{chapterId}, #{questionId}, #{userAnswer},
+            #{isCorrect}, #{answerDuration}, #{practiceMode}, #{sourceRecordId}, NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectByUserAndCourse" resultMap="EduPracticeRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_practice_record
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND deleted = 0
+    </select>
+
+    <select id="selectByUserAndChapter" resultMap="EduPracticeRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_practice_record
+        WHERE user_id = #{userId} AND chapter_id = #{chapterId} AND deleted = 0
+    </select>
+
+    <select id="selectById" resultMap="EduPracticeRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_practice_record
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="countByUserAndCourse" resultType="int">
+        SELECT COUNT(1) FROM edu_practice_record
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND deleted = 0
+    </select>
+
+    <select id="countCorrectByUserAndCourse" resultType="int">
+        SELECT COUNT(1) FROM edu_practice_record
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND is_correct = 1 AND deleted = 0
+    </select>
+
+    <select id="countDistinctByUserAndChapter" resultType="int">
+        SELECT COUNT(DISTINCT question_id) FROM edu_practice_record
+        WHERE user_id = #{userId} AND chapter_id = #{chapterId} AND deleted = 0
+    </select>
+
+    <select id="countByUserAndChapter" resultType="int">
+        SELECT COUNT(1) FROM edu_practice_record
+        WHERE user_id = #{userId} AND chapter_id = #{chapterId} AND deleted = 0
+    </select>
+
+    <select id="countCorrectByUserAndChapter" resultType="int">
+        SELECT COUNT(1) FROM edu_practice_record
+        WHERE user_id = #{userId} AND chapter_id = #{chapterId} AND is_correct = 1 AND deleted = 0
+    </select>
+
+    <select id="countByUserQuestion" resultType="int">
+        SELECT COUNT(1) FROM edu_practice_record
+        WHERE user_id = #{userId} AND question_id = #{questionId} AND deleted = 0
+    </select>
+
+    <select id="selectWrongByUserAndCourse" resultMap="EduPracticeRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_practice_record
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND is_correct = 0 AND deleted = 0
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectDistinctQuestionIdsByUserAndChapter" resultType="java.lang.Long">
+        SELECT DISTINCT question_id FROM edu_practice_record
+        WHERE user_id = #{userId} AND chapter_id = #{chapterId} AND deleted = 0
+    </select>
+
+    <select id="selectHighFreqWrong" resultType="java.lang.Long">
+        SELECT question_id
+        FROM edu_practice_record
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND is_correct = 0 AND deleted = 0
+        GROUP BY question_id
+        ORDER BY COUNT(1) DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

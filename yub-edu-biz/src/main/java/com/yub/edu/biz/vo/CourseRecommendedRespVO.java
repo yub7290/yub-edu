@@ -33,4 +33,7 @@ public class CourseRecommendedRespVO {
 
     /** 教师名称 */
     private String teacherName;
+
+    /** 资费类型（免费/限免/试学） */
+    private String feeType;
 }

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduExamRecordDetailMapper">
+
+    <resultMap id="EduExamRecordDetailMap" type="com.yub.edu.biz.entity.EduExamRecordDetail">
+        <id column="id" property="id"/>
+        <result column="record_id" property="recordId"/>
+        <result column="exam_id" property="examId"/>
+        <result column="question_id" property="questionId"/>
+        <result column="user_answer" property="userAnswer"/>
+        <result column="correct_answer" property="correctAnswer"/>
+        <result column="is_correct" property="isCorrect"/>
+        <result column="score" property="score"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insertBatch">
+        INSERT INTO edu_exam_record_detail (record_id, exam_id, question_id, user_answer,
+                                             correct_answer, is_correct, score, create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.recordId}, #{item.examId}, #{item.questionId}, #{item.userAnswer},
+             #{item.correctAnswer}, #{item.isCorrect}, #{item.score}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+</mapper>

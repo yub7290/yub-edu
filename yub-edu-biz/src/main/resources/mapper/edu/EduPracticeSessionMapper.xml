@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPracticeSessionMapper">
+
+    <resultMap id="EduPracticeSessionMap" type="com.yub.edu.biz.entity.EduPracticeSession">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="chapter_id" property="chapterId"/>
+        <result column="question_id" property="questionId"/>
+        <result column="practice_mode" property="practiceMode"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, user_id, course_id, chapter_id, question_id, practice_mode, status,
+        create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_practice_session (user_id, course_id, chapter_id, question_id, practice_mode, status, deleted, create_time, update_time)
+        VALUES (#{userId}, #{courseId}, #{chapterId}, #{questionId}, #{practiceMode}, #{status}, 0, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE chapter_id = #{chapterId}, question_id = #{questionId}, status = #{status}, update_time = NOW()
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_practice_session
+        SET chapter_id = #{chapterId}, question_id = #{questionId},
+            status = #{status}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectByUserAndCourse" resultMap="EduPracticeSessionMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_practice_session
+        WHERE user_id = #{userId} AND course_id = #{courseId} AND deleted = 0
+    </select>
+
+    <update id="deleteByUserAndCourse">
+        UPDATE edu_practice_session
+        SET deleted = 1, update_time = NOW()
+        WHERE user_id = #{userId} AND course_id = #{courseId}
+    </update>
+
+</mapper>

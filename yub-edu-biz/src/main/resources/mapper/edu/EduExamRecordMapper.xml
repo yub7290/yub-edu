@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduExamRecordMapper">
+
+    <resultMap id="EduExamRecordMap" type="com.yub.edu.biz.entity.EduExamRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="exam_id" property="examId"/>
+        <result column="score" property="score"/>
+        <result column="total_score" property="totalScore"/>
+        <result column="pass_score" property="passScore"/>
+        <result column="is_pass" property="isPass"/>
+        <result column="duration" property="duration"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, user_id, exam_id, score, total_score, pass_score, is_pass,
+        duration, submit_time, create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_exam_record (user_id, exam_id, score, total_score, pass_score, is_pass,
+                                     duration, submit_time, create_time, update_time, deleted)
+        VALUES (#{userId}, #{examId}, #{score}, #{totalScore}, #{passScore}, #{isPass},
+                #{duration}, NOW(), NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectById" resultMap="EduExamRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_record
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByUserAndExam" resultMap="EduExamRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_record
+        WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
+        ORDER BY submit_time DESC
+    </select>
+
+    <update id="deleteByUserAndExam">
+        UPDATE edu_exam_record SET deleted = 1
+        WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
+    </update>
+
+</mapper>
