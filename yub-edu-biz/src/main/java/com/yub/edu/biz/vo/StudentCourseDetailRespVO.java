@@ -15,4 +15,5 @@ public class StudentCourseDetailRespVO {
     private Object course;
     private List<?> chapter;
     private Object teacher;
+    private Object aiAssistant;
 }

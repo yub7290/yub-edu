@@ -2,6 +2,7 @@ package com.yub.edu.biz.controller;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.MessageQueryDTO;
@@ -47,6 +48,7 @@ public class EduMessageController {
      * @param id 留言ID
      * @return 操作结果
      */
+    @Log(value = "删除留言", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         EduMessage exist = eduMessageMapper.selectById(id);

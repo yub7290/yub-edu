@@ -3,21 +3,34 @@ package com.yub.edu.biz.controller;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.yub.common.model.Response;
+import com.yub.edu.biz.dto.CourseExamStatsResult;
+import com.yub.edu.biz.entity.EduAiConfig;
 import com.yub.edu.biz.entity.EduChapter;
 import com.yub.edu.biz.entity.EduCourse;
-import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.entity.EduExam;
+import com.yub.edu.biz.entity.EduExamRecord;
 import com.yub.edu.biz.entity.EduTeacher;
+import com.yub.edu.biz.mapper.EduAiConfigMapper;
+import com.yub.edu.biz.mapper.EduChapterMapper;
 import com.yub.edu.biz.mapper.EduCourseMapper;
+import com.yub.edu.biz.mapper.EduExamMapper;
+import com.yub.edu.biz.mapper.EduExamRecordMapper;
+import com.yub.edu.biz.mapper.EduPracticeRecordMapper;
 import com.yub.edu.biz.mapper.EduTeacherMapper;
+import com.yub.edu.biz.mapper.StudyRecordMapper;
 import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.vo.CourseCategoryRespVO;
+import com.yub.edu.biz.vo.CourseExamHistoryVO;
 import com.yub.edu.biz.vo.CourseListRespVO;
 import com.yub.edu.biz.vo.CourseRecommendedRespVO;
+import com.yub.edu.biz.vo.CourseScoreRespVO;
 import com.yub.edu.biz.vo.StudentCourseDetailRespVO;
+import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 学生端课程 Controller
@@ -36,6 +49,11 @@ public class StudentCourseController {
     private final EduChapterMapper eduChapterMapper;
     private final EduTeacherMapper eduTeacherMapper;
     private final EduCourseService eduCourseService;
+    private final EduAiConfigMapper eduAiConfigMapper;
+    private final EduExamRecordMapper eduExamRecordMapper;
+    private final EduPracticeRecordMapper eduPracticeRecordMapper;
+    private final StudyRecordMapper studyRecordMapper;
+    private final EduExamMapper eduExamMapper;
 
     /**
      * 课程分类
@@ -139,10 +157,102 @@ public class StudentCourseController {
             teacherInfo.put("intro", "");
         }
 
+        // AI助教信息
+        Map<String, Object> aiAssistant = new HashMap<>();
+        EduAiConfig aiConfig = eduAiConfigMapper.selectByCourseId(cid);
+        boolean aiEnabled = aiConfig != null && aiConfig.getEnabled() != null && aiConfig.getEnabled() == 1;
+        aiAssistant.put("enabled", aiEnabled);
+        // 默认系统提示词也返回前端，方便展示AI助教角色
+
         return Response.success(StudentCourseDetailRespVO.builder()
                 .course(courseInfo)
                 .chapter(chapterList)
                 .teacher(teacherInfo)
+                .aiAssistant(aiAssistant)
+                .build());
+    }
+
+    /**
+     * 课程综合成绩
+     *
+     * @param courseId 课程ID
+     * @return 综合成绩数据
+     */
+    @GetMapping("/{courseId}/score")
+    public Response<CourseScoreRespVO> score(@PathVariable Long courseId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        // 课程信息
+        EduCourse course = eduCourseMapper.selectById(courseId);
+        if (course == null) {
+            return Response.success(null);
+        }
+
+        // 1. 考试统计
+        CourseExamStatsResult examStats = eduExamRecordMapper.selectCourseExamStats(userId, courseId);
+        int examAvgScore = examStats != null ? examStats.getAvgScore() : 0;
+        int examMaxScore = examStats != null ? examStats.getMaxScore() : 0;
+        int examTotalCount = examStats != null ? examStats.getTotalCount() : 0;
+        int examPassCount = examStats != null ? examStats.getPassCount() : 0;
+        int examPassRate = examTotalCount > 0 ? examPassCount * 100 / examTotalCount : 0;
+
+        // 2. 练习统计
+        int practiceTotal = eduPracticeRecordMapper.countByUserAndCourse(userId, courseId);
+        int practiceCorrect = eduPracticeRecordMapper.countCorrectByUserAndCourse(userId, courseId);
+        int practiceAccuracyRate = practiceTotal > 0 ? practiceCorrect * 100 / practiceTotal : 0;
+
+        // 3. 章节学习进度
+        List<EduChapter> chapters = eduChapterMapper.selectTreeByCourseId(courseId);
+        int chapterTotal = chapters.size();
+        int chapterStudied = studyRecordMapper.countStudiedChapters(userId, courseId);
+        int chapterProgressRate = chapterTotal > 0 ? chapterStudied * 100 / chapterTotal : 0;
+
+        // 4. 考试历史列表
+        List<EduExamRecord> records = eduExamRecordMapper.selectByUserAndCourse(userId, courseId);
+        // 收集 examId 列表，批量查询 exam 信息
+        Set<Long> examIds = records.stream().map(EduExamRecord::getExamId).collect(Collectors.toSet());
+        Map<Long, EduExam> examMap = new HashMap<>();
+        if (!examIds.isEmpty()) {
+            for (Long eid : examIds) {
+                EduExam exam = eduExamMapper.selectById(eid);
+                if (exam != null) {
+                    examMap.put(eid, exam);
+                }
+            }
+        }
+
+        List<CourseExamHistoryVO> historyList = records.stream().map(r -> {
+            EduExam exam = examMap.get(r.getExamId());
+            return CourseExamHistoryVO.builder()
+                    .recordId(r.getId())
+                    .examId(r.getExamId())
+                    .examName(exam != null ? exam.getTitle() : "")
+                    .isFinalExam(exam != null ? exam.getIsFinalExam() : 0)
+                    .score(r.getScore())
+                    .totalScore(r.getTotalScore())
+                    .passScore(r.getPassScore())
+                    .isPass(r.getIsPass())
+                    .attemptNo(r.getAttemptNo())
+                    .submitTime(r.getSubmitTime())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return Response.success(CourseScoreRespVO.builder()
+                .courseId(course.getId())
+                .courseName(course.getName())
+                .courseImage(course.getImageUrl())
+                .examAvgScore(examAvgScore)
+                .examMaxScore(examMaxScore)
+                .examTotalCount(examTotalCount)
+                .examPassCount(examPassCount)
+                .examPassRate(examPassRate)
+                .practiceTotalCount(practiceTotal)
+                .practiceCorrectCount(practiceCorrect)
+                .practiceAccuracyRate(practiceAccuracyRate)
+                .chapterTotalCount(chapterTotal)
+                .chapterStudiedCount(chapterStudied)
+                .chapterProgressRate(chapterProgressRate)
+                .examHistoryList(historyList)
                 .build());
     }
 }

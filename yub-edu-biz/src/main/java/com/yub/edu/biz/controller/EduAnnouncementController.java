@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -62,6 +63,7 @@ public class EduAnnouncementController {
      * @param dto 新增参数
      * @return 公告ID
      */
+    @Log(value = "新增公告", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody AnnouncementCreateReqDTO dto) {
         return Response.success(eduAnnouncementService.create(dto));
@@ -73,6 +75,7 @@ public class EduAnnouncementController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑公告", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody AnnouncementUpdateReqDTO dto) {
         eduAnnouncementService.update(dto);
@@ -85,6 +88,7 @@ public class EduAnnouncementController {
      * @param id 公告ID
      * @return 响应
      */
+    @Log(value = "删除公告", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         eduAnnouncementService.delete(id);

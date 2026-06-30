@@ -2,6 +2,7 @@ package com.yub.edu.biz.mapper;
 
 import com.yub.edu.biz.entity.EduExamRecordDetail;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -23,4 +24,12 @@ public interface EduExamRecordDetailMapper {
      * @return 影响行数
      */
     int insertBatch(List<EduExamRecordDetail> list);
+
+    /**
+     * 根据考试记录ID查询答题明细
+     *
+     * @param recordId 考试记录ID
+     * @return 答题明细列表
+     */
+    List<EduExamRecordDetail> selectByRecordId(@Param("recordId") Long recordId);
 }

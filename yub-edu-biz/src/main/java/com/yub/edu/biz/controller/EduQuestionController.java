@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -12,14 +13,9 @@ import com.yub.edu.biz.vo.QuestionDetailRespVO;
 import com.yub.edu.biz.vo.QuestionPageRespVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 试题管理 Controller
@@ -64,6 +60,7 @@ public class EduQuestionController {
      * @param dto 新增参数
      * @return 试题ID
      */
+    @Log(value = "新增试题", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody QuestionCreateReqDTO dto) {
         return Response.success(eduQuestionService.create(dto));
@@ -75,6 +72,7 @@ public class EduQuestionController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑试题", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody QuestionUpdateReqDTO dto) {
         eduQuestionService.update(dto);
@@ -87,6 +85,7 @@ public class EduQuestionController {
      * @param id 试题ID
      * @return 响应
      */
+    @Log(value = "删除试题", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         eduQuestionService.delete(id);
@@ -100,9 +99,35 @@ public class EduQuestionController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换试题状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduQuestionService.changeStatus(id, dto.getStatus());
+        return Response.success();
+    }
+
+    /**
+     * 获取试题关联的知识点ID列表
+     *
+     * @param id 试题ID
+     * @return 知识点ID列表
+     */
+    @GetMapping("/{id}/knowledge")
+    public Response<List<Long>> getKnowledge(@PathVariable Long id) {
+        return Response.success(eduQuestionService.getKnowledgePointIds(id));
+    }
+
+    /**
+     * 更新试题关联的知识点
+     *
+     * @param id               试题ID
+     * @param knowledgePointIds 知识点ID列表
+     * @return 操作结果
+     */
+    @Log(value = "更新试题关联知识点", type = "UPDATE")
+    @PutMapping("/{id}/knowledge")
+    public Response<Void> updateKnowledge(@PathVariable Long id, @RequestBody List<Long> knowledgePointIds) {
+        eduQuestionService.updateKnowledgePoints(id, knowledgePointIds);
         return Response.success();
     }
 }

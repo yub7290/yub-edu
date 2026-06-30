@@ -7,6 +7,9 @@ import com.qiniu.storage.Region;
 import com.qiniu.storage.UploadManager;
 import com.qiniu.storage.model.DefaultPutRet;
 import com.qiniu.util.Auth;
+import com.qiniu.util.StringMap;
+import com.yub.common.enums.ResponseCode;
+import com.yub.common.exception.BaseException;
 import com.yub.edu.biz.config.QiniuConfig;
 import com.yub.edu.biz.service.FileUploadService;
 import jakarta.annotation.PostConstruct;
@@ -20,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -74,8 +78,14 @@ public class FileUploadServiceImpl implements FileUploadService {
 
         String fileName = generateFileName(file, directory);
 
-        byte[] bytes = file.getBytes();
-        Response response = uploadManager.put(bytes, fileName, upToken);
+        // 使用 InputStream 流式上传，避免大文件 OOM
+        Response response = uploadManager.put(
+                file.getInputStream(),
+                fileName,
+                upToken,
+                (StringMap) null,   // 无自定义参数
+                file.getContentType()  // 保持原始 MIME 类型
+        );
         DefaultPutRet putRet = new Gson().fromJson(response.bodyString(), DefaultPutRet.class);
 
         String fileUrl = qiniuConfig.getDomain() + "/" + putRet.key;
@@ -114,6 +124,35 @@ public class FileUploadServiceImpl implements FileUploadService {
         return directory + "/" + UUID.randomUUID().toString().replace("-", "") + suffix;
     }
 
+    /** 允许的图片 MIME 类型 */
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/gif"
+    );
+
+    /** 允许的图片文件扩展名（小写） */
+    private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of(
+            "jpg", "jpeg", "png", "gif"
+    );
+
+    /** 最大图片字节数 */
+    @Value("${upload.max-image-size:5242880}")
+    private long maxImageSize;
+
+    /** 允许的视频 MIME 类型 */
+    private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
+            "video/mp4", "video/x-msvideo", "video/quicktime",
+            "video/x-flv", "video/x-ms-wmv", "video/x-matroska"
+    );
+
+    /** 允许的视频文件扩展名（小写） */
+    private static final Set<String> ALLOWED_VIDEO_EXTENSIONS = Set.of(
+            "mp4", "avi", "mov", "flv", "wmv", "mkv"
+    );
+
+    /** 最大视频字节数 */
+    @Value("${upload.max-video-size:524288000}")
+    private long maxVideoSize;
+
     /**
      * 检查七牛云是否已配置（密钥不为占位值即视为已配置）
      */
@@ -124,5 +163,49 @@ public class FileUploadServiceImpl implements FileUploadService {
                 && !"your-secret-key".equals(qiniuConfig.getSecretKey())
                 && qiniuConfig.getBucket() != null
                 && !qiniuConfig.getBucket().isEmpty();
+    }
+
+    @Override
+    public void validateImage(MultipartFile file) {
+        // 校验文件大小
+        if (file.getSize() > maxImageSize) {
+            throw new BaseException(ResponseCode.FILE_SIZE_EXCEEDED);
+        }
+        // 校验文件格式：先检查 MIME 类型，再检查扩展名
+        String contentType = file.getContentType();
+        String originalFilename = file.getOriginalFilename();
+        boolean validType = false;
+        if (contentType != null && ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+            validType = true;
+        }
+        if (!validType && originalFilename != null && originalFilename.contains(".")) {
+            String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            validType = ALLOWED_IMAGE_EXTENSIONS.contains(ext);
+        }
+        if (!validType) {
+            throw new BaseException(ResponseCode.FILE_TYPE_NOT_ALLOWED);
+        }
+    }
+
+    @Override
+    public void validateVideo(MultipartFile file) {
+        // 校验文件大小
+        if (file.getSize() > maxVideoSize) {
+            throw new BaseException(ResponseCode.FILE_SIZE_EXCEEDED);
+        }
+        // 校验文件格式：先检查 MIME 类型，再检查扩展名
+        String contentType = file.getContentType();
+        String originalFilename = file.getOriginalFilename();
+        boolean validType = false;
+        if (contentType != null && ALLOWED_VIDEO_TYPES.contains(contentType.toLowerCase())) {
+            validType = true;
+        }
+        if (!validType && originalFilename != null && originalFilename.contains(".")) {
+            String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            validType = ALLOWED_VIDEO_EXTENSIONS.contains(ext);
+        }
+        if (!validType) {
+            throw new BaseException(ResponseCode.FILE_TYPE_NOT_ALLOWED);
+        }
     }
 }

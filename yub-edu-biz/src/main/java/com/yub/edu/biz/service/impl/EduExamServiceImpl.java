@@ -64,6 +64,8 @@ public class EduExamServiceImpl implements EduExamService {
             vo.setStatus(exam.getStatus());
             vo.setDifficulty(exam.getDifficulty());
             vo.setExaminer(exam.getExaminer());
+            vo.setMaxAttempts(exam.getMaxAttempts());
+            vo.setChapterPassRate(exam.getChapterPassRate());
             vo.setCreateTime(exam.getCreateTime());
             return vo;
         }).toList();
@@ -98,6 +100,8 @@ public class EduExamServiceImpl implements EduExamService {
         vo.setExaminer(exam.getExaminer());
         vo.setLogo(exam.getLogo());
         vo.setQuestionRangeType(exam.getQuestionRangeType());
+        vo.setMaxAttempts(exam.getMaxAttempts());
+        vo.setChapterPassRate(exam.getChapterPassRate());
         vo.setCreateTime(exam.getCreateTime());
         vo.setUpdateTime(exam.getUpdateTime());
 

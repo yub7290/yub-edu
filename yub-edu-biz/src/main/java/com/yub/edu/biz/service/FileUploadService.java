@@ -1,5 +1,6 @@
 package com.yub.edu.biz.service;
 
+import com.yub.common.exception.BaseException;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -20,4 +21,20 @@ public interface FileUploadService {
      * @return 文件访问 URL
      */
     String upload(MultipartFile file, String directory);
+
+    /**
+     * 校验上传图片（大小 ≤5MB，仅允许 JPG/JPEG/PNG/GIF）
+     *
+     * @param file 文件
+     * @throws BaseException 校验不通过时抛出对应错误码
+     */
+    void validateImage(MultipartFile file);
+
+    /**
+     * 校验上传视频（大小 ≤500MB，仅允许 MP4/AVI/MOV/FLV/WMV/MKV）
+     *
+     * @param file 文件
+     * @throws BaseException 校验不通过时抛出对应错误码
+     */
+    void validateVideo(MultipartFile file);
 }

@@ -1,12 +1,21 @@
 package com.yub.edu.biz.service.impl;
 
 import com.yub.edu.biz.dto.AiChatReqDTO;
+import com.yub.edu.biz.entity.EduAiConfig;
 import com.yub.edu.biz.entity.EduAiConversation;
 import com.yub.edu.biz.entity.EduAiMessage;
+import com.yub.edu.biz.entity.EduChapter;
+import com.yub.edu.biz.entity.EduCourse;
+import com.yub.edu.biz.entity.EduTeacher;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
+import com.yub.edu.biz.mapper.EduAiConfigMapper;
 import com.yub.edu.biz.mapper.EduAiConversationMapper;
 import com.yub.edu.biz.mapper.EduAiMessageMapper;
+import com.yub.edu.biz.entity.EduCourse;
+import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.mapper.EduCourseMapper;
+import com.yub.edu.biz.mapper.EduTeacherMapper;
 import com.yub.edu.biz.service.AiChatService;
 import com.yub.edu.biz.vo.AiChatRespVO;
 import dev.langchain4j.data.message.AiMessage;
@@ -19,6 +28,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -39,7 +49,7 @@ import java.util.stream.Collectors;
  * @Author: bing.yu
  * @CreateTime: 2026-06-18
  * @Description: AI助教业务逻辑实现
- * @Version: 1.0.0
+ * @Version: 2.0.0
  */
 @Slf4j
 @Service
@@ -48,8 +58,21 @@ public class AiChatServiceImpl implements AiChatService {
 
     private final EduAiConversationMapper conversationMapper;
     private final EduAiMessageMapper messageMapper;
+    private final EduAiConfigMapper aiConfigMapper;
+    private final EduCourseMapper courseMapper;
+    private final EduChapterMapper chapterMapper;
+    private final EduTeacherMapper teacherMapper;
     private final ChatLanguageModel chatModel;
     private final RestTemplate restTemplate;
+
+    @Value("${ai.api-key}")
+    private String defaultApiKey;
+
+    @Value("${ai.base-url}")
+    private String defaultBaseUrl;
+
+    @Value("${ai.model}")
+    private String defaultModel;
 
     /** 线程池用于异步流式处理 */
     private final ExecutorService executorService = Executors.newCachedThreadPool();
@@ -62,10 +85,53 @@ public class AiChatServiceImpl implements AiChatService {
     /** 上下文窗口大小 */
     private static final int MAX_CONTEXT_MESSAGES = 20;
 
+    /**
+     * 检查每日对话次数限制
+     */
+    private void checkDailyLimit(Long studentId, Long courseId) {
+        // 读取课程AI配置
+        EduAiConfig config = aiConfigMapper.selectByCourseId(courseId);
+        int dailyLimit = (config != null && config.getDailyLimit() != null) ? config.getDailyLimit() : 100;
+
+        if (config == null || config.getEnabled() == null || config.getEnabled() != 1) {
+            // AI助教未启用 - 但继续允许使用默认限制
+            log.warn("课程 {} 未配置AI助教或未启用，使用默认限制", courseId);
+        }
+
+        int todayCount = messageMapper.countTodayMessages(studentId, courseId);
+        if (todayCount >= dailyLimit) {
+            log.warn("学生 {} 今日对话次数已达上限: {}/{}", studentId, todayCount, dailyLimit);
+            throw new EduException(EduErrorCode.AI_DAILY_LIMIT_EXCEEDED);
+        }
+        log.info("学生 {} 今日对话次数: {}/{}", studentId, todayCount, dailyLimit);
+    }
+
+    /**
+     * 获取课程的AI配置（含默认值）
+     */
+    private EduAiConfig getCourseAiConfig(Long courseId) {
+        EduAiConfig config = aiConfigMapper.selectByCourseId(courseId);
+        if (config == null) {
+            config = new EduAiConfig();
+            config.setCourseId(courseId);
+            config.setEnabled(1);
+            config.setModel(defaultModel);
+            config.setDailyLimit(100);
+            config.setSystemPrompt("你是一个专业的课程AI助教，专门帮助学生解答关于课程的问题。请用简洁、专业的语言回答学生的问题。");
+        }
+        return config;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AiChatRespVO chat(Long studentId, AiChatReqDTO req) {
         Long courseId = req.getCourseId();
+        if (courseId == null) {
+            throw new EduException(EduErrorCode.COURSE_NOT_FOUND);
+        }
+
+        // 0. 检查每日对话次数限制
+        checkDailyLimit(studentId, courseId);
 
         // 1. 获取或创建会话
         Long conversationId = req.getChatId();
@@ -91,9 +157,10 @@ public class AiChatServiceImpl implements AiChatService {
         userMessage.setStatus(1);
         messageMapper.insert(userMessage);
 
-        // 3. 获取上下文消息
+        // 3. 获取课程AI配置和上下文消息
+        EduAiConfig aiConfig = getCourseAiConfig(courseId);
         Long finalConversationId = conversationId;
-        List<ChatMessage> contextMessages = getContextMessages(conversationId);
+        List<ChatMessage> contextMessages = getContextMessages(conversationId, courseId, aiConfig);
 
         // 4. 构建当前用户消息并添加到上下文
         UserMessage currentUserMessage = buildUserMessage(req);
@@ -102,15 +169,14 @@ public class AiChatServiceImpl implements AiChatService {
         // 5. 调用同步AI模型
         String aiReply;
         try {
-            log.info("调用AI模型，消息数量: {}", contextMessages.size());
+            log.info("调用AI模型 [{}]，消息数量: {}", aiConfig.getModel(), contextMessages.size());
 
-            // 直接使用 RestTemplate 调用 API
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-            headers.setBearerAuth("tp-c2ajmdwscpit7ihqkxcyaqiwkrjpmxfnal2yob2ygvtztxxf");
+            headers.setBearerAuth(defaultApiKey);
 
             java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
-            requestBody.put("model", "mimo-v2.5");
+            requestBody.put("model", aiConfig.getModel() != null ? aiConfig.getModel() : defaultModel);
             requestBody.put("messages", contextMessages.stream().map(msg -> {
                 java.util.Map<String, Object> m = new java.util.HashMap<>();
                 m.put("role", msg.type().name().toLowerCase());
@@ -118,12 +184,9 @@ public class AiChatServiceImpl implements AiChatService {
                     UserMessage userMsg = (UserMessage) msg;
                     boolean hasImage = userMsg.contents().stream()
                             .anyMatch(c -> c instanceof ImageContent);
-                    
+
                     if (hasImage) {
-                        // 多模态消息：包含文本和图片
                         java.util.List<java.util.Map<String, Object>> contentArray = new java.util.ArrayList<>();
-                        
-                        // 添加文本内容
                         String textContent = userMsg.contents().stream()
                                 .filter(c -> c instanceof TextContent)
                                 .map(c -> ((TextContent) c).text())
@@ -134,8 +197,6 @@ public class AiChatServiceImpl implements AiChatService {
                             textPart.put("text", textContent);
                             contentArray.add(textPart);
                         }
-                        
-                        // 添加图片内容
                         userMsg.contents().stream()
                                 .filter(c -> c instanceof ImageContent)
                                 .forEach(c -> {
@@ -147,10 +208,8 @@ public class AiChatServiceImpl implements AiChatService {
                                     imgPart.put("image_url", imgUrl);
                                     contentArray.add(imgPart);
                                 });
-                        
                         m.put("content", contentArray);
                     } else {
-                        // 纯文本消息
                         String textContent = userMsg.contents().stream()
                                 .filter(c -> c instanceof TextContent)
                                 .map(c -> ((TextContent) c).text())
@@ -164,19 +223,18 @@ public class AiChatServiceImpl implements AiChatService {
                 }
                 return m;
             }).collect(java.util.stream.Collectors.toList()));
-            requestBody.put("max_tokens", 2000);
+            requestBody.put("max_tokens", aiConfig.getMaxTokens() != null ? aiConfig.getMaxTokens() : 2000);
 
             org.springframework.http.HttpEntity<java.util.Map<String, Object>> entity =
                     new org.springframework.http.HttpEntity<>(requestBody, headers);
 
             org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(
-                    "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
+                    defaultBaseUrl + "/chat/completions",
                     entity,
                     String.class);
 
             log.info("AI API 响应: {}", response.getBody());
 
-            // 解析响应
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.getBody());
             aiReply = root.path("choices").path(0).path("message").path("content").asText();
@@ -258,6 +316,12 @@ public class AiChatServiceImpl implements AiChatService {
     @Override
     public void chatStream(Long studentId, AiChatReqDTO req, SseEmitter emitter) {
         Long courseId = req.getCourseId();
+        if (courseId == null) {
+            throw new EduException(EduErrorCode.COURSE_NOT_FOUND);
+        }
+
+        // 0. 检查每日对话次数限制
+        checkDailyLimit(studentId, courseId);
 
         // 1. 获取或创建会话
         Long conversationId = req.getChatId();
@@ -283,9 +347,10 @@ public class AiChatServiceImpl implements AiChatService {
         userMessage.setStatus(1);
         messageMapper.insert(userMessage);
 
-        // 3. 获取上下文消息
+        // 3. 获取课程AI配置和上下文消息
+        EduAiConfig aiConfig = getCourseAiConfig(courseId);
         Long finalConversationId = conversationId;
-        List<ChatMessage> contextMessages = getContextMessages(conversationId);
+        List<ChatMessage> contextMessages = getContextMessages(conversationId, courseId, aiConfig);
 
         // 4. 构建当前用户消息并添加到上下文
         UserMessage currentUserMessage = buildUserMessage(req);
@@ -293,23 +358,24 @@ public class AiChatServiceImpl implements AiChatService {
 
         // 5. 异步执行流式调用（使用 RestTemplate 直接调用）
         List<ChatMessage> finalContextMessages = contextMessages;
+        String modelName = aiConfig.getModel() != null ? aiConfig.getModel() : defaultModel;
+        Integer maxTokens = aiConfig.getMaxTokens() != null ? aiConfig.getMaxTokens() : 2000;
+
         executorService.submit(() -> {
             StringBuilder fullResponse = new StringBuilder();
             try {
-                // 发送会话ID
                 emitter.send(SseEmitter.event()
                         .name("conversationId")
                         .data(finalConversationId.toString()));
 
-                log.info("开始流式调用AI，消息数量: {}", finalContextMessages.size());
+                log.info("开始流式调用AI [{}]，消息数量: {}", modelName, finalContextMessages.size());
 
-                // 构建请求体
                 org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
                 headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-                headers.setBearerAuth("tp-c2ajmdwscpit7ihqkxcyaqiwkrjpmxfnal2yob2ygvtztxxf");
+                headers.setBearerAuth(defaultApiKey);
 
                 java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
-                requestBody.put("model", "mimo-v2.5");
+                requestBody.put("model", modelName);
                 requestBody.put("stream", true);
                 requestBody.put("messages", finalContextMessages.stream().map(msg -> {
                     java.util.Map<String, Object> m = new java.util.HashMap<>();
@@ -318,12 +384,9 @@ public class AiChatServiceImpl implements AiChatService {
                         UserMessage userMsg = (UserMessage) msg;
                         boolean hasImage = userMsg.contents().stream()
                                 .anyMatch(c -> c instanceof ImageContent);
-                        
+
                         if (hasImage) {
-                            // 多模态消息：包含文本和图片
                             java.util.List<java.util.Map<String, Object>> contentArray = new java.util.ArrayList<>();
-                            
-                            // 添加文本内容
                             String textContent = userMsg.contents().stream()
                                     .filter(c -> c instanceof TextContent)
                                     .map(c -> ((TextContent) c).text())
@@ -334,8 +397,6 @@ public class AiChatServiceImpl implements AiChatService {
                                 textPart.put("text", textContent);
                                 contentArray.add(textPart);
                             }
-                            
-                            // 添加图片内容
                             userMsg.contents().stream()
                                     .filter(c -> c instanceof ImageContent)
                                     .forEach(c -> {
@@ -347,10 +408,8 @@ public class AiChatServiceImpl implements AiChatService {
                                         imgPart.put("image_url", imgUrl);
                                         contentArray.add(imgPart);
                                     });
-                            
                             m.put("content", contentArray);
                         } else {
-                            // 纯文本消息
                             String textContent = userMsg.contents().stream()
                                     .filter(c -> c instanceof TextContent)
                                     .map(c -> ((TextContent) c).text())
@@ -364,20 +423,18 @@ public class AiChatServiceImpl implements AiChatService {
                     }
                     return m;
                 }).collect(java.util.stream.Collectors.toList()));
-                requestBody.put("max_tokens", 2000);
+                requestBody.put("max_tokens", maxTokens);
 
                 org.springframework.http.HttpEntity<java.util.Map<String, Object>> entity =
                         new org.springframework.http.HttpEntity<>(requestBody, headers);
 
-                // 使用 RestTemplate 执行流式请求
                 org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> response =
                         restTemplate.exchange(
-                                "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
+                                defaultBaseUrl + "/chat/completions",
                                 org.springframework.http.HttpMethod.POST,
                                 entity,
                                 org.springframework.core.io.Resource.class);
 
-                // 读取 SSE 流
                 try (java.io.BufferedReader reader = new java.io.BufferedReader(
                         new java.io.InputStreamReader(response.getBody().getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
                     String line;
@@ -406,7 +463,6 @@ public class AiChatServiceImpl implements AiChatService {
 
                 log.info("AI流式调用完成，回复长度: {}", fullResponse.length());
 
-                // 发送完成标记
                 emitter.send(SseEmitter.event()
                         .name("done")
                         .data("[DONE]"));
@@ -447,28 +503,135 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     /**
-     * 获取上下文消息（带记忆）
+     * 获取上下文消息（带记忆），注入课程信息使得AI知道当前课程
      */
-    private List<ChatMessage> getContextMessages(Long conversationId) {
-        return chatMemory.computeIfAbsent(conversationId, id -> {
-            List<ChatMessage> messages = new ArrayList<>();
-            // 添加系统提示
-            messages.add(SystemMessage.from(
-                    "你是一个专业的课程AI助教，专门帮助学生解答关于课程的问题。" +
-                    "请用简洁、专业的语言回答学生的问题。"));
-
-            // 从数据库加载历史消息
+    private List<ChatMessage> getContextMessages(Long conversationId, Long courseId, EduAiConfig aiConfig) {
+        // 1. 查找缓存的对话历史（不含系统提示词），或从数据库加载
+        List<ChatMessage> cachedMessages = chatMemory.computeIfAbsent(conversationId, id -> {
             List<EduAiMessage> history = messageMapper.selectByConversationId(id, MAX_CONTEXT_MESSAGES);
             Collections.reverse(history);
+            List<ChatMessage> msgs = new ArrayList<>();
             for (EduAiMessage msg : history) {
                 if ("student".equals(msg.getRole())) {
-                    messages.add(UserMessage.from(msg.getContent()));
+                    msgs.add(UserMessage.from(msg.getContent()));
                 } else if ("assistant".equals(msg.getRole())) {
-                    messages.add(AiMessage.from(msg.getContent()));
+                    msgs.add(AiMessage.from(msg.getContent()));
                 }
             }
-            return messages;
+            return msgs;
         });
+
+        // 2. 如果缓存中第一条是旧的 SystemMessage，移除它（后续会重新注入）
+        //    这确保升级部署后现有对话也能获得最新的课程上下文
+        List<ChatMessage> historyMessages;
+        if (!cachedMessages.isEmpty() && cachedMessages.get(0) instanceof SystemMessage) {
+            historyMessages = new ArrayList<>(cachedMessages.subList(1, cachedMessages.size()));
+        } else {
+            historyMessages = new ArrayList<>(cachedMessages);
+        }
+
+        // 3. 每次重新构建系统提示词（含最新的课程名称），不缓存
+        String systemPrompt = buildSystemPrompt(courseId, aiConfig);
+
+        // 4. 组合：新鲜的系统提示词 + 历史消息
+        List<ChatMessage> result = new ArrayList<>();
+        result.add(SystemMessage.from(systemPrompt));
+        result.addAll(historyMessages);
+        return result;
+    }
+
+    /**
+     * 构建系统提示词，注入课程上下文
+     */
+    private String buildSystemPrompt(Long courseId, EduAiConfig aiConfig) {
+        StringBuilder courseContext = new StringBuilder();
+
+        try {
+            EduCourse course = courseMapper.selectById(courseId);
+            if (course != null) {
+                // 课程名称
+                if (course.getName() != null) {
+                    courseContext.append("课程名称：").append(course.getName()).append("\n");
+                }
+
+                // 授课教师
+                String teacherName = course.getTeacher();
+                if (teacherName != null && !teacherName.isEmpty()) {
+                    courseContext.append("授课教师：").append(teacherName);
+                    // 尝试获取教师简介
+                    try {
+                        EduTeacher teacher = teacherMapper.selectByName(teacherName);
+                        if (teacher != null && teacher.getSignature() != null && !teacher.getSignature().isEmpty()) {
+                            courseContext.append("（简介：").append(teacher.getSignature()).append("）");
+                        }
+                    } catch (Exception e) {
+                        log.warn("查询教师信息失败: {}", e.getMessage());
+                    }
+                    courseContext.append("\n");
+                }
+
+                // 课程简介（截取前200字）
+                if (course.getIntroduction() != null && !course.getIntroduction().isEmpty()) {
+                    String intro = course.getIntroduction().replaceAll("<[^>]*>", ""); // 去HTML标签
+                    if (intro.length() > 200) {
+                        intro = intro.substring(0, 200) + "...";
+                    }
+                    courseContext.append("课程简介：").append(intro).append("\n");
+                }
+
+                // 学习目标
+                if (course.getLearningObjectives() != null && !course.getLearningObjectives().isEmpty()) {
+                    String objectives = course.getLearningObjectives().replaceAll("<[^>]*>", "");
+                    if (objectives.length() > 200) {
+                        objectives = objectives.substring(0, 200) + "...";
+                    }
+                    courseContext.append("学习目标：").append(objectives).append("\n");
+                }
+
+                // 课程统计信息
+                courseContext.append("课程统计：");
+                if (course.getChapterCount() != null) courseContext.append("章节数 ").append(course.getChapterCount()).append("，");
+                if (course.getVideoCount() != null) courseContext.append("视频数 ").append(course.getVideoCount()).append("，");
+                if (course.getQuestionCount() != null) courseContext.append("试题数 ").append(course.getQuestionCount()).append("，");
+                if (course.getExamCount() != null) courseContext.append("试卷数 ").append(course.getExamCount()).append("，");
+                if (course.getStudentCount() != null) courseContext.append("学员数 ").append(course.getStudentCount());
+                courseContext.append("\n");
+
+                // 章节列表（只取名称，最多10章）
+                try {
+                    List<EduChapter> chapters = chapterMapper.selectTreeByCourseId(courseId);
+                    if (chapters != null && !chapters.isEmpty()) {
+                        courseContext.append("课程章节：\n");
+                        int count = 0;
+                        for (EduChapter ch : chapters) {
+                            if (count >= 10) {
+                                courseContext.append("  ...等共").append(chapters.size()).append("章\n");
+                                break;
+                            }
+                            courseContext.append("  ").append(ch.getName()).append("\n");
+                            count++;
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("查询课程章节失败: {}", e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("查询课程信息失败: {}", e.getMessage());
+        }
+
+        String systemPrompt = aiConfig.getSystemPrompt();
+        if (systemPrompt == null || systemPrompt.isEmpty()) {
+            systemPrompt = "你是一个专业的课程AI助教，专门帮助学生解答关于课程的问题。请用简洁、专业的语言回答学生的问题。";
+        }
+
+        // 拼接课程上下文 + 系统提示词
+        if (courseContext.length() > 0) {
+            systemPrompt = "以下是当前课程的详细信息（基于数据库实时查询，请据此回答）：\n" + courseContext + "\n" + systemPrompt;
+        }
+
+        log.info("AI系统提示词:\n{}", systemPrompt);
+        return systemPrompt;
     }
 
     /**

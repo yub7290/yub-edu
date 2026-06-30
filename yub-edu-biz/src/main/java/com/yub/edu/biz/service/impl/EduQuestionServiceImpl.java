@@ -10,12 +10,14 @@ import com.yub.edu.biz.dto.QuestionUpdateReqDTO;
 import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduMajor;
 import com.yub.edu.biz.entity.EduQuestion;
+import com.yub.edu.biz.entity.EduQuestionKnowledgePoint;
 import com.yub.edu.biz.entity.EduQuestionOption;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduCourseMapper;
 import com.yub.edu.biz.mapper.EduMajorMapper;
 import com.yub.edu.biz.mapper.EduQuestionMapper;
+import com.yub.edu.biz.mapper.EduQuestionKnowledgePointMapper;
 import com.yub.edu.biz.mapper.EduQuestionOptionMapper;
 import com.yub.edu.biz.service.EduQuestionService;
 import com.yub.edu.biz.vo.QuestionDetailRespVO;
@@ -44,6 +46,7 @@ public class EduQuestionServiceImpl implements EduQuestionService {
 
     private final EduQuestionMapper eduQuestionMapper;
     private final EduQuestionOptionMapper eduQuestionOptionMapper;
+    private final EduQuestionKnowledgePointMapper eduQuestionKnowledgePointMapper;
     private final EduCourseMapper eduCourseMapper;
     private final EduMajorMapper eduMajorMapper;
 
@@ -84,6 +87,9 @@ public class EduQuestionServiceImpl implements EduQuestionService {
             options = eduQuestionOptionMapper.selectByQuestionId(id);
         }
 
+        // 加载试题-知识点关联
+        List<Long> knowledgePointIds = eduQuestionKnowledgePointMapper.selectKnowledgePointIdsByQuestionId(id);
+
         return QuestionDetailRespVO.builder()
                 .id(question.getId())
                 .questionType(question.getQuestionType())
@@ -97,6 +103,7 @@ public class EduQuestionServiceImpl implements EduQuestionService {
                 .chapterId(question.getChapterId())
                 .analysis(question.getAnalysis())
                 .knowledgePoints(question.getKnowledgePoints())
+                .knowledgePointIds(knowledgePointIds)
                 .answer(question.getAnswer())
                 .options(options)
                 .createTime(question.getCreateTime())
@@ -126,6 +133,11 @@ public class EduQuestionServiceImpl implements EduQuestionService {
         // 插入选项
         if (dto.getOptions() != null && !dto.getOptions().isEmpty()) {
             insertOptions(dto.getOptions(), question.getId());
+        }
+
+        // 保存试题-知识点关联
+        if (dto.getKnowledgePointIds() != null && !dto.getKnowledgePointIds().isEmpty()) {
+            saveQuestionKnowledgePoints(question.getId(), dto.getKnowledgePointIds(), userId);
         }
 
         return question.getId();
@@ -159,6 +171,14 @@ public class EduQuestionServiceImpl implements EduQuestionService {
                 insertOptions(dto.getOptions(), dto.getId());
             }
         }
+
+        // 全量覆盖试题-知识点关联
+        if (dto.getKnowledgePointIds() != null) {
+            eduQuestionKnowledgePointMapper.deleteByQuestionId(dto.getId());
+            if (!dto.getKnowledgePointIds().isEmpty()) {
+                saveQuestionKnowledgePoints(dto.getId(), dto.getKnowledgePointIds(), question.getUpdateBy());
+            }
+        }
     }
 
     @Override
@@ -170,6 +190,8 @@ public class EduQuestionServiceImpl implements EduQuestionService {
         }
         eduQuestionMapper.deleteById(id);
         eduQuestionOptionMapper.deleteByQuestionId(id);
+        // 删除试题-知识点关联
+        eduQuestionKnowledgePointMapper.deleteByQuestionId(id);
     }
 
     @Override
@@ -180,6 +202,21 @@ public class EduQuestionServiceImpl implements EduQuestionService {
             throw new EduException(EduErrorCode.QUESTION_NOT_FOUND);
         }
         eduQuestionMapper.updateStatus(id, status);
+    }
+
+    @Override
+    public List<Long> getKnowledgePointIds(Long questionId) {
+        return eduQuestionKnowledgePointMapper.selectKnowledgePointIdsByQuestionId(questionId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateKnowledgePoints(Long questionId, List<Long> knowledgePointIds) {
+        eduQuestionKnowledgePointMapper.deleteByQuestionId(questionId);
+        if (knowledgePointIds != null && !knowledgePointIds.isEmpty()) {
+            Long userId = SecurityUtils.getCurrentUserId();
+            saveQuestionKnowledgePoints(questionId, knowledgePointIds, userId);
+        }
     }
 
     /**
@@ -200,5 +237,21 @@ public class EduQuestionServiceImpl implements EduQuestionService {
         if (!options.isEmpty()) {
             eduQuestionOptionMapper.insertBatch(options);
         }
+    }
+
+    /**
+     * 批量保存试题-知识点关联
+     */
+    private void saveQuestionKnowledgePoints(Long questionId, List<Long> knowledgePointIds, Long userId) {
+        List<EduQuestionKnowledgePoint> list = new ArrayList<>();
+        for (int i = 0; i < knowledgePointIds.size(); i++) {
+            EduQuestionKnowledgePoint item = new EduQuestionKnowledgePoint();
+            item.setQuestionId(questionId);
+            item.setKnowledgePointId(knowledgePointIds.get(i));
+            item.setSort(i);
+            item.setCreateBy(userId);
+            list.add(item);
+        }
+        eduQuestionKnowledgePointMapper.batchInsert(list);
     }
 }

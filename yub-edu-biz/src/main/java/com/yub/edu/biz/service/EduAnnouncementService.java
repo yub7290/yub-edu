@@ -7,6 +7,8 @@ import com.yub.edu.biz.dto.AnnouncementQueryDTO;
 import com.yub.edu.biz.dto.AnnouncementUpdateReqDTO;
 import com.yub.edu.biz.vo.AnnouncementVO;
 
+import java.util.List;
+
 /**
  * 公告服务接口
  *
@@ -32,6 +34,22 @@ public interface EduAnnouncementService {
      * @return 公告详情
      */
     AnnouncementVO getDetail(Long id);
+
+    /**
+     * 查询某课程已启用的公告列表（学生端）
+     *
+     * @param courseId 课程ID
+     * @return 公告列表
+     */
+    List<AnnouncementVO> listByCourse(Long courseId);
+
+    /**
+     * 获取已启用的公告详情（学生端，同时校验 status=1）
+     *
+     * @param id 公告ID
+     * @return 公告详情
+     */
+    AnnouncementVO getActiveDetail(Long id);
 
     /**
      * 新增公告

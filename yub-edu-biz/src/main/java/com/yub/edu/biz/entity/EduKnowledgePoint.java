@@ -21,6 +21,9 @@ public class EduKnowledgePoint {
     /** 所属分类ID */
     private Long categoryId;
 
+    /** 所属课程ID */
+    private Long courseId;
+
     /** 标题 */
     private String title;
 

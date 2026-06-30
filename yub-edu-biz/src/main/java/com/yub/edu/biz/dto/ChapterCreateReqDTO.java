@@ -1,10 +1,12 @@
 package com.yub.edu.biz.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 章节创建请求 DTO
@@ -44,6 +46,7 @@ public class ChapterCreateReqDTO {
     private Integer isLive = 0;
 
     /** 直播开始时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime liveStartTime;
 
     /** 直播时长(分钟) */
@@ -51,4 +54,7 @@ public class ChapterCreateReqDTO {
 
     /** 排序 */
     private Integer sort = 0;
+
+    /** 关联知识点ID列表 */
+    private List<Long> knowledgePointIds;
 }

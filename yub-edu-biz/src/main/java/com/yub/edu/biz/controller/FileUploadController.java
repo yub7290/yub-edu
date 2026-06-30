@@ -42,7 +42,32 @@ public class FileUploadController {
         if (file.isEmpty()) {
             return Response.error(400, "请选择文件");
         }
+        // 校验图片格式与大小
+        fileUploadService.validateImage(file);
         // 路径穿越防护：限制目录名只能包含字母、数字、下划线、中划线、斜杠
+        if (!DIR_PATTERN.matcher(directory).matches()) {
+            return Response.error(400, "存储目录格式不合法");
+        }
+        String url = fileUploadService.upload(file, directory);
+        return Response.success(url);
+    }
+
+    /**
+     * 上传视频
+     *
+     * @param file      文件
+     * @param directory 存储目录
+     * @return 文件访问 URL
+     */
+    @PostMapping("/video")
+    public Response<String> uploadVideo(@RequestParam("file") MultipartFile file,
+                                        @RequestParam(value = "directory", defaultValue = "edu/videos") String directory) {
+        if (file.isEmpty()) {
+            return Response.error(400, "请选择文件");
+        }
+        // 校验视频格式与大小
+        fileUploadService.validateVideo(file);
+        // 路径穿越防护
         if (!DIR_PATTERN.matcher(directory).matches()) {
             return Response.error(400, "存储目录格式不合法");
         }

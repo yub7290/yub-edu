@@ -45,6 +45,10 @@
         SELECT COUNT(1) FROM edu_chapter WHERE parent_id = #{parentId} AND deleted = 0
     </select>
 
+    <select id="countByCourseId" resultType="int">
+        SELECT COUNT(1) FROM edu_chapter WHERE course_id = #{courseId} AND deleted = 0 AND status = 1
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO edu_chapter (course_id, parent_id, name, status, is_completed, is_free, content_text,
                                  is_live, live_start_time, live_duration, sort,

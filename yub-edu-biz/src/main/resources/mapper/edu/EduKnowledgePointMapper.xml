@@ -5,6 +5,7 @@
     <resultMap id="EduKnowledgePointMap" type="com.yub.edu.biz.entity.EduKnowledgePoint">
         <id column="id" property="id"/>
         <result column="category_id" property="categoryId"/>
+        <result column="course_id" property="courseId"/>
         <result column="title" property="title"/>
         <result column="content" property="content"/>
         <result column="status" property="status"/>
@@ -16,7 +17,7 @@
     </resultMap>
 
     <sql id="baseColumns">
-        id, category_id, title, content, status,
+        id, category_id, course_id, title, content, status,
         create_time, update_time, create_by, update_by, deleted
     </sql>
 
@@ -24,6 +25,9 @@
         SELECT <include refid="baseColumns"/>
         FROM edu_knowledge_point
         WHERE deleted = 0
+        <if test="query.courseId != null">
+            AND course_id = #{query.courseId}
+        </if>
         <if test="query.categoryId != null">
             AND category_id = #{query.categoryId}
         </if>
@@ -49,14 +53,36 @@
         ORDER BY id DESC
     </select>
 
+    <select id="selectByCourseId" resultMap="EduKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_point
+        WHERE deleted = 0 AND status = 1
+        AND course_id = #{courseId}
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectBatchByIds" resultMap="EduKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_point
+        WHERE deleted = 0 AND status = 1
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id DESC
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO edu_knowledge_point (category_id, title, content, status, create_time, update_time, create_by, update_by)
-        VALUES (#{categoryId}, #{title}, #{content}, #{status}, NOW(), NOW(), #{createBy}, #{updateBy})
+        INSERT INTO edu_knowledge_point (category_id, course_id, title, content, status, create_time, update_time, create_by, update_by)
+        VALUES (#{categoryId}, #{courseId}, #{title}, #{content}, #{status}, NOW(), NOW(), #{createBy}, #{updateBy})
     </insert>
 
     <update id="updateById">
         UPDATE edu_knowledge_point
-        SET category_id = #{categoryId}, title = #{title}, content = #{content},
+        SET category_id = #{categoryId}, course_id = #{courseId}, title = #{title}, content = #{content},
             status = #{status}, update_time = NOW(), update_by = #{updateBy}
         WHERE id = #{id} AND deleted = 0
     </update>

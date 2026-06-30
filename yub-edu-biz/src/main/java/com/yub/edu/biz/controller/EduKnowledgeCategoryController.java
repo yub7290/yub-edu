@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduKnowledgeCategory;
 import com.yub.edu.biz.service.EduKnowledgeCategoryService;
@@ -33,6 +34,7 @@ public class EduKnowledgeCategoryController {
         return Response.success(service.getDetail(id));
     }
 
+    @Log(value = "新增知识点分类", type = "CREATE")
     @PostMapping
     public Response<Long> create(@RequestParam String name,
                                  @RequestParam(required = false) String description,
@@ -41,6 +43,7 @@ public class EduKnowledgeCategoryController {
         return Response.success(service.create(name, description, parentId, sort));
     }
 
+    @Log(value = "编辑知识点分类", type = "UPDATE")
     @PutMapping("/{id}")
     public Response<Void> update(@PathVariable Long id,
                                  @RequestParam String name,
@@ -51,6 +54,7 @@ public class EduKnowledgeCategoryController {
         return Response.success();
     }
 
+    @Log(value = "删除知识点分类", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         service.delete(id);

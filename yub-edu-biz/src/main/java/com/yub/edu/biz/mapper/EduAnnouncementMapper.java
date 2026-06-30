@@ -42,6 +42,22 @@ public interface EduAnnouncementMapper {
                         @Param("status") Integer status);
 
     /**
+     * 查询某课程已启用的公告列表（按时间倒序）
+     *
+     * @param courseId 课程ID
+     * @return 公告列表
+     */
+    List<EduAnnouncement> selectActiveByCourseId(@Param("courseId") Long courseId);
+
+    /**
+     * 根据ID查询已启用的公告（学生端详情用，同时校验 deleted=0 AND status=1）
+     *
+     * @param id 公告ID
+     * @return 公告
+     */
+    EduAnnouncement selectActiveById(@Param("id") Long id);
+
+    /**
      * 根据ID查询公告
      *
      * @param id 公告ID

@@ -13,6 +13,7 @@ import lombok.Data;
 @Data
 public class KnowledgePointQueryDTO {
     private Long categoryId;
+    private Long courseId;
     private String title;
     private Integer status;
 }

@@ -42,6 +42,14 @@ public interface EduChapterMapper {
     int countByParentId(@Param("parentId") Long parentId);
 
     /**
+     * 查询课程下的章节总数（仅统计叶子节点或启用状态的章节）
+     *
+     * @param courseId 课程ID
+     * @return 章节总数
+     */
+    int countByCourseId(@Param("courseId") Long courseId);
+
+    /**
      * 新增章节
      *
      * @param chapter 章节

@@ -20,9 +20,12 @@ import com.yub.edu.biz.mapper.EduExamQuestionMapper;
 import com.yub.edu.biz.mapper.EduExamQuestionTypeConfigMapper;
 import com.yub.edu.biz.mapper.EduExamRecordDetailMapper;
 import com.yub.edu.biz.mapper.EduExamRecordMapper;
+import com.yub.edu.biz.mapper.EduChapterMapper;
 import com.yub.edu.biz.mapper.EduQuestionMapper;
 import com.yub.edu.biz.mapper.EduQuestionOptionMapper;
+import com.yub.edu.biz.mapper.StudyRecordMapper;
 import com.yub.edu.biz.service.StudentExamService;
+import com.yub.edu.biz.vo.CourseFinalExamRespVO;
 import com.yub.edu.biz.vo.ExamHistoryRespVO;
 import com.yub.edu.biz.vo.ExamInfoRespVO;
 import com.yub.edu.biz.vo.ExamListRespVO;
@@ -30,6 +33,8 @@ import com.yub.edu.biz.vo.ExamQuestionRespVO;
 import com.yub.edu.biz.vo.ExamQuestionResultRespVO;
 import com.yub.edu.biz.vo.ExamQuestionOptionRespVO;
 import com.yub.edu.biz.vo.ExamResultRespVO;
+import com.yub.edu.biz.vo.ExamStartRespVO;
+import com.yub.framework.redis.RedisUtils;
 import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +73,8 @@ public class StudentExamServiceImpl implements StudentExamService {
     private final EduExamQuestionMapper eduExamQuestionMapper;
     private final EduExamRecordMapper eduExamRecordMapper;
     private final EduExamRecordDetailMapper eduExamRecordDetailMapper;
+    private final EduChapterMapper eduChapterMapper;
+    private final StudyRecordMapper studyRecordMapper;
     private final EduQuestionMapper eduQuestionMapper;
     private final EduQuestionOptionMapper eduQuestionOptionMapper;
     private final EduExamQuestionTypeConfigMapper eduExamQuestionTypeConfigMapper;
@@ -130,9 +137,28 @@ public class StudentExamServiceImpl implements StudentExamService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ExamResultRespVO submit(ExamSubmitReqDTO dto) {
+        Long userId = getUserId();
+
+        // 新流程：有 recordId，根据 recordId 查询记录，仅 status=0 可提交
+        if (dto.getRecordId() != null) {
+            EduExamRecord record = eduExamRecordMapper.selectById(dto.getRecordId());
+            if (record == null || !record.getUserId().equals(userId)) {
+                throw new EduException(EduErrorCode.EXAM_RECORD_NOT_FOUND);
+            }
+            if (record.getStatus() != 0) {
+                throw new EduException(EduErrorCode.EXAM_ALREADY_SUBMITTED);
+            }
+            // 复用原有判分逻辑，使用 record 关联的试卷
+            ExamSubmitReqDTO oldDto = new ExamSubmitReqDTO();
+            oldDto.setExamId(record.getExamId());
+            oldDto.setAnswers(dto.getAnswers());
+            oldDto.setDuration(dto.getDuration());
+            return doSubmit(oldDto, record, userId);
+        }
+
+        // 旧流程：无 recordId，创建新记录（兼容已有调用方）
         EduExam exam = eduExamMapper.selectById(dto.getExamId());
         validateExamEnabled(exam);
-        Long userId = getUserId();
         Long courseId = exam.getCourseId();
         Integer questionRangeType = exam.getQuestionRangeType();
         Map<Integer, Integer> expectedTypeCountMap = new HashMap<>();
@@ -222,6 +248,275 @@ public class StudentExamServiceImpl implements StudentExamService {
     public void clearHistory(Long examId) {
         Long userId = getUserId();
         eduExamRecordMapper.deleteByUserAndExam(userId, examId);
+    }
+
+    @Override
+    public CourseFinalExamRespVO getCourseFinalExam(Long courseId) {
+        // 查询课程关联的结课考试
+        EduExam exam = eduExamMapper.selectFinalExamByCourseId(courseId);
+        if (exam == null) {
+            return CourseFinalExamRespVO.builder()
+                    .examId(null)
+                    .canTake(false)
+                    .cannotTakeReason("该课程暂未设置结课考试")
+                    .attemptedCount(0)
+                    .remainingAttempts(0)
+                    .currentCompletionRate(0)
+                    .chapterCompletionRate(0)
+                    .chapterProgressMet(false)
+                    .highestScore(0)
+                    .everPassed(false)
+                    .historyList(Collections.emptyList())
+                    .build();
+        }
+
+        Long userId = getUserId();
+
+        // 计算已考次数和最高分
+        int submittedCount = eduExamRecordMapper.selectSubmittedCount(userId, exam.getId());
+        Integer maxScore = eduExamRecordMapper.selectMaxScore(userId, exam.getId());
+        int highestScore = maxScore != null ? maxScore : 0;
+
+        // 查询历史成绩列表
+        List<EduExamRecord> records = eduExamRecordMapper.selectByUserAndExam(userId, exam.getId());
+        List<ExamHistoryRespVO> historyList = records.stream()
+                .map(this::convertHistory).toList();
+
+        // 是否有过及格的记录
+        boolean everPassed = records.stream().anyMatch(r -> r.getIsPass() != null && r.getIsPass() == 1);
+
+        // 计算章节完成率
+        int chapterProgress = calculateChapterProgress(courseId, userId);
+
+        int maxAttempts = exam.getMaxAttempts() != null ? exam.getMaxAttempts() : 0;
+        int chapterPassRate = exam.getChapterPassRate() != null ? exam.getChapterPassRate() : 0;
+
+        // 校验是否可考
+        boolean canTake = true;
+        String reason = null;
+
+        // 校验重考次数
+        if (maxAttempts > 0 && submittedCount >= maxAttempts) {
+            canTake = false;
+            reason = "已达到最大参考次数（" + maxAttempts + "次），无法继续考试";
+        }
+
+        // 校验章节完成率
+        if (canTake && chapterPassRate > 0 && chapterProgress < chapterPassRate) {
+            canTake = false;
+            reason = "章节学习进度不足（当前" + chapterProgress + "%，需要" + chapterPassRate + "%），无法参加结课考试";
+        }
+
+        int remainingAttempts = maxAttempts > 0 ? Math.max(0, maxAttempts - submittedCount) : -1;
+
+        return CourseFinalExamRespVO.builder()
+                .examId(exam.getId())
+                .examName(exam.getTitle())
+                .duration(exam.getDuration())
+                .totalScore(exam.getTotalScore())
+                .passScore(exam.getPassScore())
+                .maxAttempts(maxAttempts)
+                .chapterCompletionRate(chapterPassRate)
+                .currentCompletionRate(chapterProgress)
+                .canTake(canTake)
+                .cannotTakeReason(reason)
+                .attemptedCount(submittedCount)
+                .remainingAttempts(remainingAttempts)
+                .chapterProgressMet(chapterProgress >= chapterPassRate)
+                .highestScore(highestScore)
+                .everPassed(everPassed)
+                .historyList(historyList)
+                .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ExamStartRespVO startExam(Long examId) {
+        EduExam exam = eduExamMapper.selectById(examId);
+        validateExamEnabled(exam);
+
+        Long userId = getUserId();
+
+        // 校验重考次数
+        int submittedCount = eduExamRecordMapper.selectSubmittedCount(userId, examId);
+        int maxAttempts = exam.getMaxAttempts() != null ? exam.getMaxAttempts() : 0;
+        if (maxAttempts > 0 && submittedCount >= maxAttempts) {
+            throw new EduException(EduErrorCode.EXAM_MAX_ATTEMPTS_REACHED);
+        }
+
+        // 校验章节完成率（结课考试检查，其他考试跳过）
+        if (exam.getIsFinalExam() != null && exam.getIsFinalExam() == 1) {
+            int chapterPassRate = exam.getChapterPassRate() != null ? exam.getChapterPassRate() : 0;
+            if (chapterPassRate > 0) {
+                int chapterProgress = calculateChapterProgress(exam.getCourseId(), userId);
+                if (chapterProgress < chapterPassRate) {
+                    throw new EduException(EduErrorCode.EXAM_CHAPTER_PROGRESS_NOT_ENOUGH);
+                }
+            }
+        }
+
+        // 检查是否有进行中的记录
+        EduExamRecord inProgress = eduExamRecordMapper.selectInProgress(userId, examId);
+        if (inProgress != null) {
+            // 直接返回进行中的考试
+            List<ExamQuestionRespVO> existingQuestions = questions(examId);
+            LocalDateTime endTime = inProgress.getStartTime().plusMinutes(exam.getDuration());
+            return ExamStartRespVO.builder()
+                    .recordId(inProgress.getId())
+                    .duration(exam.getDuration())
+                    .endTime(endTime)
+                    .questions(existingQuestions)
+                    .build();
+        }
+
+        // 使用分布式锁防止并发创建
+        String lockKey = "exam:start:" + userId + ":" + examId;
+        final EduExamRecord[] recordHolder = new EduExamRecord[1];
+        final boolean[] isNewRecord = {false};
+
+        RedisUtils.runWithLock(lockKey, () -> {
+            // 双重检查：锁内再次检查是否有进行中的记录
+            EduExamRecord existing = eduExamRecordMapper.selectInProgress(userId, examId);
+            if (existing != null) {
+                recordHolder[0] = existing;
+                return;
+            }
+
+            // 创建考试记录
+            LocalDateTime now = LocalDateTime.now();
+            EduExamRecord record = new EduExamRecord();
+            record.setUserId(userId);
+            record.setExamId(examId);
+            record.setAttemptNo(submittedCount + 1);
+            record.setStatus(0);
+            record.setScore(0);
+            record.setTotalScore(exam.getTotalScore());
+            record.setPassScore(exam.getPassScore());
+            record.setIsPass(0);
+            record.setDuration(0);
+            record.setStartTime(now);
+            record.setSubmitTime(now);
+            record.setHeartbeatTime(now);
+            eduExamRecordMapper.insert(record);
+            recordHolder[0] = record;
+            isNewRecord[0] = true;
+        });
+
+        EduExamRecord record = recordHolder[0];
+
+        List<ExamQuestionRespVO> questionVOs;
+        if (isNewRecord[0]) {
+            // 新创建的记录：抽题
+            Long courseId = exam.getCourseId();
+            Integer questionRangeType = exam.getQuestionRangeType();
+            Map<Long, Integer> scoreMap = pickQuestions(exam, courseId, questionRangeType);
+            questionVOs = buildQuestionVOs(scoreMap);
+        } else {
+            // 已存在的进行中记录：使用现有题目
+            questionVOs = questions(examId);
+        }
+        LocalDateTime endTime = record.getStartTime().plusMinutes(exam.getDuration());
+        return ExamStartRespVO.builder()
+                .recordId(record.getId())
+                .duration(exam.getDuration())
+                .endTime(endTime)
+                .questions(questionVOs)
+                .build();
+    }
+
+    @Override
+    public ExamResultRespVO getExamResult(Long recordId) {
+        Long userId = getUserId();
+        EduExamRecord record = eduExamRecordMapper.selectById(recordId);
+        if (record == null || !record.getUserId().equals(userId)) {
+            throw new EduException(EduErrorCode.EXAM_RECORD_NOT_FOUND);
+        }
+
+        EduExam exam = eduExamMapper.selectById(record.getExamId());
+        if (exam == null) {
+            throw new EduException(EduErrorCode.EXAM_NOT_FOUND);
+        }
+
+        // 加载答题明细
+        List<EduExamRecordDetail> details = eduExamRecordDetailMapper.selectByRecordId(recordId);
+
+        // 统计正确/错误题数
+        int correctCount = 0;
+        int wrongCount = 0;
+        List<Long> questionIds = new ArrayList<>();
+        for (EduExamRecordDetail detail : details) {
+            if (detail.getIsCorrect() != null && detail.getIsCorrect() == 1) {
+                correctCount++;
+            } else {
+                wrongCount++;
+            }
+            questionIds.add(detail.getQuestionId());
+        }
+
+        // 计算总题数
+        int totalCount;
+        if (exam.getQuestionRangeType() == 0) {
+            totalCount = eduQuestionMapper.selectQuestionIdsByCourseId(exam.getCourseId()).size();
+        } else {
+            var configs = eduExamChapterQuestionConfigMapper.selectByExamId(exam.getId());
+            totalCount = configs.stream().mapToInt(EduExamChapterQuestionConfig::getQuestionCount).sum();
+        }
+
+        // 加载题目和选项
+        Map<Long, EduQuestion> questionMap = getQuestionMap(questionIds);
+        Map<Long, List<EduQuestionOption>> optionMap = getOptionMap(questionIds);
+
+        // 构建每题结果
+        List<ExamQuestionResultRespVO> questionResults = details.stream()
+                .map(detail -> {
+                    EduQuestion question = questionMap.get(detail.getQuestionId());
+                    List<EduQuestionOption> options = optionMap.getOrDefault(detail.getQuestionId(), Collections.emptyList());
+                    boolean correct = detail.getIsCorrect() != null && detail.getIsCorrect() == 1;
+                    List<ExamQuestionOptionRespVO> optionVOs = options.stream()
+                            .map(opt -> ExamQuestionOptionRespVO.builder().label(opt.getLabel()).content(opt.getContent()).sort(opt.getSort()).build())
+                            .toList();
+                    return ExamQuestionResultRespVO.builder()
+                            .questionId(detail.getQuestionId())
+                            .questionType(question != null ? question.getQuestionType() : null)
+                            .content(question != null ? question.getContent() : null)
+                            .options(optionVOs)
+                            .userAnswer(detail.getUserAnswer())
+                            .correctAnswer(detail.getCorrectAnswer())
+                            .isCorrect(correct)
+                            .score(detail.getScore())
+                            .knowledgePoint(question != null ? question.getKnowledgePoints() : null)
+                            .analysis(question != null ? question.getAnalysis() : null)
+                            .build();
+                })
+                .toList();
+
+        return buildResult(record, correctCount, wrongCount, totalCount, questionResults);
+    }
+
+    @Override
+    public void heartbeat(Long recordId) {
+        Long userId = getUserId();
+        EduExamRecord record = eduExamRecordMapper.selectById(recordId);
+        if (record == null || !record.getUserId().equals(userId)) {
+            throw new EduException(EduErrorCode.EXAM_RECORD_NOT_FOUND);
+        }
+        if (record.getStatus() != 0) {
+            throw new EduException(EduErrorCode.EXAM_ALREADY_SUBMITTED);
+        }
+
+        // 获取考试时长，校验是否超时
+        EduExam exam = eduExamMapper.selectById(record.getExamId());
+        if (exam != null) {
+            LocalDateTime deadline = record.getStartTime().plusMinutes(exam.getDuration());
+            if (LocalDateTime.now().isAfter(deadline)) {
+                // 超时，自动提交
+                autoSubmitTimeoutRecord(record, exam);
+                return;
+            }
+        }
+
+        // 更新心跳时间
+        eduExamRecordMapper.updateHeartbeat(recordId, LocalDateTime.now());
     }
 
     private Long getUserId() {
@@ -447,6 +742,8 @@ public class StudentExamServiceImpl implements StudentExamService {
                 .introduction(exam.getIntroduction())
                 .notes(exam.getNotes())
                 .examiner(exam.getExaminer())
+                .maxAttempts(exam.getMaxAttempts())
+                .chapterPassRate(exam.getChapterPassRate())
                 .historyList(historyList)
                 .build();
     }
@@ -464,5 +761,172 @@ public class StudentExamServiceImpl implements StudentExamService {
                 .difficulty(exam.getDifficulty())
                 .isFinalExam(exam.getIsFinalExam())
                 .build();
+    }
+
+    // ==================== 结课考试辅助方法 ====================
+
+    /**
+     * 计算用户在课程中的章节完成率
+     *
+     * @param courseId 课程ID
+     * @param userId   用户ID
+     * @return 章节完成率（%）
+     */
+    private int calculateChapterProgress(Long courseId, Long userId) {
+        int totalChapters = eduChapterMapper.countByCourseId(courseId);
+        if (totalChapters == 0) {
+            return 0;
+        }
+        int studiedChapters = studyRecordMapper.countStudiedChapters(userId, courseId);
+        return studiedChapters * 100 / totalChapters;
+    }
+
+    /**
+     * 根据抽题结果构建题目 VO 列表
+     */
+    private List<ExamQuestionRespVO> buildQuestionVOs(Map<Long, Integer> scoreMap) {
+        if (scoreMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> selectedIds = new ArrayList<>(scoreMap.keySet());
+        Map<Long, EduQuestion> questionMap = getQuestionMap(selectedIds);
+        Map<Long, List<EduQuestionOption>> optionMap = getOptionMap(selectedIds);
+        List<ExamQuestionRespVO> result = new ArrayList<>();
+        int sort = 1;
+        for (Long qId : selectedIds) {
+            EduQuestion question = questionMap.get(qId);
+            if (question == null) continue;
+            Integer ms = scoreMap.get(qId);
+            List<EduQuestionOption> options = optionMap.getOrDefault(qId, Collections.emptyList());
+            List<ExamQuestionOptionRespVO> optionVOs = options.stream()
+                    .map(opt -> ExamQuestionOptionRespVO.builder().label(opt.getLabel()).content(opt.getContent()).sort(opt.getSort()).build())
+                    .toList();
+            result.add(ExamQuestionRespVO.builder().questionId(qId).questionType(question.getQuestionType()).content(question.getContent()).score(ms).sort(sort++).options(optionVOs).build());
+        }
+        return result;
+    }
+
+    /**
+     * 新流程判分（基于已有 record，不新建）
+     */
+    private ExamResultRespVO doSubmit(ExamSubmitReqDTO dto, EduExamRecord record, Long userId) {
+        EduExam exam = eduExamMapper.selectById(dto.getExamId() != null ? dto.getExamId() : record.getExamId());
+        if (exam == null) {
+            throw new EduException(EduErrorCode.EXAM_NOT_FOUND);
+        }
+        Long courseId = exam.getCourseId();
+        Integer questionRangeType = exam.getQuestionRangeType();
+        Map<Integer, Integer> expectedTypeCountMap = new HashMap<>();
+        Map<Long, Integer> questionIdScoreMap = new HashMap<>();
+        Set<Long> validQuestionIdPool = new HashSet<>();
+        int expectedTotalCount = 0;
+        if (questionRangeType == 0) {
+            var candidates = eduQuestionMapper.selectQuestionIdsByCourseId(courseId);
+            if (candidates.isEmpty()) {
+                throw new EduException(EduErrorCode.EXAM_QUESTION_NOT_ENOUGH);
+            }
+            int count = candidates.size();
+            int totalScore = exam.getTotalScore() != null ? exam.getTotalScore() : 0;
+            int baseScore = totalScore > 0 ? totalScore / count : 0;
+            int remainder = totalScore > 0 ? totalScore % count : 0;
+            for (int i = 0; i < count; i++) {
+                int score = baseScore + (i == count - 1 ? remainder : 0);
+                questionIdScoreMap.put(candidates.get(i), score);
+            }
+            validQuestionIdPool.addAll(candidates);
+            expectedTotalCount = count;
+        } else {
+            var configs = eduExamChapterQuestionConfigMapper.selectByExamId(exam.getId());
+            for (var cfg : configs) {
+                expectedTypeCountMap.merge(cfg.getQuestionType(), cfg.getQuestionCount(), Integer::sum);
+                var candidates = eduQuestionMapper.selectIdsByChapterIdAndType(cfg.getChapterId(), cfg.getQuestionType());
+                validQuestionIdPool.addAll(candidates);
+                candidates.forEach(id -> questionIdScoreMap.put(id, cfg.getScorePerQuestion()));
+            }
+            expectedTotalCount = expectedTypeCountMap.values().stream().mapToInt(Integer::intValue).sum();
+        }
+        if (CollectionUtils.isEmpty(dto.getAnswers())) {
+            throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
+        }
+        List<Long> submittedIds = dto.getAnswers().stream()
+                .map(ExamSubmitReqDTO.AnswerItem::getQuestionId)
+                .toList();
+        for (Long id : submittedIds) {
+            if (!validQuestionIdPool.contains(id)) {
+                throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
+            }
+        }
+        Map<Long, EduQuestion> questionMap = getQuestionMap(submittedIds);
+        Map<Long, List<EduQuestionOption>> optionMap = getOptionMap(submittedIds);
+        if (questionRangeType == 0) {
+            if (submittedIds.size() != expectedTotalCount) {
+                throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
+            }
+        } else {
+            Map<Integer, Long> actualTypeCountMap = submittedIds.stream()
+                    .map(questionMap::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(EduQuestion::getQuestionType, Collectors.counting()));
+            for (Map.Entry<Integer, Integer> entry : expectedTypeCountMap.entrySet()) {
+                long actual = actualTypeCountMap.getOrDefault(entry.getKey(), 0L);
+                if (actual != entry.getValue()) {
+                    throw new EduException(EduErrorCode.EXAM_ANSWER_INVALID);
+                }
+            }
+        }
+        LocalDateTime now = LocalDateTime.now();
+        int totalScore = 0;
+        int correctCount = 0;
+        int wrongCount = 0;
+        List<EduExamRecordDetail> details = new ArrayList<>();
+        List<ExamQuestionResultRespVO> questionResults = new ArrayList<>();
+        for (ExamSubmitReqDTO.AnswerItem answer : dto.getAnswers()) {
+            EduQuestion question = questionMap.get(answer.getQuestionId());
+            Integer qScore = questionIdScoreMap.get(answer.getQuestionId());
+            if (question == null || qScore == null) { continue; }
+            List<EduQuestionOption> options = optionMap.getOrDefault(answer.getQuestionId(), Collections.emptyList());
+            boolean correct = judgeCorrect(question, options, answer.getUserAnswer());
+            int score = correct ? qScore : 0;
+            totalScore += score;
+            if (correct) { correctCount++; } else { wrongCount++; }
+            details.add(buildDetail(answer, question, options, correct, score, exam.getId(), now));
+            questionResults.add(buildQuestionResult(answer, question, options, correct, score));
+        }
+        // 更新已有记录
+        int isPass = totalScore >= exam.getPassScore() ? 1 : 0;
+        int status = 1;
+        eduExamRecordMapper.updateStatus(record.getId(), status, totalScore, isPass,
+                dto.getDuration() != null ? dto.getDuration() : 0, now);
+        // 写答题明细
+        saveDetails(details, record.getId());
+        // 构造结果 VO
+        record.setScore(totalScore);
+        record.setTotalScore(exam.getTotalScore());
+        record.setPassScore(exam.getPassScore());
+        record.setIsPass(isPass);
+        record.setDuration(dto.getDuration() != null ? dto.getDuration() : 0);
+        record.setSubmitTime(now);
+        record.setStatus(status);
+        return buildResult(record, correctCount, wrongCount, expectedTotalCount, questionResults);
+    }
+
+    /**
+     * 自动提交超时记录（定时任务/心跳检测到超时时调用）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void autoSubmitTimeoutRecord(EduExamRecord record, EduExam exam) {
+        if (record.getStatus() != 0) {
+            return;
+        }
+        log.info("自动提交超时考试记录: recordId={}, userId={}, examId={}", record.getId(), record.getUserId(), record.getExamId());
+        // 超时交卷，无答案，得 0 分
+        int status = 2;
+        int score = 0;
+        int isPass = 0;
+        LocalDateTime now = LocalDateTime.now();
+        // 计算已用时间（秒）
+        long usedSeconds = java.time.Duration.between(record.getStartTime(), now).getSeconds();
+        int duration = (int) Math.min(usedSeconds, Integer.MAX_VALUE);
+        eduExamRecordMapper.updateStatus(record.getId(), status, score, isPass, duration, now);
     }
 }

@@ -53,4 +53,20 @@ public interface ChapterService {
      * @param id 章节ID
      */
     void delete(Long id);
+
+    /**
+     * 获取章节关联的知识点ID列表
+     *
+     * @param chapterId 章节ID
+     * @return 知识点ID列表
+     */
+    List<Long> getKnowledgePointIds(Long chapterId);
+
+    /**
+     * 更新章节关联的知识点
+     *
+     * @param chapterId       章节ID
+     * @param knowledgePointIds 知识点ID列表
+     */
+    void updateKnowledgePoints(Long chapterId, List<Long> knowledgePointIds);
 }

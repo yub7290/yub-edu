@@ -54,6 +54,12 @@ public class ExamInfoRespVO {
     /** 出卷人 */
     private String examiner;
 
+    /** 最大参考次数（0=不限） */
+    private Integer maxAttempts;
+
+    /** 章节完成率准入门槛（%） */
+    private Integer chapterPassRate;
+
     /** 开始时间 */
     private String startTime;
 

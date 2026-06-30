@@ -15,6 +15,11 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
+    <sql id="baseColumns">
+        id, record_id, exam_id, question_id, user_answer, correct_answer, is_correct, score,
+        create_time, update_time
+    </sql>
+
     <insert id="insertBatch">
         INSERT INTO edu_exam_record_detail (record_id, exam_id, question_id, user_answer,
                                              correct_answer, is_correct, score, create_time, update_time)
@@ -24,5 +29,12 @@
              #{item.correctAnswer}, #{item.isCorrect}, #{item.score}, NOW(), NOW())
         </foreach>
     </insert>
+
+    <select id="selectByRecordId" resultMap="EduExamRecordDetailMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_record_detail
+        WHERE record_id = #{recordId}
+        ORDER BY id ASC
+    </select>
 
 </mapper>

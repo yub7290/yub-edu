@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduExam;
@@ -38,12 +39,14 @@ public class EduRecycleController {
         return Response.success(recycleService.getMajorList());
     }
 
+    @Log(value = "恢复已删除专业", type = "UPDATE")
     @PutMapping("/major/{id}/restore")
     public Response<Void> majorRestore(@PathVariable Long id) {
         recycleService.restoreMajor(id);
         return Response.success();
     }
 
+    @Log(value = "永久删除专业", type = "DELETE")
     @DeleteMapping("/major/{id}")
     public Response<Void> majorDelete(@PathVariable Long id) {
         recycleService.deleteMajor(id);
@@ -57,12 +60,14 @@ public class EduRecycleController {
         return Response.success(recycleService.getCourseList());
     }
 
+    @Log(value = "恢复已删除课程", type = "UPDATE")
     @PutMapping("/course/{id}/restore")
     public Response<Void> courseRestore(@PathVariable Long id) {
         recycleService.restoreCourse(id);
         return Response.success();
     }
 
+    @Log(value = "永久删除课程", type = "DELETE")
     @DeleteMapping("/course/{id}")
     public Response<Void> courseDelete(@PathVariable Long id) {
         recycleService.deleteCourse(id);
@@ -76,12 +81,14 @@ public class EduRecycleController {
         return Response.success(recycleService.getQuestionList());
     }
 
+    @Log(value = "恢复已删除试题", type = "UPDATE")
     @PutMapping("/question/{id}/restore")
     public Response<Void> questionRestore(@PathVariable Long id) {
         recycleService.restoreQuestion(id);
         return Response.success();
     }
 
+    @Log(value = "永久删除试题", type = "DELETE")
     @DeleteMapping("/question/{id}")
     public Response<Void> questionDelete(@PathVariable Long id) {
         recycleService.deleteQuestion(id);
@@ -95,12 +102,14 @@ public class EduRecycleController {
         return Response.success(recycleService.getExamList());
     }
 
+    @Log(value = "恢复已删除试卷", type = "UPDATE")
     @PutMapping("/exam/{id}/restore")
     public Response<Void> examRestore(@PathVariable Long id) {
         recycleService.restoreExam(id);
         return Response.success();
     }
 
+    @Log(value = "永久删除试卷", type = "DELETE")
     @DeleteMapping("/exam/{id}")
     public Response<Void> examDelete(@PathVariable Long id) {
         recycleService.deleteExam(id);

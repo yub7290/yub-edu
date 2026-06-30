@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -70,6 +71,7 @@ public class TeacherTitleController {
      * @param dto 新增参数
      * @return 职称ID
      */
+    @Log(value = "新增教师职称", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody TeacherTitleCreateReqDTO dto) {
         return Response.success(teacherTitleService.create(dto));
@@ -81,6 +83,7 @@ public class TeacherTitleController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑教师职称", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody TeacherTitleUpdateReqDTO dto) {
         teacherTitleService.update(dto);
@@ -93,6 +96,7 @@ public class TeacherTitleController {
      * @param id 职称ID
      * @return 响应
      */
+    @Log(value = "删除教师职称", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         teacherTitleService.delete(id);
@@ -106,6 +110,7 @@ public class TeacherTitleController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换教师职称状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         teacherTitleService.changeStatus(id, dto.getStatus());

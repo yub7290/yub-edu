@@ -46,6 +46,17 @@ public enum EduErrorCode implements ErrorCode {
     /** 提交答案与试卷规则不匹配 */
     EXAM_ANSWER_INVALID(200066, "提交答案与试卷规则不匹配"),
 
+    /** 达到最大参考次数 */
+    EXAM_MAX_ATTEMPTS_REACHED(200067, "已达到最大参考次数，无法继续考试"),
+    /** 章节完成率不足 */
+    EXAM_CHAPTER_PROGRESS_NOT_ENOUGH(200068, "章节学习进度不足，无法参加结课考试"),
+    /** 存在进行中的考试记录 */
+    EXAM_HAS_IN_PROGRESS_RECORD(200069, "存在进行中的考试，请先完成"),
+    /** 考试记录不存在 */
+    EXAM_RECORD_NOT_FOUND(200070, "考试记录不存在"),
+    /** 考试已提交 */
+    EXAM_ALREADY_SUBMITTED(200071, "考试已提交，无法重复提交"),
+
     /** 章节不存在 */
     CHAPTER_NOT_FOUND(200041, "章节不存在"),
 

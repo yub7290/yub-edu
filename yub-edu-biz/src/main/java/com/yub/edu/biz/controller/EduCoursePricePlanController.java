@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.PricePlanCreateReqDTO;
 import com.yub.edu.biz.dto.PricePlanUpdateReqDTO;
@@ -45,6 +46,7 @@ public class EduCoursePricePlanController {
      * @param dto 创建请求参数
      * @return 价格方案ID
      */
+    @Log(value = "新增价格方案", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody PricePlanCreateReqDTO dto) {
         EduCoursePricePlan plan = new EduCoursePricePlan();
@@ -63,6 +65,7 @@ public class EduCoursePricePlanController {
      * @param dto 更新请求参数
      * @return 操作结果
      */
+    @Log(value = "编辑价格方案", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody PricePlanUpdateReqDTO dto) {
         EduCoursePricePlan exist = pricePlanMapper.selectById(dto.getId());
@@ -82,6 +85,7 @@ public class EduCoursePricePlanController {
      * @param id 价格方案ID
      * @return 操作结果
      */
+    @Log(value = "删除价格方案", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         pricePlanMapper.deleteById(id);

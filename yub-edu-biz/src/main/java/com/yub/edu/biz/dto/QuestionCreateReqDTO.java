@@ -48,7 +48,11 @@ public class QuestionCreateReqDTO {
 
     /** 知识点 */
     @Size(max = 500, message = "知识点长度不能超过500个字符")
+    @Deprecated
     private String knowledgePoints;
+
+    /** 关联知识点ID列表 */
+    private List<Long> knowledgePointIds;
 
     /** 答案（判断题存 true/false，简答题存文本） */
     private String answer;

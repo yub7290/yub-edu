@@ -20,6 +20,8 @@
         <result column="examiner" property="examiner"/>
         <result column="logo" property="logo"/>
         <result column="question_range_type" property="questionRangeType"/>
+        <result column="max_attempts" property="maxAttempts"/>
+        <result column="chapter_pass_rate" property="chapterPassRate"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="create_by" property="createBy"/>
@@ -33,6 +35,7 @@
         id, title, subtitle, major_id, course_id, is_final_exam, status, recommended,
         difficulty, duration, total_score, pass_score,
         introduction, notes, examiner, logo, question_range_type,
+        max_attempts, chapter_pass_rate,
         create_time, update_time, create_by, update_by, deleted
     </sql>
 
@@ -40,6 +43,7 @@
         SELECT e.id, e.title, e.subtitle, e.major_id, e.course_id, e.is_final_exam, e.status, e.recommended,
                e.difficulty, e.duration, e.total_score, e.pass_score,
                e.introduction, e.notes, e.examiner, e.logo, e.question_range_type,
+               e.max_attempts, e.chapter_pass_rate,
                e.create_time, e.update_time, e.create_by, e.update_by, e.deleted,
                m.name AS major_name, c.name AS course_name
         FROM edu_exam e
@@ -52,10 +56,12 @@
         INSERT INTO edu_exam (title, subtitle, major_id, course_id, is_final_exam, status, recommended,
                               difficulty, duration, total_score, pass_score,
                               introduction, notes, examiner, logo, question_range_type,
+                              max_attempts, chapter_pass_rate,
                               create_time, update_time, create_by, update_by)
         VALUES (#{title}, #{subtitle}, #{majorId}, #{courseId}, #{isFinalExam}, #{status}, #{recommended},
                 #{difficulty}, #{duration}, #{totalScore}, #{passScore},
                 #{introduction}, #{notes}, #{examiner}, #{logo}, #{questionRangeType},
+                #{maxAttempts}, #{chapterPassRate},
                 NOW(), NOW(), #{createBy}, #{updateBy})
     </insert>
 
@@ -66,6 +72,7 @@
             total_score = #{totalScore}, pass_score = #{passScore},
             introduction = #{introduction}, notes = #{notes}, examiner = #{examiner},
             logo = #{logo}, question_range_type = #{questionRangeType},
+            max_attempts = #{maxAttempts}, chapter_pass_rate = #{chapterPassRate},
             update_time = NOW(), update_by = #{updateBy}
         WHERE id = #{id} AND deleted = 0
     </update>
@@ -93,6 +100,7 @@
         SELECT e.id, e.title, e.subtitle, e.major_id, e.course_id, e.is_final_exam, e.status, e.recommended,
                e.difficulty, e.duration, e.total_score, e.pass_score,
                e.introduction, e.notes, e.examiner, e.logo, e.question_range_type,
+               e.max_attempts, e.chapter_pass_rate,
                e.create_time, e.update_time, e.create_by, e.update_by, e.deleted,
                m.name AS major_name, c.name AS course_name
         FROM edu_exam e
@@ -136,4 +144,18 @@
     <update id="updateStatus">
         UPDATE edu_exam SET status = #{status} WHERE id = #{id} AND deleted = 0
     </update>
+
+    <select id="selectFinalExamByCourseId" resultMap="EduExamMap">
+        SELECT e.id, e.title, e.subtitle, e.major_id, e.course_id, e.is_final_exam, e.status, e.recommended,
+               e.difficulty, e.duration, e.total_score, e.pass_score,
+               e.introduction, e.notes, e.examiner, e.logo, e.question_range_type,
+               e.max_attempts, e.chapter_pass_rate,
+               e.create_time, e.update_time, e.create_by, e.update_by, e.deleted,
+               m.name AS major_name, c.name AS course_name
+        FROM edu_exam e
+        LEFT JOIN edu_major m ON e.major_id = m.id AND m.deleted = 0
+        LEFT JOIN edu_course c ON e.course_id = c.id AND c.deleted = 0
+        WHERE e.course_id = #{courseId} AND e.is_final_exam = 1 AND e.deleted = 0
+        LIMIT 1
+    </select>
 </mapper>

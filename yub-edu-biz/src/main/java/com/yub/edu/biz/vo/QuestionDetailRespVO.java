@@ -59,6 +59,9 @@ public class QuestionDetailRespVO {
     /** 知识点 */
     private String knowledgePoints;
 
+    /** 关联知识点ID列表 */
+    private List<Long> knowledgePointIds;
+
     /** 答案 */
     private String answer;
 

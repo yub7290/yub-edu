@@ -45,4 +45,10 @@
         WHERE student_id = #{studentId}
     </select>
 
+    <select id="countStudiedChapters" resultType="int">
+        SELECT COUNT(DISTINCT chapter_id)
+        FROM edu_study_record
+        WHERE student_id = #{studentId} AND course_id = #{courseId}
+    </select>
+
 </mapper>

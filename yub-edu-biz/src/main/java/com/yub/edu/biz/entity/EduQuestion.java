@@ -44,7 +44,11 @@ public class EduQuestion {
     private String analysis;
 
     /** 知识点（逗号分隔） */
+    @Deprecated
     private String knowledgePoints;
+
+    /** 关联知识点ID列表（非持久化） */
+    private List<Long> knowledgePointIds;
 
     /** 答案（判断题存 true/false，简答题存文本） */
     private String answer;

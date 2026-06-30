@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -61,6 +62,7 @@ public class TeacherController {
      * @param dto 新增参数
      * @return 教师ID
      */
+    @Log(value = "新增教师", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody TeacherCreateReqDTO dto) {
         return Response.success(teacherService.create(dto));
@@ -72,6 +74,7 @@ public class TeacherController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑教师", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody TeacherUpdateReqDTO dto) {
         teacherService.update(dto);
@@ -84,6 +87,7 @@ public class TeacherController {
      * @param id 教师ID
      * @return 响应
      */
+    @Log(value = "删除教师", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable("id") Long id) {
         teacherService.delete(id);
@@ -96,6 +100,7 @@ public class TeacherController {
      * @param ids 教师ID列表
      * @return 响应
      */
+    @Log(value = "批量删除教师", type = "DELETE")
     @DeleteMapping("/batch")
     public Response<Void> deleteBatch(@RequestBody List<Long> ids) {
         teacherService.deleteBatch(ids);
@@ -108,6 +113,7 @@ public class TeacherController {
      * @param id 教师ID
      * @return 响应
      */
+    @Log(value = "重置教师密码", type = "UPDATE")
     @PutMapping("/{id}/password")
     public Response<Void> resetPassword(@PathVariable("id") Long id) {
         teacherService.resetPassword(id);
@@ -121,6 +127,7 @@ public class TeacherController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换教师状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         teacherService.changeStatus(id, dto.getStatus());
@@ -146,6 +153,7 @@ public class TeacherController {
      * @param recommended 推荐状态（1=推荐 0=不推荐）
      * @return 响应
      */
+    @Log(value = "设置教师推荐状态", type = "UPDATE")
     @PutMapping("/{id}/recommended")
     public Response<Void> setRecommended(@PathVariable("id") Long id, @RequestParam Integer recommended) {
         teacherService.setRecommended(id, recommended);

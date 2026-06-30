@@ -25,6 +25,8 @@ CREATE TABLE `edu_exam` (
   `examiner` varchar(100) DEFAULT NULL COMMENT '出卷人',
   `logo` varchar(500) DEFAULT NULL COMMENT '试卷logo',
   `question_range_type` tinyint NOT NULL DEFAULT '0' COMMENT '出题范围 0:当前课程所有试题 1:按章节出题',
+  `max_attempts` int NOT NULL DEFAULT '0' COMMENT '最大参考次数（0=不限）',
+  `chapter_pass_rate` tinyint NOT NULL DEFAULT '0' COMMENT '章节完成率准入门槛（%，0=不校验）',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `create_by` bigint DEFAULT NULL COMMENT '创建人',

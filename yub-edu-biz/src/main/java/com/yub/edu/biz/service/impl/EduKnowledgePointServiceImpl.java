@@ -58,10 +58,16 @@ public class EduKnowledgePointServiceImpl implements EduKnowledgePointService {
     }
 
     @Override
+    public List<EduKnowledgePoint> listByCourseId(Long courseId, Long categoryId) {
+        return mapper.selectByCourseId(courseId, categoryId);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(KnowledgePointCreateReqDTO dto) {
         EduKnowledgePoint pt = new EduKnowledgePoint();
         pt.setCategoryId(dto.getCategoryId());
+        pt.setCourseId(dto.getCourseId());
         pt.setTitle(dto.getTitle());
         pt.setContent(dto.getContent());
         pt.setStatus(dto.getStatus());
@@ -78,6 +84,7 @@ public class EduKnowledgePointServiceImpl implements EduKnowledgePointService {
         EduKnowledgePoint pt = mapper.selectById(dto.getId());
         if (pt == null) throw new EduException(EduErrorCode.KNOWLEDGE_POINT_NOT_FOUND);
         pt.setCategoryId(dto.getCategoryId());
+        pt.setCourseId(dto.getCourseId());
         pt.setTitle(dto.getTitle());
         pt.setContent(dto.getContent());
         pt.setStatus(dto.getStatus());

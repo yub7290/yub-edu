@@ -55,6 +55,19 @@
         </if>
     </select>
 
+    <select id="selectActiveByCourseId" resultMap="EduAnnouncementMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_announcement
+        WHERE course_id = #{courseId} AND deleted = 0 AND status = 1
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectActiveById" resultMap="EduAnnouncementMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_announcement
+        WHERE id = #{id} AND deleted = 0 AND status = 1
+    </select>
+
     <select id="selectById" resultMap="EduAnnouncementMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_announcement

@@ -1,81 +1,121 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ learn-system 日志配置
+  ~ 生产级 Log4j2 配置
   ~
-  ~ 生产环境使用: -Dlog4j2.configurationFile=config/log4j2.xml
+  ~ 日志文件分类：
+  ~   app.log       - INFO+ 日常业务日志（按天滚动，单文件 max 500MB，保留30天）
+  ~   error.log     - ERROR+ 仅错误日志（按天滚动，保留60天）
+  ~   sql.log       - TRACE 级别 MyBatis SQL 日志（按天滚动，保留7天，prod 禁用）
+  ~
+  ~ 异步 Appender：业务日志走 AsyncAppender 避免 I/O 阻塞主线程
+  ~ 错误日志同步写入：确保 ERROR 日志不丢失
+  ~ MDC traceId：日志格式中已包含 %X{traceId}，由 AccessTraceFilter 注入
   -->
-<Configuration status="WARN" monitorInterval="300">
+<Configuration status="WARN" monitorInterval="60">
     <Properties>
-        <Property name="APP_NAME">learn-system</Property>
-        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Property>
-        <Property name="LOG_DIR">logs</Property>
+        <!-- 日志目录：生产环境通过 LOG_HOME 环境变量指定，默认 /var/log/learn-system -->
+        <Property name="LOG_HOME">${sys:LOG_HOME:-/var/log/learn-system}</Property>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n</Property>
+        <Property name="LOG_CHARSET">UTF-8</Property>
     </Properties>
 
     <Appenders>
-        <!-- 控制台输出 -->
+        <!-- ==================== 控制台 Appender ==================== -->
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <PatternLayout pattern="${LOG_PATTERN}" charset="${LOG_CHARSET}"/>
         </Console>
 
-        <!-- 滚动文件输出（所有日志） -->
-        <RollingFile name="RollingFile"
-                     fileName="${LOG_DIR}/${APP_NAME}.log"
-                     filePattern="${LOG_DIR}/$${date:yyyy-MM}/${APP_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout pattern="${LOG_PATTERN}"/>
+        <!-- ==================== 日常业务日志（INFO+） ==================== -->
+        <RollingFile name="AppLog"
+                     fileName="${LOG_HOME}/app.log"
+                     filePattern="${LOG_HOME}/app.%d{yyyy-MM-dd}.%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}" charset="${LOG_CHARSET}"/>
             <Policies>
+                <!-- 按天滚动 -->
                 <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
-                <SizeBasedTriggeringPolicy size="256 MB"/>
+                <!-- 单文件超过 500MB 也触发滚动 -->
+                <SizeBasedTriggeringPolicy size="500 MB"/>
             </Policies>
-            <DefaultRolloverStrategy max="30"/>
+            <!-- 保留 30 天，最多 100 个文件 -->
+            <DefaultRolloverStrategy max="100">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="app.*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
         </RollingFile>
 
-        <!-- 错误日志单独输出 -->
-        <RollingFile name="ErrorFile"
-                     fileName="${LOG_DIR}/${APP_NAME}-error.log"
-                     filePattern="${LOG_DIR}/$${date:yyyy-MM}/${APP_NAME}-error-%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout pattern="${LOG_PATTERN}"/>
-            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+        <!-- ==================== 错误日志（ERROR+）精准聚焦 ==================== -->
+        <RollingFile name="ErrorLog"
+                     fileName="${LOG_HOME}/error.log"
+                     filePattern="${LOG_HOME}/error.%d{yyyy-MM-dd}.%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}" charset="${LOG_CHARSET}"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
-                <SizeBasedTriggeringPolicy size="128 MB"/>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
             </Policies>
-            <DefaultRolloverStrategy max="30"/>
+            <DefaultRolloverStrategy max="100">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="error.*.log.gz"/>
+                    <IfLastModified age="60d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
         </RollingFile>
+
+        <!-- ==================== MyBatis SQL 日志（调试用） ==================== -->
+        <RollingFile name="SqlLog"
+                     fileName="${LOG_HOME}/sql.log"
+                     filePattern="${LOG_HOME}/sql.%d{yyyy-MM-dd}.%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}" charset="${LOG_CHARSET}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="200 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="sql.*.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!-- ==================== 异步 Appender ==================== -->
+        <Async name="AsyncAppLog" blocking="false" bufferSize="1024">
+            <AppenderRef ref="AppLog"/>
+        </Async>
+
+        <Async name="AsyncSqlLog" blocking="false" bufferSize="512">
+            <AppenderRef ref="SqlLog"/>
+        </Async>
     </Appenders>
 
     <Loggers>
-        <!-- 应用日志级别 -->
-        <Logger name="com.yub" level="INFO" additivity="false">
+        <!-- ===== 错误日志：ERROR+ 同步写入（不丢失） ===== -->
+        <Root level="info">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
-            <AppenderRef ref="ErrorFile"/>
-        </Logger>
-
-        <!-- SQL 日志（调试用） -->
-        <Logger name="com.yub.**.mapper" level="DEBUG" additivity="false">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
-        </Logger>
-
-        <!-- 第三方库日志 -->
-        <Logger name="org.springframework" level="WARN" additivity="false">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
-        </Logger>
-        <Logger name="org.mybatis" level="WARN" additivity="false">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
-        </Logger>
-        <Logger name="com.zaxxer.hikari" level="WARN" additivity="false">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
-        </Logger>
-
-        <!-- 根日志 -->
-        <Root level="INFO">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
-            <AppenderRef ref="ErrorFile"/>
+            <AppenderRef ref="AsyncAppLog"/>
+            <AppenderRef ref="ErrorLog" level="error"/>
         </Root>
+
+        <!-- ===== 项目日志：debug 级别 ===== -->
+        <Logger name="com.yub" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncAppLog"/>
+            <AppenderRef ref="ErrorLog" level="error"/>
+        </Logger>
+
+        <!-- ===== MyBatis SQL 日志：仅 dev 环境启用，prod 禁用 ===== -->
+        <Logger name="com.yub.**.mapper" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncSqlLog" level="trace"/>
+            <AppenderRef ref="ErrorLog" level="error"/>
+        </Logger>
+
+        <!-- ===== 第三方库日志降噪 ===== -->
+        <Logger name="org.springframework" level="warn"/>
+        <Logger name="org.mybatis" level="warn"/>
+        <Logger name="org.redisson" level="warn"/>
+        <Logger name="io.netty" level="warn"/>
+        <Logger name="com.zaxxer.hikari" level="warn"/>
     </Loggers>
 </Configuration>

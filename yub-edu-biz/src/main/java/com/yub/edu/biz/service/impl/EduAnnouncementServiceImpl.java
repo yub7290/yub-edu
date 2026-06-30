@@ -68,6 +68,21 @@ public class EduAnnouncementServiceImpl implements EduAnnouncementService {
     }
 
     @Override
+    public List<AnnouncementVO> listByCourse(Long courseId) {
+        List<EduAnnouncement> list = mapper.selectActiveByCourseId(courseId);
+        return list.stream().map(this::toVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public AnnouncementVO getActiveDetail(Long id) {
+        EduAnnouncement entity = mapper.selectActiveById(id);
+        if (entity == null) {
+            throw new EduException(EduErrorCode.ANNOUNCEMENT_NOT_FOUND);
+        }
+        return toVO(entity);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(AnnouncementCreateReqDTO dto) {
         EduAnnouncement entity = new EduAnnouncement();

@@ -69,6 +69,12 @@ public class ExamCreateReqDTO {
     /** 出题范围 0:当前课程所有试题 1:按章节出题 */
     private Integer questionRangeType = 0;
 
+    /** 最大参考次数（0=不限） */
+    private Integer maxAttempts = 0;
+
+    /** 章节完成率准入门槛（%，0=不校验） */
+    private Integer chapterPassRate = 0;
+
     /** 试题类型配置列表 */
     private List<ExamQuestionTypeConfigItem> typeConfigs;
 

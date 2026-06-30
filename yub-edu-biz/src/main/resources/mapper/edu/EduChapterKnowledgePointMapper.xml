@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduChapterKnowledgePointMapper">
+
+    <resultMap id="EduChapterKnowledgePointMap" type="com.yub.edu.biz.entity.EduChapterKnowledgePoint">
+        <id column="id" property="id"/>
+        <result column="chapter_id" property="chapterId"/>
+        <result column="knowledge_point_id" property="knowledgePointId"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, chapter_id, knowledge_point_id, sort, create_time, create_by
+    </sql>
+
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_chapter_knowledge_point (chapter_id, knowledge_point_id, sort, create_time, create_by)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.chapterId}, #{item.knowledgePointId}, #{item.sort}, NOW(), #{item.createBy})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByChapterId">
+        DELETE FROM edu_chapter_knowledge_point WHERE chapter_id = #{chapterId}
+    </delete>
+
+    <select id="selectKnowledgePointIdsByChapterId" resultType="long">
+        SELECT knowledge_point_id FROM edu_chapter_knowledge_point
+        WHERE chapter_id = #{chapterId}
+        ORDER BY sort ASC
+    </select>
+
+    <select id="selectByChapterIds" resultMap="EduChapterKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_chapter_knowledge_point
+        WHERE chapter_id IN
+        <foreach collection="chapterIds" item="chapterId" open="(" separator="," close=")">
+            #{chapterId}
+        </foreach>
+        ORDER BY chapter_id ASC, sort ASC
+    </select>
+
+</mapper>

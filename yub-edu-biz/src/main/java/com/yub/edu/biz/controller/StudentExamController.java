@@ -1,17 +1,21 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.ExamSubmitReqDTO;
 import com.yub.edu.biz.service.StudentExamService;
+import com.yub.edu.biz.vo.CourseFinalExamRespVO;
 import com.yub.edu.biz.vo.ExamInfoRespVO;
 import com.yub.edu.biz.vo.ExamListRespVO;
 import com.yub.edu.biz.vo.ExamQuestionRespVO;
 import com.yub.edu.biz.vo.ExamResultRespVO;
+import com.yub.edu.biz.vo.ExamStartRespVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,10 +29,10 @@ import java.util.List;
  * @Author: bing.yu
  * @CreateTime: 2026-06-18
  * @Description: 学生端考试接口
- * @Version: 1.0.0
+ * @Version: 2.0.0
  */
 @RestController
-@RequestMapping("/student/exam")
+@RequestMapping("/student")
 @RequiredArgsConstructor
 public class StudentExamController {
 
@@ -43,7 +47,7 @@ public class StudentExamController {
      * @param pageSize 每页条数
      * @return 考试列表
      */
-    @GetMapping("/list")
+    @GetMapping("/exam/list")
     public Response<ExamListRespVO> list(
             @RequestParam(required = false) Long courseId,
             @RequestParam(required = false) String keyword,
@@ -58,7 +62,7 @@ public class StudentExamController {
      * @param id 试卷ID
      * @return 考试详情
      */
-    @GetMapping("/info/{id}")
+    @GetMapping("/exam/info/{id}")
     public Response<ExamInfoRespVO> info(@PathVariable Long id) {
         return Response.success(studentExamService.info(id));
     }
@@ -69,7 +73,7 @@ public class StudentExamController {
      * @param examId 试卷ID
      * @return 题目列表
      */
-    @GetMapping("/questions")
+    @GetMapping("/exam/questions")
     public Response<List<ExamQuestionRespVO>> questions(@RequestParam Long examId) {
         return Response.success(studentExamService.questions(examId));
     }
@@ -77,10 +81,11 @@ public class StudentExamController {
     /**
      * 提交考试
      *
-     * @param dto 提交请求
+     * @param dto 提交请求（新流程传 recordId，旧流程传 examId）
      * @return 判分结果
      */
-    @PostMapping("/submit")
+    @Log(value = "提交考试答案", type = "CREATE")
+    @PostMapping("/exam/submit")
     public Response<ExamResultRespVO> submit(@RequestBody ExamSubmitReqDTO dto) {
         return Response.success(studentExamService.submit(dto));
     }
@@ -90,10 +95,60 @@ public class StudentExamController {
      *
      * @param examId 试卷ID
      * @return 响应
+     * @deprecated 不再维护，后续删除；请使用 startExam + submit 新流程
      */
-    @DeleteMapping("/history/{examId}")
+    @Deprecated
+    @Log(value = "清空考试历史成绩", type = "DELETE")
+    @DeleteMapping("/exam/history/{examId}")
     public Response<Void> clearHistory(@PathVariable Long examId) {
         studentExamService.clearHistory(examId);
         return Response.success();
+    }
+
+    /**
+     * 获取课程结课考试信息
+     *
+     * @param courseId 课程ID
+     * @return 结课考试信息
+     */
+    @GetMapping("/course/{courseId}/final-exam")
+    public Response<CourseFinalExamRespVO> getCourseFinalExam(@PathVariable Long courseId) {
+        return Response.success(studentExamService.getCourseFinalExam(courseId));
+    }
+
+    /**
+     * 开始考试（创建考试记录、抽题）
+     *
+     * @param examId 试卷ID
+     * @return 考试记录ID和题目列表
+     */
+    @Log(value = "开始考试", type = "CREATE")
+    @PostMapping("/exam/{examId}/start")
+    public Response<ExamStartRespVO> startExam(@PathVariable Long examId) {
+        return Response.success(studentExamService.startExam(examId));
+    }
+
+    /**
+     * 考试心跳
+     *
+     * @param recordId 考试记录ID
+     * @return 响应
+     */
+    @Log(value = "考试心跳更新", type = "UPDATE")
+    @PutMapping("/exam/record/{recordId}/heartbeat")
+    public Response<Void> heartbeat(@PathVariable Long recordId) {
+        studentExamService.heartbeat(recordId);
+        return Response.success();
+    }
+
+    /**
+     * 查询考试结果
+     *
+     * @param recordId 考试记录ID
+     * @return 考试结果
+     */
+    @GetMapping("/exam/record/{recordId}/result")
+    public Response<ExamResultRespVO> getExamResult(@PathVariable Long recordId) {
+        return Response.success(studentExamService.getExamResult(recordId));
     }
 }

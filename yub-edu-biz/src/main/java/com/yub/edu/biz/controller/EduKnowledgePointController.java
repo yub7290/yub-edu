@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -11,8 +12,6 @@ import com.yub.edu.biz.service.EduKnowledgePointService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import java.util.List;
 
@@ -41,22 +40,32 @@ public class EduKnowledgePointController {
         return Response.success(service.listByCategoryId(categoryId));
     }
 
+    @GetMapping("/list-by-course/{courseId}")
+    public Response<List<EduKnowledgePoint>> listByCourse(
+            @PathVariable Long courseId,
+            @RequestParam(required = false) Long categoryId) {
+        return Response.success(service.listByCourseId(courseId, categoryId));
+    }
+
     @GetMapping("/{id}")
     public Response<EduKnowledgePoint> getDetail(@PathVariable Long id) {
         return Response.success(service.getDetail(id));
     }
 
+    @Log(value = "新增知识点", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody KnowledgePointCreateReqDTO dto) {
         return Response.success(service.create(dto));
     }
 
+    @Log(value = "编辑知识点", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody KnowledgePointUpdateReqDTO dto) {
         service.update(dto);
         return Response.success();
     }
 
+    @Log(value = "删除知识点", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         service.delete(id);

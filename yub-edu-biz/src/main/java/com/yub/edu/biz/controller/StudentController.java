@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -59,6 +60,7 @@ public class StudentController {
      * @param dto 新增参数
      * @return 学员ID
      */
+    @Log(value = "新增学员", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody StudentCreateReqDTO dto) {
         return Response.success(studentService.create(dto));
@@ -70,6 +72,7 @@ public class StudentController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑学员", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody StudentUpdateReqDTO dto) {
         studentService.update(dto);
@@ -82,6 +85,7 @@ public class StudentController {
      * @param id 学员ID
      * @return 响应
      */
+    @Log(value = "删除学员", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         studentService.delete(id);
@@ -94,6 +98,7 @@ public class StudentController {
      * @param ids 学员ID列表
      * @return 响应
      */
+    @Log(value = "批量删除学员", type = "DELETE")
     @DeleteMapping("/batch")
     public Response<Void> deleteBatch(@RequestBody List<Long> ids) {
         studentService.deleteBatch(ids);
@@ -107,6 +112,7 @@ public class StudentController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换学员状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         studentService.changeStatus(id, dto.getStatus());
@@ -119,6 +125,7 @@ public class StudentController {
      * @param ids 学员ID列表
      * @return 响应
      */
+    @Log(value = "批量禁用学员", type = "UPDATE")
     @PutMapping("/batch-disable")
     public Response<Void> batchDisable(@RequestBody List<Long> ids) {
         studentService.batchDisable(ids);
@@ -131,6 +138,7 @@ public class StudentController {
      * @param id 学员ID
      * @return 响应
      */
+    @Log(value = "重置学员密码", type = "UPDATE")
     @PutMapping("/{id}/reset-password")
     public Response<Void> resetPassword(@PathVariable Long id) {
         studentService.resetPassword(id);

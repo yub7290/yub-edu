@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
@@ -64,6 +65,7 @@ public class EduExamController {
      * @param dto 新增参数
      * @return 试卷ID
      */
+    @Log(value = "新增试卷", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody ExamCreateReqDTO dto) {
         return Response.success(eduExamService.create(dto));
@@ -75,6 +77,7 @@ public class EduExamController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑试卷", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody ExamUpdateReqDTO dto) {
         eduExamService.update(dto);
@@ -87,6 +90,7 @@ public class EduExamController {
      * @param id 试卷ID
      * @return 响应
      */
+    @Log(value = "删除试卷", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         eduExamService.delete(id);
@@ -100,6 +104,7 @@ public class EduExamController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换试卷状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduExamService.changeStatus(id, dto.getStatus());

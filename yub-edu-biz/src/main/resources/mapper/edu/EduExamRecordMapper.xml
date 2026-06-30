@@ -6,27 +6,34 @@
         <id column="id" property="id"/>
         <result column="user_id" property="userId"/>
         <result column="exam_id" property="examId"/>
+        <result column="attempt_no" property="attemptNo"/>
+        <result column="status" property="status"/>
         <result column="score" property="score"/>
         <result column="total_score" property="totalScore"/>
         <result column="pass_score" property="passScore"/>
         <result column="is_pass" property="isPass"/>
         <result column="duration" property="duration"/>
+        <result column="start_time" property="startTime"/>
         <result column="submit_time" property="submitTime"/>
+        <result column="heartbeat_time" property="heartbeatTime"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="deleted" property="deleted"/>
     </resultMap>
 
     <sql id="baseColumns">
-        id, user_id, exam_id, score, total_score, pass_score, is_pass,
-        duration, submit_time, create_time, update_time, deleted
+        id, user_id, exam_id, attempt_no, status, score, total_score, pass_score, is_pass,
+        duration, start_time, submit_time, heartbeat_time,
+        create_time, update_time, deleted
     </sql>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO edu_exam_record (user_id, exam_id, score, total_score, pass_score, is_pass,
-                                     duration, submit_time, create_time, update_time, deleted)
-        VALUES (#{userId}, #{examId}, #{score}, #{totalScore}, #{passScore}, #{isPass},
-                #{duration}, NOW(), NOW(), NOW(), 0)
+        INSERT INTO edu_exam_record (user_id, exam_id, attempt_no, status, score, total_score, pass_score, is_pass,
+                                     duration, start_time, submit_time, heartbeat_time,
+                                     create_time, update_time, deleted)
+        VALUES (#{userId}, #{examId}, #{attemptNo}, #{status}, #{score}, #{totalScore}, #{passScore}, #{isPass},
+                #{duration}, #{startTime}, #{submitTime}, #{heartbeatTime},
+                NOW(), NOW(), 0)
     </insert>
 
     <select id="selectById" resultMap="EduExamRecordMap">
@@ -39,12 +46,88 @@
         SELECT <include refid="baseColumns"/>
         FROM edu_exam_record
         WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
+          AND status != 0
         ORDER BY submit_time DESC
+    </select>
+
+    <select id="selectInProgress" resultMap="EduExamRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_record
+        WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
+          AND status = 0
+        LIMIT 1
+    </select>
+
+    <update id="updateHeartbeat">
+        UPDATE edu_exam_record
+        SET heartbeat_time = #{heartbeatTime}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_exam_record
+        SET status = #{status}, score = #{score}, is_pass = #{isPass},
+            duration = #{duration}, submit_time = #{submitTime}
+        WHERE id = #{id} AND deleted = 0 AND status = 0
+    </update>
+
+    <select id="selectTimeoutRecords" resultMap="EduExamRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_record
+        WHERE status = 0 AND deleted = 0
+          AND heartbeat_time IS NOT NULL
+          AND heartbeat_time &lt; #{deadline}
+    </select>
+
+    <select id="selectTimeoutRecordsByDuration" resultMap="EduExamRecordMap">
+        SELECT r.id, r.user_id, r.exam_id, r.attempt_no, r.status, r.score, r.total_score, r.pass_score, r.is_pass,
+               r.duration, r.start_time, r.submit_time, r.heartbeat_time,
+               r.create_time, r.update_time, r.deleted
+        FROM edu_exam_record r
+        INNER JOIN edu_exam e ON r.exam_id = e.id AND e.deleted = 0
+        WHERE r.status = 0 AND r.deleted = 0
+          AND r.start_time IS NOT NULL
+          AND DATE_ADD(r.start_time, INTERVAL e.duration MINUTE) &lt; NOW()
+    </select>
+
+    <select id="selectMaxScore" resultType="java.lang.Integer">
+        SELECT MAX(score)
+        FROM edu_exam_record
+        WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
+          AND status != 0
+    </select>
+
+    <select id="selectSubmittedCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM edu_exam_record
+        WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
+          AND status != 0
     </select>
 
     <update id="deleteByUserAndExam">
         UPDATE edu_exam_record SET deleted = 1
         WHERE user_id = #{userId} AND exam_id = #{examId} AND deleted = 0
     </update>
+
+    <select id="selectCourseExamStats" resultType="com.yub.edu.biz.dto.CourseExamStatsResult">
+        SELECT
+            COALESCE(AVG(r.score), 0) AS avgScore,
+            COALESCE(MAX(r.score), 0) AS maxScore,
+            COUNT(1) AS totalCount,
+            SUM(CASE WHEN r.is_pass = 1 THEN 1 ELSE 0 END) AS passCount
+        FROM edu_exam_record r
+        INNER JOIN edu_exam e ON r.exam_id = e.id AND e.deleted = 0
+        WHERE r.user_id = #{userId} AND e.course_id = #{courseId}
+          AND r.deleted = 0 AND r.status != 0
+    </select>
+
+    <select id="selectByUserAndCourse" resultMap="EduExamRecordMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_exam_record r
+        WHERE r.user_id = #{userId}
+          AND r.exam_id IN (SELECT id FROM edu_exam WHERE course_id = #{courseId} AND deleted = 0)
+          AND r.deleted = 0 AND r.status != 0
+        ORDER BY r.submit_time DESC
+    </select>
 
 </mapper>

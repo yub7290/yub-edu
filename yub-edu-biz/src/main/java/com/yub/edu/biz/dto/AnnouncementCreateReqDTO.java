@@ -41,5 +41,6 @@ public class AnnouncementCreateReqDTO {
     private Integer status = 1;
 
     /** 公告内容 */
+    @Size(max = 65535, message = "公告内容长度不能超过65535个字符")
     private String content;
 }

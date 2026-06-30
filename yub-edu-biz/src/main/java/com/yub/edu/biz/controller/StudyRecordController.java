@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.mapper.StudyRecordMapper;
 import com.yub.edu.biz.entity.EduStudyRecord;
@@ -30,6 +31,7 @@ public class StudyRecordController {
     /**
      * 保存学习记录
      */
+    @Log(value = "保存学习记录", type = "CREATE")
     @PostMapping("/saveRecord")
     public Response<Void> saveRecord(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         Long studentId = getStudentId(request);
@@ -61,6 +63,7 @@ public class StudyRecordController {
     /**
      * 批量上传学习记录
      */
+    @Log(value = "批量上传学习记录", type = "CREATE")
     @PostMapping("/batchUpload")
     public Response<Void> batchUpload(@RequestBody List<Map<String, Object>> records, HttpServletRequest request) {
         for (Map<String, Object> params : records) {

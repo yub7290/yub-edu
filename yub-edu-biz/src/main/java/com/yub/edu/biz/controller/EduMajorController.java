@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.MajorCreateReqDTO;
 import com.yub.edu.biz.dto.MajorQueryDTO;
@@ -73,6 +74,7 @@ public class EduMajorController {
      * @param dto 新增参数
      * @return 专业ID
      */
+    @Log(value = "新增专业", type = "CREATE")
     @PostMapping
     public Response<Long> create(@Valid @RequestBody MajorCreateReqDTO dto) {
         return Response.success(eduMajorService.create(dto));
@@ -84,6 +86,7 @@ public class EduMajorController {
      * @param dto 编辑参数
      * @return 响应
      */
+    @Log(value = "编辑专业", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody MajorUpdateReqDTO dto) {
         eduMajorService.update(dto);
@@ -96,6 +99,7 @@ public class EduMajorController {
      * @param id 专业ID
      * @return 响应
      */
+    @Log(value = "删除专业", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable Long id) {
         eduMajorService.delete(id);
@@ -109,6 +113,7 @@ public class EduMajorController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换专业状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduMajorService.changeStatus(id, dto.getStatus());
@@ -122,6 +127,7 @@ public class EduMajorController {
      * @param dto 状态参数
      * @return 响应
      */
+    @Log(value = "切换专业推荐状态", type = "UPDATE")
     @PutMapping("/{id}/recommended")
     public Response<Void> changeRecommended(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduMajorService.changeRecommended(id, dto.getStatus());

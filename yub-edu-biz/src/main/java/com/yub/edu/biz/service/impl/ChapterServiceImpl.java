@@ -3,9 +3,11 @@ package com.yub.edu.biz.service.impl;
 import com.yub.edu.biz.dto.ChapterCreateReqDTO;
 import com.yub.edu.biz.dto.ChapterUpdateReqDTO;
 import com.yub.edu.biz.entity.EduChapter;
+import com.yub.edu.biz.entity.EduChapterKnowledgePoint;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.mapper.EduChapterKnowledgePointMapper;
 import com.yub.edu.biz.service.ChapterService;
 import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
 public class ChapterServiceImpl implements ChapterService {
 
     private final EduChapterMapper eduChapterMapper;
+    private final EduChapterKnowledgePointMapper eduChapterKnowledgePointMapper;
 
     @Override
     public List<EduChapter> getTree(Long courseId) {
@@ -46,6 +49,8 @@ public class ChapterServiceImpl implements ChapterService {
         if (chapter == null) {
             throw new EduException(EduErrorCode.CHAPTER_NOT_FOUND);
         }
+        // 加载关联知识点ID列表
+        chapter.setKnowledgePointIds(eduChapterKnowledgePointMapper.selectKnowledgePointIdsByChapterId(id));
         return chapter;
     }
 
@@ -68,6 +73,12 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setCreateBy(userId);
         chapter.setUpdateBy(userId);
         eduChapterMapper.insert(chapter);
+
+        // 保存章节-知识点关联
+        if (dto.getKnowledgePointIds() != null && !dto.getKnowledgePointIds().isEmpty()) {
+            saveChapterKnowledgePoints(chapter.getId(), dto.getKnowledgePointIds(), userId);
+        }
+
         return chapter.getId();
     }
 
@@ -90,6 +101,14 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setSort(dto.getSort() != null ? dto.getSort() : 0);
         chapter.setUpdateBy(SecurityUtils.getCurrentUserId());
         eduChapterMapper.updateById(chapter);
+
+        // 全量覆盖章节-知识点关联
+        if (dto.getKnowledgePointIds() != null) {
+            eduChapterKnowledgePointMapper.deleteByChapterId(dto.getId());
+            if (!dto.getKnowledgePointIds().isEmpty()) {
+                saveChapterKnowledgePoints(dto.getId(), dto.getKnowledgePointIds(), chapter.getUpdateBy());
+            }
+        }
     }
 
     @Override
@@ -104,6 +123,39 @@ public class ChapterServiceImpl implements ChapterService {
             throw new EduException(EduErrorCode.CHAPTER_HAS_CHILDREN);
         }
         eduChapterMapper.deleteById(id);
+        // 删除章节-知识点关联
+        eduChapterKnowledgePointMapper.deleteByChapterId(id);
+    }
+
+    @Override
+    public List<Long> getKnowledgePointIds(Long chapterId) {
+        return eduChapterKnowledgePointMapper.selectKnowledgePointIdsByChapterId(chapterId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateKnowledgePoints(Long chapterId, List<Long> knowledgePointIds) {
+        eduChapterKnowledgePointMapper.deleteByChapterId(chapterId);
+        if (knowledgePointIds != null && !knowledgePointIds.isEmpty()) {
+            Long userId = SecurityUtils.getCurrentUserId();
+            saveChapterKnowledgePoints(chapterId, knowledgePointIds, userId);
+        }
+    }
+
+    /**
+     * 批量保存章节-知识点关联
+     */
+    private void saveChapterKnowledgePoints(Long chapterId, List<Long> knowledgePointIds, Long userId) {
+        List<EduChapterKnowledgePoint> list = new ArrayList<>();
+        for (int i = 0; i < knowledgePointIds.size(); i++) {
+            EduChapterKnowledgePoint item = new EduChapterKnowledgePoint();
+            item.setChapterId(chapterId);
+            item.setKnowledgePointId(knowledgePointIds.get(i));
+            item.setSort(i);
+            item.setCreateBy(userId);
+            list.add(item);
+        }
+        eduChapterKnowledgePointMapper.batchInsert(list);
     }
 
     private List<EduChapter> buildChapterTree(List<EduChapter> chapters) {

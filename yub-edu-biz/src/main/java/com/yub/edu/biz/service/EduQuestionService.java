@@ -8,6 +8,8 @@ import com.yub.edu.biz.dto.QuestionUpdateReqDTO;
 import com.yub.edu.biz.vo.QuestionDetailRespVO;
 import com.yub.edu.biz.vo.QuestionPageRespVO;
 
+import java.util.List;
+
 /**
  * 试题服务接口
  *
@@ -63,4 +65,20 @@ public interface EduQuestionService {
      * @param status 状态
      */
     void changeStatus(Long id, Integer status);
+
+    /**
+     * 获取试题关联的知识点ID列表
+     *
+     * @param questionId 试题ID
+     * @return 知识点ID列表
+     */
+    List<Long> getKnowledgePointIds(Long questionId);
+
+    /**
+     * 更新试题关联的知识点
+     *
+     * @param questionId        试题ID
+     * @param knowledgePointIds 知识点ID列表
+     */
+    void updateKnowledgePoints(Long questionId, List<Long> knowledgePointIds);
 }

@@ -15,6 +15,9 @@ import java.util.List;
 @Data
 public class ExamSubmitReqDTO {
 
+    /** 考试记录ID（新流程必传） */
+    private Long recordId;
+
     /** 试卷ID */
     private Long examId;
 

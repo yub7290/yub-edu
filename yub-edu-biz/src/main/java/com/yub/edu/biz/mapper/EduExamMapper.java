@@ -105,4 +105,12 @@ public interface EduExamMapper {
      * @return 影响行数
      */
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
+
+    /**
+     * 查询课程的结课考试
+     *
+     * @param courseId 课程ID
+     * @return 结课考试
+     */
+    EduExam selectFinalExamByCourseId(@Param("courseId") Long courseId);
 }

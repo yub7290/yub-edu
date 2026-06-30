@@ -25,6 +25,8 @@ public interface EduKnowledgePointService {
 
     List<EduKnowledgePoint> listByCategoryId(Long categoryId);
 
+    List<EduKnowledgePoint> listByCourseId(Long courseId, Long categoryId);
+
     Long create(KnowledgePointCreateReqDTO dto);
 
     void update(KnowledgePointUpdateReqDTO dto);

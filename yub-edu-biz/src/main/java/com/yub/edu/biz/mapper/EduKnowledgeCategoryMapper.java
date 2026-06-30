@@ -23,6 +23,14 @@ public interface EduKnowledgeCategoryMapper {
 
     EduKnowledgeCategory selectByNameAndParentId(@Param("name") String name, @Param("parentId") Long parentId);
 
+    /**
+     * 批量查询分类（用于N+1优化）
+     *
+     * @param ids 分类ID集合
+     * @return 分类列表
+     */
+    List<EduKnowledgeCategory> selectBatchByIds(@Param("ids") List<Long> ids);
+
     int countByParentId(@Param("parentId") Long parentId);
 
     int insert(EduKnowledgeCategory category);

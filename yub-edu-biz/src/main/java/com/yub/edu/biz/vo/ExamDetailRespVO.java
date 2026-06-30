@@ -75,6 +75,12 @@ public class ExamDetailRespVO {
     /** 出题范围 0:当前课程所有试题 1:按章节出题 */
     private Integer questionRangeType;
 
+    /** 最大参考次数（0=不限） */
+    private Integer maxAttempts;
+
+    /** 章节完成率准入门槛（%，0=不校验） */
+    private Integer chapterPassRate;
+
     /** 试题类型配置列表 */
     private List<EduExamQuestionTypeConfig> typeConfigs;
 

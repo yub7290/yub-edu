@@ -1,5 +1,6 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.AnswerSubmitReqDTO;
 import com.yub.edu.biz.dto.ContinuePracticeReqDTO;
@@ -116,6 +117,7 @@ public class PracticeController {
     /**
      * 创建笔记
      */
+    @Log(value = "创建笔记", type = "CREATE")
     @PostMapping("/notes")
     public Response<NoteRespVO> createNote(@RequestBody NoteCreateReqDTO dto) {
         return Response.success(practiceService.createNote(dto));
@@ -124,6 +126,7 @@ public class PracticeController {
     /**
      * 删除笔记
      */
+    @Log(value = "删除笔记", type = "DELETE")
     @DeleteMapping("/notes/{noteId}")
     public Response<Void> deleteNote(@PathVariable Long noteId) {
         practiceService.deleteNote(noteId);

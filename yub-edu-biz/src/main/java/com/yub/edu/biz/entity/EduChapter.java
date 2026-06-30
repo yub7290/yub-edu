@@ -69,4 +69,7 @@ public class EduChapter {
 
     /** 子章节列表 */
     private List<EduChapter> children;
+
+    /** 关联知识点ID列表（非持久化） */
+    private List<Long> knowledgePointIds;
 }

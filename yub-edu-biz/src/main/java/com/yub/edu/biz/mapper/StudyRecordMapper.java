@@ -58,4 +58,13 @@ public interface StudyRecordMapper {
      * @return 课程数
      */
     Integer selectCourseCount(@Param("studentId") Long studentId);
+
+    /**
+     * 查询学员在某课程中已学习章节数
+     *
+     * @param studentId 学员ID
+     * @param courseId  课程ID
+     * @return 已学习章节数
+     */
+    int countStudiedChapters(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
 }
