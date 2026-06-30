@@ -1,29 +1,29 @@
 spring:
   datasource:
-    url: jdbc:mysql://8.137.54.208:3306/learn_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://127.0.0.1:3306/learn_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
-    password: xxwh@123
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      host: 8.137.54.208
+      host: 127.0.0.1
       port: 6379
       database: 0
-      password: xxwh@123
+      password: root
 
 jwt:
-  secret: "/fpXjBn1LuNfzSZADKEP6x8scSsUIrg2lMXLnJZj3W4="
+  secret: "123"
 
 # 七牛云配置
 qiniu:
-  access-key: bTvYj1nirulPnfusmg-vG-sAGzSMZUbGbCvBRGdW
-  secret-key: qogThvZIYKj9ZMheSBPmbYrm9fPVMzv2Okh_4BXv
+  access-key: 123
+  secret-key: 123
   bucket: yub-learn-system
   domain: http://tgnxos2ym.hn-bkt.clouddn.com
 
 # AI助教配置
 ai:
-  api-key: ${AI_API_KEY:tp-c2ajmdwscpit7ihqkxcyaqiwkrjpmxfnal2yob2ygvtztxxf}
+  api-key: ${AI_API_KEY:123}
   base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
   model: ${AI_MODEL:mimo-v2.5}
   max-tokens: 200000
