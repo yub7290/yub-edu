@@ -11,6 +11,19 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      # 必须 ≥ upload.max-video-size，否则视频上传在 Spring 层就被拦截
+      max-file-size: 3000MB
+      max-request-size: 3000MB
+      file-size-threshold: 0
+
+# ==================== 文件上传限制 ====================
+upload:
+  # 图片最大字节数（默认 5MB = 5 * 1024 * 1024）
+  max-image-size: 5242880
+  # 视频最大字节数（默认 500MB = 500 * 1024 * 1024）
+  max-video-size: 524288000
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -21,3 +34,21 @@ mybatis:
 jwt:
   access-expiration: 1800000
   refresh-expiration: 604800000
+
+# ==================== 日志框架配置 ====================
+log:
+  # 内存缓冲队列
+  buffer:
+    access-log-capacity: 8192
+    opera-log-capacity: 4096
+  # 批量写入
+  batch:
+    max-size: 200
+    threshold: 500
+    interval: 3000
+    shutdown-timeout: 5
+  # 数据保留（天）
+  cleanup:
+    access-log-retention-days: 30
+    opera-log-retention-days: 90
+    batch-size: 10000
