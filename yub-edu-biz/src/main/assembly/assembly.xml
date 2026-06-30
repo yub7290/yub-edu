@@ -1,0 +1,39 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/4.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/4.0.0
+                              http://maven.apache.org/xsd/assembly-4.0.0.xsd">
+    <id>bin</id>
+    <formats>
+        <format>tar.gz</format>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
+
+    <files>
+        <!-- 可执行 JAR -->
+        <file>
+            <source>${project.build.directory}/${project.build.finalName}.jar</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>${project.build.finalName}.jar</destName>
+        </file>
+        <!-- 启动脚本 -->
+        <file>
+            <source>src/main/scripts/start.sh</source>
+            <outputDirectory>./</outputDirectory>
+            <fileMode>0755</fileMode>
+        </file>
+    </files>
+
+    <fileSets>
+        <!-- 配置文件 -->
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>./config</outputDirectory>
+            <includes>
+                <include>application*.yml</include>
+                <include>log4j2.xml</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>

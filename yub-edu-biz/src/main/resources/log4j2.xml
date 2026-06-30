@@ -1,19 +1,81 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<!--
+  ~ learn-system 日志配置
+  ~
+  ~ 生产环境使用: -Dlog4j2.configurationFile=config/log4j2.xml
+  -->
+<Configuration status="WARN" monitorInterval="300">
     <Properties>
-        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n</Property>
+        <Property name="APP_NAME">learn-system</Property>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Property>
+        <Property name="LOG_DIR">logs</Property>
     </Properties>
+
     <Appenders>
+        <!-- 控制台输出 -->
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="${LOG_PATTERN}"/>
         </Console>
+
+        <!-- 滚动文件输出（所有日志） -->
+        <RollingFile name="RollingFile"
+                     fileName="${LOG_DIR}/${APP_NAME}.log"
+                     filePattern="${LOG_DIR}/$${date:yyyy-MM}/${APP_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="256 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- 错误日志单独输出 -->
+        <RollingFile name="ErrorFile"
+                     fileName="${LOG_DIR}/${APP_NAME}-error.log"
+                     filePattern="${LOG_DIR}/$${date:yyyy-MM}/${APP_NAME}-error-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="128 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
     </Appenders>
+
     <Loggers>
-        <Root level="info">
+        <!-- 应用日志级别 -->
+        <Logger name="com.yub" level="INFO" additivity="false">
             <AppenderRef ref="Console"/>
-        </Root>
-        <Logger name="com.yub" level="debug" additivity="false">
-            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="ErrorFile"/>
         </Logger>
+
+        <!-- SQL 日志（调试用） -->
+        <Logger name="com.yub.**.mapper" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+
+        <!-- 第三方库日志 -->
+        <Logger name="org.springframework" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="org.mybatis" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="com.zaxxer.hikari" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+
+        <!-- 根日志 -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="ErrorFile"/>
+        </Root>
     </Loggers>
 </Configuration>
