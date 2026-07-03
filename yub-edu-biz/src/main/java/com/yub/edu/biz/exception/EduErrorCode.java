@@ -93,6 +93,10 @@ public enum EduErrorCode implements ErrorCode {
     STUDENT_PASSWORD_ERROR(200202, "账号或密码错误"),
     /** 账号已被禁用 */
     STUDENT_ACCOUNT_DISABLED(200203, "账号已被禁用"),
+    /** 原密码错误 */
+    OLD_PASSWORD_ERROR(200206, "原密码错误"),
+    /** 密码强度不足 */
+    PASSWORD_STRENGTH_ERROR(200207, "密码强度不足，需包含大写字母、小写字母、数字、符号中至少三类"),
     /** Token已过期 */
     TOKEN_EXPIRED(200204, "Token已过期"),
     /** Token无效 */
@@ -114,7 +118,40 @@ public enum EduErrorCode implements ErrorCode {
     /** 没有更多题目 */
     NO_MORE_QUESTIONS(200403, "没有更多题目"),
     /** 当前章节没有试题 */
-    CHAPTER_NO_QUESTIONS(200404, "当前章节没有试题");
+    CHAPTER_NO_QUESTIONS(200404, "当前章节没有试题"),
+
+    /** 学习卡不存在 */
+    STUDY_CARD_NOT_FOUND(200501, "学习卡不存在"),
+    /** 学习卡实例不存在 */
+    STUDY_CARD_INSTANCE_NOT_FOUND(200502, "学习卡实例不存在"),
+    /** 学习卡已使用 */
+    STUDY_CARD_INSTANCE_USED(200503, "学习卡已使用"),
+    /** 学习卡已回滚 */
+    STUDY_CARD_INSTANCE_ROLLBACK(200504, "学习卡已回滚"),
+    /** 学习卡已禁用 */
+    STUDY_CARD_INSTANCE_DISABLED(200505, "学习卡已禁用"),
+    /** 学习卡已过期 */
+    STUDY_CARD_NO_EXPIRED(200506, "学习卡已过期"),
+    /** 学习卡号不存在 */
+    STUDY_CARD_NO_NOT_EXIST(200507, "学习卡号不存在"),
+
+    /** 积分余额不足 */
+    POINTS_INSUFFICIENT(200601, "积分余额不足"),
+    /** 积分获取失败（乐观锁冲突） */
+    POINTS_CONFLICT(200602, "积分操作冲突，请重试"),
+
+    /** 订单不存在 */
+    ORDER_NOT_FOUND(200701, "订单不存在"),
+    /** 订单已处理 */
+    ORDER_ALREADY_PROCESSED(200702, "订单已处理，无法重复操作"),
+    /** 订单已取消 */
+    ORDER_ALREADY_CANCELLED(200703, "订单已取消"),
+
+    /** 地址不存在 */
+    ADDRESS_NOT_FOUND(200801, "地址不存在"),
+
+    /** 参数错误 */
+    PARAM_INVALID(200901, "参数错误");
 
     private final int code;
     private final String message;

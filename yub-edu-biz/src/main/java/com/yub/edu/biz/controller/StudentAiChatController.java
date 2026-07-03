@@ -72,9 +72,9 @@ public class StudentAiChatController {
      */
     @GetMapping("/history")
     public Response<List<AiChatRespVO>> history(
-            @RequestParam Long courseId,
-            @RequestParam(required = false) Long chatId,
-            @RequestParam(required = false) Integer limit) {
+            @RequestParam(name = "courseId") Long courseId,
+            @RequestParam(name = "chatId", required = false) Long chatId,
+            @RequestParam(name = "limit", required = false) Integer limit) {
         Long studentId = SecurityUtils.getCurrentUserId();
         List<AiChatRespVO> list = aiChatService.getHistory(studentId, courseId, chatId, limit);
         return Response.success(list);

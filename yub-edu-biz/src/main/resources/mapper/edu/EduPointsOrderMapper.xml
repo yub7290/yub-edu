@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPointsOrderMapper">
+
+    <resultMap id="EduPointsOrderMap" type="com.yub.edu.biz.entity.EduPointsOrder">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="product_id" property="productId"/>
+        <result column="product_name" property="productName"/>
+        <result column="product_type" property="productType"/>
+        <result column="required_points" property="requiredPoints"/>
+        <result column="exchange_type" property="exchangeType"/>
+        <result column="exchange_code" property="exchangeCode"/>
+        <result column="card_instance_id" property="cardInstanceId"/>
+        <result column="card_no" property="cardNo"/>
+        <result column="card_secret" property="cardSecret"/>
+        <result column="status" property="status"/>
+        <result column="receiver_name" property="receiverName"/>
+        <result column="receiver_phone" property="receiverPhone"/>
+        <result column="receiver_address" property="receiverAddress"/>
+        <result column="express_company" property="expressCompany"/>
+        <result column="express_no" property="expressNo"/>
+        <result column="ship_time" property="shipTime"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="verify_time" property="verifyTime"/>
+        <result column="verify_by" property="verifyBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, order_no, user_id, product_id, product_name, product_type,
+        required_points, exchange_type, exchange_code, card_instance_id, card_no, card_secret,
+        status, receiver_name, receiver_phone, receiver_address,
+        express_company, express_no, ship_time, receive_time,
+        verify_time, verify_by, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="EduPointsOrderMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_order
+        WHERE deleted = 0
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="exchangeCode != null and exchangeCode != ''">
+            AND exchange_code LIKE CONCAT('%', #{exchangeCode}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectById" resultMap="EduPointsOrderMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_order
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByExchangeCode" resultMap="EduPointsOrderMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_order
+        WHERE exchange_code = #{exchangeCode} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_points_order (order_no, user_id, product_id, product_name, product_type,
+                required_points, exchange_type, exchange_code, card_instance_id, card_no, card_secret,
+                status, receiver_name, receiver_phone, receiver_address,
+                create_time, update_time)
+        VALUES (#{orderNo}, #{userId}, #{productId}, #{productName}, #{productType},
+                #{requiredPoints}, #{exchangeType}, #{exchangeCode}, #{cardInstanceId}, #{cardNo}, #{cardSecret},
+                #{status}, #{receiverName}, #{receiverPhone}, #{receiverAddress},
+                NOW(), NOW())
+    </insert>
+
+    <update id="updateToVerified">
+        UPDATE edu_points_order
+        SET status = 3, verify_time = NOW(), verify_by = #{verifyBy}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0 AND status = 0
+    </update>
+
+    <update id="updateToShipped">
+        UPDATE edu_points_order
+        SET status = 1, express_company = #{expressCompany}, express_no = #{expressNo},
+            ship_time = NOW(), update_time = NOW()
+        WHERE id = #{id} AND deleted = 0 AND status = 0
+    </update>
+
+</mapper>

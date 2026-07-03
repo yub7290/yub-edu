@@ -72,4 +72,7 @@ public class EduChapter {
 
     /** 关联知识点ID列表（非持久化） */
     private List<Long> knowledgePointIds;
+
+    /** 章节视频列表（非持久化） */
+    private List<EduChapterVideo> videoList;
 }

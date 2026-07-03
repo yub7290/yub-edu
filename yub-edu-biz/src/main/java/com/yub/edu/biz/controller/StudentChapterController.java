@@ -2,13 +2,16 @@ package com.yub.edu.biz.controller;
 
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduChapter;
+import com.yub.edu.biz.entity.EduChapterVideo;
 import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.mapper.EduChapterVideoMapper;
 import com.yub.edu.biz.vo.ChapterDetailRespVO;
 import com.yub.edu.biz.vo.ChapterItemRespVO;
 import com.yub.edu.biz.vo.ChapterListRespVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -25,6 +28,7 @@ import java.util.*;
 public class StudentChapterController {
 
     private final EduChapterMapper eduChapterMapper;
+    private final EduChapterVideoMapper eduChapterVideoMapper;
 
     /**
      * 章节详情
@@ -36,13 +40,30 @@ public class StudentChapterController {
             return Response.success(null);
         }
 
+        List<EduChapterVideo> videoList = eduChapterVideoMapper.selectByChapterId(chId);
+        boolean inLiveTime = isInLiveTime(chapter, LocalDateTime.now());
+        String mediaType = inLiveTime ? "live" : "video";
+        String mediaSrc = inLiveTime || videoList.isEmpty() ? "" : videoList.get(0).getVideoUrl();
+
         return Response.success(ChapterDetailRespVO.builder()
                 .id(chapter.getId())
-                .mediaSrc("")
-                .mediaType(chapter.getIsLive() != null && chapter.getIsLive() == 1 ? "live" : "video")
+                .mediaSrc(mediaSrc)
+                .mediaType(mediaType)
                 .article(chapter.getContentText() != null ? chapter.getContentText() : "")
                 .attachList(new ArrayList<>())
+                .videoList(videoList)
                 .build());
+    }
+
+    private boolean isInLiveTime(EduChapter chapter, LocalDateTime now) {
+        if (chapter.getIsLive() == null || chapter.getIsLive() != 1) {
+            return false;
+        }
+        if (chapter.getLiveStartTime() == null || chapter.getLiveDuration() == null || chapter.getLiveDuration() <= 0) {
+            return false;
+        }
+        LocalDateTime liveEndTime = chapter.getLiveStartTime().plusMinutes(chapter.getLiveDuration());
+        return !now.isBefore(chapter.getLiveStartTime()) && now.isBefore(liveEndTime);
     }
 
     /**

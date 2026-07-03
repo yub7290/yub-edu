@@ -16,6 +16,10 @@
     <description>教育模块API层</description>
 
     <dependencies>
-
+        <dependency>
+            <groupId>com.yub</groupId>
+            <artifactId>yub-framework</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 </project>

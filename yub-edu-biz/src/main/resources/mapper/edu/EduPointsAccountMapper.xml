@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPointsAccountMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduPointsAccount">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="available_points" property="availablePoints"/>
+        <result column="total_points" property="totalPoints"/>
+        <result column="version" property="version"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, available_points, total_points, version, create_time, update_time
+    </sql>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_account
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_points_account (user_id, available_points, total_points, version, create_time, update_time)
+        VALUES (#{userId}, #{availablePoints}, #{totalPoints}, #{version}, NOW(), NOW())
+    </insert>
+
+    <update id="updateByUserId">
+        UPDATE edu_points_account
+        SET available_points = #{availablePoints},
+            total_points = #{totalPoints},
+            version = version + 1,
+            update_time = NOW()
+        WHERE user_id = #{userId} AND version = #{version}
+    </update>
+
+</mapper>

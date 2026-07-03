@@ -8,6 +8,7 @@
         <result column="account" property="account"/>
         <result column="password" property="password"/>
         <result column="name" property="name"/>
+        <result column="nick_name" property="nickName"/>
         <result column="pinyin_abbr" property="pinyinAbbr"/>
         <result column="student_no" property="studentNo"/>
         <result column="group_id" property="groupId"/>
@@ -43,7 +44,7 @@
     </resultMap>
 
     <sql id="baseColumns">
-        id, avatar_url, account, password, name, pinyin_abbr, student_no, group_id, gender,
+        id, avatar_url, account, password, name, nick_name, pinyin_abbr, student_no, group_id, gender,
         id_card, phone, phone_public, fixed_phone, fixed_phone_public, email, qq, wechat,
         address, mailing_address, zip_code, emergency_contact, emergency_phone,
         birth_date, education, major, native_place, school, nationality,
@@ -52,7 +53,7 @@
     </sql>
 
     <sql id="pageColumns">
-        t.id, t.avatar_url, t.account, t.name, t.pinyin_abbr, t.student_no, t.group_id, t.gender,
+        t.id, t.avatar_url, t.account, t.name, t.nick_name, t.pinyin_abbr, t.student_no, t.group_id, t.gender,
         t.id_card, t.phone, t.phone_public, t.fixed_phone, t.fixed_phone_public, t.email, t.qq, t.wechat,
         t.address, t.mailing_address, t.zip_code, t.emergency_contact, t.emergency_phone,
         t.birth_date, t.education, t.major, t.native_place, t.school, t.nationality,
@@ -116,6 +117,7 @@
         UPDATE edu_student
         SET avatar_url         = #{avatarUrl},
             name               = #{name},
+            nick_name          = #{nickName},
             pinyin_abbr        = #{pinyinAbbr},
             student_no         = #{studentNo},
             group_id           = #{groupId},

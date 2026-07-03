@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPointsRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduPointsRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="points" property="points"/>
+        <result column="change_type" property="changeType"/>
+        <result column="description" property="description"/>
+        <result column="biz_id" property="bizId"/>
+        <result column="biz_type" property="bizType"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, points, change_type, description, biz_id, biz_type, create_time
+    </sql>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_record
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_points_record (user_id, points, change_type, description, biz_id, biz_type, create_time)
+        VALUES (#{userId}, #{points}, #{changeType}, #{description}, #{bizId}, #{bizType}, NOW())
+    </insert>
+
+    <select id="countTodayByUserIdAndBizType" resultType="int">
+        SELECT COUNT(id)
+        FROM edu_points_record
+        WHERE user_id = #{userId}
+          AND biz_type = #{bizType}
+          AND change_type = 1
+          AND DATE(create_time) = CURDATE()
+    </select>
+
+</mapper>

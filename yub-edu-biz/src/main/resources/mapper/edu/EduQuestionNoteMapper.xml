@@ -41,13 +41,18 @@
     <select id="selectByUserAndCourse" resultMap="EduQuestionNoteMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_question_note
-        WHERE user_id = #{userId} AND course_id = #{courseId} AND deleted = 0
+        WHERE user_id = #{userId} AND deleted = 0
+        <if test="courseId != null and courseId > 0">
+            AND course_id = #{courseId}
+        </if>
+        ORDER BY create_time DESC
     </select>
 
     <select id="selectByUserAndQuestion" resultMap="EduQuestionNoteMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_question_note
         WHERE user_id = #{userId} AND question_id = #{questionId} AND deleted = 0
+        ORDER BY create_time DESC
     </select>
 
     <select id="countByUserAndCourse" resultType="long">

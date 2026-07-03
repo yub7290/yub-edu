@@ -2,11 +2,13 @@ package com.yub.edu.biz.service;
 
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
+import com.yub.edu.api.dto.app.ProfileInfoUpdateDTO;
 import com.yub.edu.biz.dto.StudentCreateReqDTO;
 import com.yub.edu.biz.dto.StudentQueryDTO;
 import com.yub.edu.biz.dto.StudentUpdateReqDTO;
 import com.yub.edu.biz.vo.StudentDetailRespVO;
 import com.yub.edu.biz.vo.StudentPageRespVO;
+import com.yub.edu.api.vo.app.ProfileInfoRespVO;
 
 import java.util.List;
 
@@ -86,4 +88,29 @@ public interface StudentService {
      * @param id 学员ID
      */
     void resetPassword(Long id);
+
+    /**
+     * 获取当前学员的个人信息
+     *
+     * @param id 学员ID
+     * @return 个人信息
+     */
+    ProfileInfoRespVO getProfileInfo(Long id);
+
+    /**
+     * 更新学员个人信息
+     *
+     * @param id  学员ID
+     * @param req 个人信息
+     */
+    void updateProfileInfo(Long id, ProfileInfoUpdateDTO req);
+
+    /**
+     * 修改密码
+     *
+     * @param id            学员ID
+     * @param oldPasswordSm3 原密码（SM3哈希值）
+     * @param newPasswordSm3 新密码（SM3哈希值）
+     */
+    void changePassword(Long id, String oldPasswordSm3, String newPasswordSm3);
 }

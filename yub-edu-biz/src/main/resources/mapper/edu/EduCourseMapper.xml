@@ -170,6 +170,36 @@
         ORDER BY update_time DESC
     </select>
 
+    <!-- 我的课程 -->
+    <select id="myCourse" resultType="com.yub.edu.api.vo.app.MyCourseVO">
+        SELECT c.id,
+               c.name,
+               c.image_url,
+               c.chapter_count AS total_course_time,
+               IFNULL(
+                       ROUND(
+                               (SELECT COUNT(DISTINCT sr.chapter_id)
+                                FROM edu_study_record sr
+                                WHERE sr.course_id = c.id
+                                  AND sr.student_id = #{queryParam.studentId}
+                               ) / NULLIF(c.chapter_count, 0) * 100
+                       ), 0
+               )              AS learn_progress,
+               (SELECT MAX(sr.update_time)
+                FROM edu_study_record sr
+                WHERE sr.course_id = c.id
+                  AND sr.student_id = #{queryParam.studentId}
+               )              AS recent_learn_time
+        FROM edu_course c
+        WHERE c.deleted = 0
+          AND c.id IN (
+            SELECT DISTINCT sr.course_id
+            FROM edu_study_record sr
+            WHERE sr.student_id = #{queryParam.studentId}
+        )
+        ORDER BY recent_learn_time DESC
+    </select>
+
     <delete id="deletePhysicallyById">
         DELETE FROM edu_course WHERE id = #{id} AND deleted = 1
     </delete>

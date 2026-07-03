@@ -1,5 +1,7 @@
 package com.yub.edu.biz.service.impl;
 
+import com.yub.edu.api.dto.app.MyCoursePageQueryDTO;
+import com.yub.edu.api.vo.app.MyCourseVO;
 import com.yub.edu.biz.dto.AnswerSubmitReqDTO;
 import com.yub.edu.biz.dto.FavoriteToggleReqDTO;
 import com.yub.edu.biz.dto.NoteCreateReqDTO;
@@ -13,6 +15,7 @@ import com.yub.edu.biz.entity.EduQuestionOption;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduChapterMapper;
+import com.yub.edu.biz.mapper.EduCourseMapper;
 import com.yub.edu.biz.mapper.EduPracticeRecordMapper;
 import com.yub.edu.biz.mapper.EduPracticeSessionMapper;
 import com.yub.edu.biz.mapper.EduQuestionFavoriteMapper;
@@ -42,6 +45,7 @@ public class PracticeServiceImpl implements PracticeService {
     private final EduChapterMapper eduChapterMapper;
     private final EduQuestionMapper eduQuestionMapper;
     private final EduQuestionOptionMapper eduQuestionOptionMapper;
+    private final EduCourseMapper eduCourseMapper;
 
     private Long getUserId() {
         return SecurityUtils.getCurrentUserId();
@@ -61,6 +65,7 @@ public class PracticeServiceImpl implements PracticeService {
         return PracticeOverviewRespVO.builder()
                 .totalQuestionCount(totalQuestions)
                 .practicedCount(practicedCount)
+                .totalAttempts(practicedCount)
                 .passRate(passRate)
                 .chapterProgressList(chapterProgressList)
                 .build();
@@ -231,7 +236,7 @@ public class PracticeServiceImpl implements PracticeService {
             EduQuestion q = eduQuestionMapper.selectById(qid);
             if (q == null) continue;
             result.add(PracticeQuestionSimpleVO.builder().id(q.getId()).questionType(q.getQuestionType())
-                    .content(q.getContent()).difficulty(q.getDifficulty())
+                    .content(q.getContent()).difficulty(q.getDifficulty()).courseId(courseId)
                     .wrongCount(wrongCountMap.getOrDefault(qid, 0L).intValue())
                     .chapterName(getChapterName(q.getChapterId()))
                     .relatedTime(entry.getValue().getCreateTime()).build());
@@ -255,7 +260,7 @@ public class PracticeServiceImpl implements PracticeService {
             EduQuestion q = eduQuestionMapper.selectById(fav.getQuestionId());
             if (q == null) continue;
             result.add(PracticeQuestionSimpleVO.builder().id(q.getId()).questionType(q.getQuestionType())
-                    .content(q.getContent()).difficulty(q.getDifficulty())
+                    .content(q.getContent()).difficulty(q.getDifficulty()).courseId(fav.getCourseId())
                     .chapterName(getChapterName(q.getChapterId())).relatedTime(fav.getCreateTime()).build());
         }
         return result;
@@ -327,6 +332,39 @@ public class PracticeServiceImpl implements PracticeService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateNote(Long noteId, String noteContent) {
+        if (noteContent == null || noteContent.isBlank()) {
+            throw new EduException(EduErrorCode.PARAM_INVALID);
+        }
+        EduQuestionNote note = questionNoteMapper.selectById(noteId);
+        if (note == null) {
+            throw new EduException(EduErrorCode.NOTE_NOT_FOUND);
+        }
+        if (!note.getUserId().equals(getUserId())) {
+            throw new EduException(EduErrorCode.NOTE_NOT_FOUND);
+        }
+        note.setNoteContent(noteContent);
+        questionNoteMapper.updateById(note);
+    }
+
+    @Override
+    public List<NoteRespVO> getNoteForQuestion(Long questionId) {
+        Long userId = getUserId();
+        List<EduQuestionNote> notes = questionNoteMapper.selectByUserAndQuestion(userId, questionId);
+        List<NoteRespVO> result = new ArrayList<>();
+        for (EduQuestionNote n : notes) {
+            EduQuestion q = eduQuestionMapper.selectById(n.getQuestionId());
+            result.add(NoteRespVO.builder().id(n.getId()).questionId(n.getQuestionId())
+                    .courseId(n.getCourseId()).noteContent(n.getNoteContent())
+                    .questionType(q != null ? q.getQuestionType() : null)
+                    .questionContent(q != null ? q.getContent() : null)
+                    .createTime(n.getCreateTime()).build());
+        }
+        return result;
+    }
+
+    @Override
     public List<PracticeQuestionSimpleVO> getHighFreqWrong(Long courseId) {
         Long userId = getUserId();
         List<Long> questionIds = practiceRecordMapper.selectHighFreqWrong(userId, courseId, 50);
@@ -335,7 +373,7 @@ public class PracticeServiceImpl implements PracticeService {
             EduQuestion q = eduQuestionMapper.selectById(qid);
             if (q == null) continue;
             result.add(PracticeQuestionSimpleVO.builder().id(q.getId()).questionType(q.getQuestionType())
-                    .content(q.getContent()).difficulty(q.getDifficulty()).wrongCount(1)
+                    .content(q.getContent()).difficulty(q.getDifficulty()).courseId(courseId).wrongCount(1)
                     .chapterName(getChapterName(q.getChapterId())).build());
         }
         return result;
@@ -358,5 +396,27 @@ public class PracticeServiceImpl implements PracticeService {
         return PracticeSessionRespVO.builder().questionId(session.getQuestionId())
                 .chapterId(session.getChapterId()).practiceMode(session.getPracticeMode())
                 .currentIndex(currentIndex).totalCount(questionIds.size()).build();
+    }
+
+    @Override
+    public List<CoursePracticeOverviewRespVO> getAllCoursesPracticeOverview() {
+        Long userId = getUserId();
+        // 获取用户所有课程
+        MyCoursePageQueryDTO queryDTO = MyCoursePageQueryDTO.builder()
+                .studentId(userId)
+                .build();
+        List<MyCourseVO> courses = eduCourseMapper.myCourse(queryDTO);
+
+        // 构建每个课程的练习概览
+        List<CoursePracticeOverviewRespVO> result = new ArrayList<>();
+        for (MyCourseVO course : courses) {
+            PracticeOverviewRespVO overview = getPracticeOverview(course.getId());
+            result.add(CoursePracticeOverviewRespVO.builder()
+                    .courseId(course.getId())
+                    .courseName(course.getName())
+                    .overview(overview)
+                    .build());
+        }
+        return result;
     }
 }

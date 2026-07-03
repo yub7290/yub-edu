@@ -1,5 +1,6 @@
 package com.yub.edu.biz.vo;
 
+import com.yub.edu.biz.entity.EduChapterVideo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,4 +18,5 @@ public class ChapterDetailRespVO {
     private String mediaType;
     private String article;
     private List<?> attachList;
+    private List<EduChapterVideo> videoList;
 }

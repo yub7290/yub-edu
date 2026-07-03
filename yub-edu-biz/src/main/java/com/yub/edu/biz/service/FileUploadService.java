@@ -23,6 +23,15 @@ public interface FileUploadService {
     String upload(MultipartFile file, String directory);
 
     /**
+     * 上传文件到七牛云，不回退到本地存储
+     *
+     * @param file      文件
+     * @param directory 存储目录
+     * @return 文件访问 URL
+     */
+    String uploadToQiniu(MultipartFile file, String directory);
+
+    /**
      * 校验上传图片（大小 ≤5MB，仅允许 JPG/JPEG/PNG/GIF）
      *
      * @param file 文件

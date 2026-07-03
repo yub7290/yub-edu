@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduStudyCardMapper">
+
+    <resultMap id="EduStudyCardMap" type="com.yub.edu.biz.entity.EduStudyCard">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="amount" property="amount"/>
+        <result column="coupon_deductible" property="couponDeductible"/>
+        <result column="quantity" property="quantity"/>
+        <result column="status" property="status"/>
+        <result column="valid_start_date" property="validStartDate"/>
+        <result column="valid_end_date" property="validEndDate"/>
+        <result column="study_duration" property="studyDuration"/>
+        <result column="study_duration_unit" property="studyDurationUnit"/>
+        <result column="description" property="description"/>
+        <result column="card_code_length" property="cardCodeLength"/>
+        <result column="secret_code_length" property="secretCodeLength"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <resultMap id="StudyCardPageVOMap" type="com.yub.edu.biz.vo.StudyCardPageRespVO">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="course_count" property="courseCount"/>
+        <result column="used_count" property="usedCount"/>
+        <result column="quantity" property="quantity"/>
+        <result column="amount" property="amount"/>
+        <result column="valid_start_date" property="validStartDate"/>
+        <result column="valid_end_date" property="validEndDate"/>
+        <result column="study_duration" property="studyDuration"/>
+        <result column="study_duration_unit" property="studyDurationUnit"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, title, amount, coupon_deductible, quantity, status,
+        valid_start_date, valid_end_date, study_duration, study_duration_unit,
+        description, card_code_length, secret_code_length,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <select id="selectPage" resultMap="StudyCardPageVOMap">
+        SELECT sc.id, sc.title, sc.quantity, sc.amount, sc.valid_start_date, sc.valid_end_date,
+               sc.study_duration, sc.study_duration_unit, sc.status, sc.create_time,
+               (SELECT COUNT(*) FROM edu_study_card_course scc WHERE scc.card_id = sc.id) AS course_count,
+               (SELECT COUNT(*) FROM edu_study_card_instance sci WHERE sci.card_id = sc.id AND sci.status = 1) AS used_count
+        FROM edu_study_card sc
+        WHERE sc.deleted = 0
+        <if test="query.title != null and query.title != ''">
+            AND sc.title LIKE CONCAT('%', #{query.title}, '%')
+        </if>
+        <if test="query.status != null">
+            AND sc.status = #{query.status}
+        </if>
+        ORDER BY sc.id DESC
+    </select>
+
+    <select id="selectById" resultMap="EduStudyCardMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_study_card
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_study_card (title, amount, coupon_deductible, quantity, status,
+                valid_start_date, valid_end_date, study_duration, study_duration_unit,
+                description, card_code_length, secret_code_length,
+                create_time, update_time, create_by, update_by)
+        VALUES (#{title}, #{amount}, #{couponDeductible}, #{quantity}, #{status},
+                #{validStartDate}, #{validEndDate}, #{studyDuration}, #{studyDurationUnit},
+                #{description}, #{cardCodeLength}, #{secretCodeLength},
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_study_card
+        SET title = #{title}, amount = #{amount}, coupon_deductible = #{couponDeductible},
+            quantity = #{quantity}, status = #{status},
+            valid_start_date = #{validStartDate}, valid_end_date = #{validEndDate},
+            study_duration = #{studyDuration}, study_duration_unit = #{studyDurationUnit},
+            description = #{description}, card_code_length = #{cardCodeLength},
+            secret_code_length = #{secretCodeLength},
+            update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_study_card SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_study_card SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectSimpleList" resultType="com.yub.edu.biz.entity.EduStudyCard">
+        SELECT id, title
+        FROM edu_study_card
+        WHERE deleted = 0 AND status = 1
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

@@ -31,6 +31,11 @@ public class StudentInfoRespVO {
     private String name;
 
     /**
+     * 昵称
+     */
+    private String nickName;
+
+    /**
      * 头像URL
      */
     private String avatarUrl;

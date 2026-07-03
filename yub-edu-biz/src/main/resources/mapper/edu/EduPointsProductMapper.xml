@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPointsProductMapper">
+
+    <resultMap id="EduPointsProductMap" type="com.yub.edu.biz.entity.EduPointsProduct">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="product_type" property="productType"/>
+        <result column="study_card_id" property="studyCardId"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="required_points" property="requiredPoints"/>
+        <result column="stock_count" property="stockCount"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="study_card_title" property="studyCardTitle"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        p.id, p.name, p.product_type, p.study_card_id, p.image_url, p.required_points,
+        p.stock_count, p.status, p.create_time, p.update_time, p.deleted,
+        sc.title AS study_card_title
+    </sql>
+
+    <select id="selectPage" resultMap="EduPointsProductMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_product p
+        LEFT JOIN edu_study_card sc ON p.study_card_id = sc.id AND sc.deleted = 0
+        WHERE p.deleted = 0
+        <if test="name != null and name != ''">
+            AND p.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="status != null">
+            AND p.status = #{status}
+        </if>
+        ORDER BY p.create_time DESC
+    </select>
+
+    <select id="selectById" resultMap="EduPointsProductMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_points_product p
+        LEFT JOIN edu_study_card sc ON p.study_card_id = sc.id AND sc.deleted = 0
+        WHERE p.id = #{id} AND p.deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_points_product (name, product_type, study_card_id, image_url,
+                required_points, stock_count, status, create_time, update_time)
+        VALUES (#{name}, #{productType}, #{studyCardId}, #{imageUrl},
+                #{requiredPoints}, #{stockCount}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_points_product
+        SET name = #{name}, product_type = #{productType}, study_card_id = #{studyCardId},
+            image_url = #{imageUrl}, required_points = #{requiredPoints},
+            stock_count = #{stockCount},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_points_product SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="decrementStock">
+        UPDATE edu_points_product
+        SET stock_count = stock_count - 1, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0 AND stock_count > 0
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_points_product SET status = #{status}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

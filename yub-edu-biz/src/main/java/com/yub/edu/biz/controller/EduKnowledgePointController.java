@@ -43,7 +43,7 @@ public class EduKnowledgePointController {
     @GetMapping("/list-by-course/{courseId}")
     public Response<List<EduKnowledgePoint>> listByCourse(
             @PathVariable Long courseId,
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(name = "categoryId", required = false) Long categoryId) {
         return Response.success(service.listByCourseId(courseId, categoryId));
     }
 

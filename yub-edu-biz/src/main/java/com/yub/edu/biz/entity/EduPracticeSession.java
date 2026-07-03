@@ -36,6 +36,9 @@ public class EduPracticeSession {
     /** 会话状态 0:进行中 1:已完成 */
     private Integer status;
 
+    /** 创建时间 */
+    private LocalDateTime createTime;
+
     /** 更新时间 */
     private LocalDateTime updateTime;
 

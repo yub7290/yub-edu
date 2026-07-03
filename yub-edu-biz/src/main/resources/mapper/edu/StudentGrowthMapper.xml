@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.StudentGrowthMapper">
+
+    <resultMap id="GrowthWeekPlanMap" type="com.yub.edu.biz.dto.StudentGrowthPlanDTO$WeekPlanRow">
+        <id column="id" property="id"/>
+        <result column="student_id" property="studentId"/>
+        <result column="week_start_date" property="weekStartDate"/>
+        <result column="week_end_date" property="weekEndDate"/>
+        <result column="status" property="status"/>
+        <result column="weak_points" property="weakPoints"/>
+        <result column="advantage_summary" property="advantageSummary"/>
+        <result column="weak_summary" property="weakSummary"/>
+        <result column="study_suggestion" property="studySuggestion"/>
+        <result column="duration_target" property="durationTarget"/>
+        <result column="question_target" property="questionTarget"/>
+        <result column="knowledge_target" property="knowledgeTarget"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="GrowthPlanTaskMap" type="com.yub.edu.biz.dto.StudentGrowthPlanDTO$TaskRow">
+        <id column="id" property="id"/>
+        <result column="plan_id" property="planId"/>
+        <result column="student_id" property="studentId"/>
+        <result column="plan_date" property="planDate"/>
+        <result column="task_type" property="taskType"/>
+        <result column="jump_type" property="jumpType"/>
+        <result column="title" property="title"/>
+        <result column="knowledge_point_id" property="knowledgePointId"/>
+        <result column="knowledge_name" property="knowledgeName"/>
+        <result column="target_id" property="targetId"/>
+        <result column="duration_target" property="durationTarget"/>
+        <result column="question_target" property="questionTarget"/>
+        <result column="completed" property="completed"/>
+        <result column="complete_time" property="completeTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectTotalStudyMinutes" resultType="java.lang.Integer">
+        SELECT COALESCE(FLOOR(SUM(total_study_second) / 60), 0)
+        FROM edu_study_record
+        WHERE student_id = #{studentId}
+    </select>
+
+    <select id="selectStudyDays" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT DATE(update_time))
+        FROM edu_study_record
+        WHERE student_id = #{studentId}
+    </select>
+
+    <select id="selectCompletedCourseCount" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM (
+            SELECT sr.course_id
+            FROM edu_study_record sr
+            INNER JOIN (
+                SELECT course_id, COUNT(1) AS total_count
+                FROM edu_chapter
+                WHERE deleted = 0 AND status = 1
+                GROUP BY course_id
+            ) ch ON ch.course_id = sr.course_id
+            WHERE sr.student_id = #{studentId}
+            GROUP BY sr.course_id, ch.total_count
+            HAVING COUNT(DISTINCT sr.chapter_id) &gt;= ch.total_count
+        ) t
+    </select>
+
+    <select id="selectAverageExamScore" resultType="java.lang.Integer">
+        SELECT COALESCE(ROUND(AVG(score)), 0)
+        FROM edu_exam_record
+        WHERE user_id = #{studentId} AND deleted = 0 AND status != 0
+    </select>
+
+    <select id="selectStudySecondsByDate" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(total_study_second), 0)
+        FROM edu_study_record
+        WHERE student_id = #{studentId} AND DATE(update_time) = #{date}
+    </select>
+
+    <select id="selectStudyStreak" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM (
+            SELECT d.study_date,
+                   ROW_NUMBER() OVER (ORDER BY d.study_date DESC) AS rn
+            FROM (
+                SELECT DISTINCT DATE(update_time) AS study_date
+                FROM edu_study_record
+                WHERE student_id = #{studentId}
+                  AND DATE(update_time) &lt;= CURDATE()
+            ) d
+        ) x
+        WHERE x.study_date = DATE_SUB(CURDATE(), INTERVAL x.rn - 1 DAY)
+    </select>
+
+    <select id="selectKnowledgeCountByDate" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT kp.id)
+        FROM edu_practice_record pr
+        INNER JOIN edu_question_knowledge_point qkp ON qkp.question_id = pr.question_id
+        INNER JOIN edu_knowledge_point kp ON kp.id = qkp.knowledge_point_id
+        WHERE pr.user_id = #{studentId}
+          AND pr.deleted = 0
+          AND pr.is_correct = 1
+          AND kp.deleted = 0
+          AND kp.status = 1
+          AND DATE(pr.create_time) = #{date}
+    </select>
+
+    <select id="selectRecentStudyRecords" resultType="com.yub.edu.biz.dto.StudentGrowthStatsDTO$StudyRecordItem">
+        SELECT sr.id AS id,
+               c.name AS courseName,
+               FLOOR(sr.total_study_second / 60) AS durationMinutes,
+               DATE_FORMAT(sr.update_time, '%Y-%m-%d %H:%i') AS studyTime
+        FROM edu_study_record sr
+        LEFT JOIN edu_course c ON c.id = sr.course_id AND c.deleted = 0
+        WHERE sr.student_id = #{studentId}
+        ORDER BY sr.update_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectWeekSummaries" resultType="com.yub.edu.biz.dto.StudentGrowthStatsDTO$WeekSummary">
+        SELECT w.week_start_date AS weekStartDate,
+               COALESCE(s.study_seconds, 0) AS studySeconds,
+               COALESCE(s.study_days, 0) AS studyDays,
+               COALESCE(p.practice_count, 0) AS practiceCount,
+               COALESCE(p.practice_correct_count, 0) AS practiceCorrectCount,
+               COALESCE(e.exam_count, 0) AS examCount,
+               COALESCE(e.exam_avg_score, 0) AS examAvgScore,
+               COALESCE(k.knowledge_count, 0) AS knowledgeCount
+        FROM (
+            SELECT DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY) - INTERVAL n.n WEEK AS week_start_date
+            FROM (
+                SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+                UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+            ) n
+            WHERE n.n &lt; #{weekCount}
+        ) w
+        LEFT JOIN (
+            SELECT DATE_SUB(DATE(update_time), INTERVAL WEEKDAY(update_time) DAY) AS week_start_date,
+                   SUM(total_study_second) AS study_seconds,
+                   COUNT(DISTINCT DATE(update_time)) AS study_days
+            FROM edu_study_record
+            WHERE student_id = #{studentId} AND DATE(update_time) &gt;= #{fromDate}
+            GROUP BY DATE_SUB(DATE(update_time), INTERVAL WEEKDAY(update_time) DAY)
+        ) s ON s.week_start_date = w.week_start_date
+        LEFT JOIN (
+            SELECT DATE_SUB(DATE(create_time), INTERVAL WEEKDAY(create_time) DAY) AS week_start_date,
+                   COUNT(1) AS practice_count,
+                   SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS practice_correct_count
+            FROM edu_practice_record
+            WHERE user_id = #{studentId} AND deleted = 0 AND DATE(create_time) &gt;= #{fromDate}
+            GROUP BY DATE_SUB(DATE(create_time), INTERVAL WEEKDAY(create_time) DAY)
+        ) p ON p.week_start_date = w.week_start_date
+        LEFT JOIN (
+            SELECT DATE_SUB(DATE(submit_time), INTERVAL WEEKDAY(submit_time) DAY) AS week_start_date,
+                   COUNT(1) AS exam_count,
+                   ROUND(AVG(score)) AS exam_avg_score
+            FROM edu_exam_record
+            WHERE user_id = #{studentId} AND deleted = 0 AND status != 0 AND DATE(submit_time) &gt;= #{fromDate}
+            GROUP BY DATE_SUB(DATE(submit_time), INTERVAL WEEKDAY(submit_time) DAY)
+        ) e ON e.week_start_date = w.week_start_date
+        LEFT JOIN (
+            SELECT DATE_SUB(DATE(pr.create_time), INTERVAL WEEKDAY(pr.create_time) DAY) AS week_start_date,
+                   COUNT(DISTINCT qkp.knowledge_point_id) AS knowledge_count
+            FROM edu_practice_record pr
+            INNER JOIN edu_question_knowledge_point qkp ON qkp.question_id = pr.question_id
+            WHERE pr.user_id = #{studentId}
+              AND pr.deleted = 0
+              AND pr.is_correct = 1
+              AND DATE(pr.create_time) &gt;= #{fromDate}
+            GROUP BY DATE_SUB(DATE(pr.create_time), INTERVAL WEEKDAY(pr.create_time) DAY)
+        ) k ON k.week_start_date = w.week_start_date
+        ORDER BY w.week_start_date DESC
+    </select>
+
+    <select id="selectDaySummaries" resultType="com.yub.edu.biz.dto.StudentGrowthStatsDTO$DaySummary">
+        SELECT d.study_date AS studyDate,
+               COALESCE(s.study_seconds, 0) AS studySeconds,
+               COALESCE(p.practice_count, 0) AS practiceCount,
+               COALESCE(k.knowledge_count, 0) AS knowledgeCount
+        FROM (
+            SELECT #{startDate} + INTERVAL n.n DAY AS study_date
+            FROM (
+                SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+                UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
+            ) n
+            WHERE #{startDate} + INTERVAL n.n DAY &lt;= #{endDate}
+        ) d
+        LEFT JOIN (
+            SELECT DATE(update_time) AS study_date, SUM(total_study_second) AS study_seconds
+            FROM edu_study_record
+            WHERE student_id = #{studentId}
+              AND DATE(update_time) BETWEEN #{startDate} AND #{endDate}
+            GROUP BY DATE(update_time)
+        ) s ON s.study_date = d.study_date
+        LEFT JOIN (
+            SELECT DATE(create_time) AS study_date, COUNT(1) AS practice_count
+            FROM edu_practice_record
+            WHERE user_id = #{studentId} AND deleted = 0
+              AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
+            GROUP BY DATE(create_time)
+        ) p ON p.study_date = d.study_date
+        LEFT JOIN (
+            SELECT DATE(pr.create_time) AS study_date, COUNT(DISTINCT qkp.knowledge_point_id) AS knowledge_count
+            FROM edu_practice_record pr
+            INNER JOIN edu_question_knowledge_point qkp ON qkp.question_id = pr.question_id
+            WHERE pr.user_id = #{studentId}
+              AND pr.deleted = 0
+              AND pr.is_correct = 1
+              AND DATE(pr.create_time) BETWEEN #{startDate} AND #{endDate}
+            GROUP BY DATE(pr.create_time)
+        ) k ON k.study_date = d.study_date
+        ORDER BY d.study_date ASC
+    </select>
+
+    <select id="selectKnowledgeMastery" resultType="com.yub.edu.biz.dto.StudentGrowthStatsDTO$KnowledgeMastery">
+        SELECT kp.id AS id,
+               kp.title AS name,
+               kp.course_id AS courseId,
+               c.name AS courseName,
+               COUNT(pr.id) AS practiceCount,
+               COALESCE(SUM(CASE WHEN pr.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correctCount,
+               CASE
+                   WHEN COUNT(pr.id) = 0 THEN 0
+                   ELSE ROUND(SUM(CASE WHEN pr.is_correct = 1 THEN 1 ELSE 0 END) * 100 / COUNT(pr.id))
+               END AS mastery
+        FROM edu_knowledge_point kp
+        LEFT JOIN edu_course c ON c.id = kp.course_id AND c.deleted = 0
+        LEFT JOIN edu_question_knowledge_point qkp ON qkp.knowledge_point_id = kp.id
+        LEFT JOIN edu_practice_record pr ON pr.question_id = qkp.question_id
+            AND pr.user_id = #{studentId}
+            AND pr.deleted = 0
+        WHERE kp.deleted = 0
+          AND kp.status = 1
+        GROUP BY kp.id, kp.title, kp.course_id, c.name
+        ORDER BY mastery ASC, practiceCount DESC, kp.id DESC
+    </select>
+
+    <select id="selectWeakKnowledgeCourses" resultType="com.yub.edu.biz.dto.StudentGrowthStatsDTO$CourseRecommend">
+        SELECT c.id AS id,
+               c.name AS title,
+               weak.name AS knowledge,
+               COUNT(ch.id) AS lessonCount,
+               0 AS difficulty
+        FROM (
+            SELECT kp.course_id, kp.title AS name,
+                   ROUND(SUM(CASE WHEN pr.is_correct = 1 THEN 1 ELSE 0 END) * 100 / COUNT(pr.id)) AS mastery
+            FROM edu_practice_record pr
+            INNER JOIN edu_question_knowledge_point qkp ON qkp.question_id = pr.question_id
+            INNER JOIN edu_knowledge_point kp ON kp.id = qkp.knowledge_point_id
+            WHERE pr.user_id = #{studentId}
+              AND pr.deleted = 0
+              AND kp.deleted = 0
+              AND kp.status = 1
+            GROUP BY kp.id, kp.course_id, kp.title
+            HAVING mastery &lt; 80
+            ORDER BY mastery ASC
+            LIMIT #{limit}
+        ) weak
+        INNER JOIN edu_course c ON c.id = weak.course_id AND c.deleted = 0 AND c.status = 1
+        LEFT JOIN edu_chapter ch ON ch.course_id = c.id AND ch.deleted = 0 AND ch.status = 1
+        GROUP BY c.id, c.name, weak.name
+        ORDER BY c.recommended DESC, c.id DESC
+    </select>
+
+    <select id="selectGrowthWeekPlan" resultMap="GrowthWeekPlanMap">
+        SELECT id, student_id, week_start_date, week_end_date, status, weak_points,
+               advantage_summary, weak_summary, study_suggestion, duration_target,
+               question_target, knowledge_target, create_time, update_time
+        FROM edu_growth_week_plan
+        WHERE student_id = #{studentId}
+          AND week_start_date = #{weekStartDate}
+        LIMIT 1
+    </select>
+
+    <insert id="insertGrowthWeekPlan" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_growth_week_plan (
+            student_id, week_start_date, week_end_date, status, weak_points,
+            advantage_summary, weak_summary, study_suggestion, duration_target,
+            question_target, knowledge_target, create_time, update_time
+        )
+        VALUES (
+            #{studentId}, #{weekStartDate}, #{weekEndDate}, #{status}, #{weakPoints},
+            #{advantageSummary}, #{weakSummary}, #{studySuggestion}, #{durationTarget},
+            #{questionTarget}, #{knowledgeTarget}, NOW(), NOW()
+        )
+    </insert>
+
+    <delete id="deleteGrowthPlanByWeek">
+        DELETE FROM edu_growth_week_plan
+        WHERE student_id = #{studentId}
+          AND week_start_date = #{weekStartDate}
+    </delete>
+
+    <delete id="deleteGrowthTasksByWeek">
+        DELETE t
+        FROM edu_growth_plan_task t
+        INNER JOIN edu_growth_week_plan p ON p.id = t.plan_id
+        WHERE p.student_id = #{studentId}
+          AND p.week_start_date = #{weekStartDate}
+    </delete>
+
+    <select id="selectGrowthPlanTasks" resultMap="GrowthPlanTaskMap">
+        SELECT id, plan_id, student_id, plan_date, task_type, jump_type, title,
+               knowledge_point_id, knowledge_name, target_id, duration_target,
+               question_target, completed, complete_time, create_time, update_time
+        FROM edu_growth_plan_task
+        WHERE plan_id = #{planId}
+        ORDER BY plan_date ASC, id ASC
+    </select>
+
+    <insert id="insertGrowthPlanTasks">
+        INSERT INTO edu_growth_plan_task (
+            plan_id, student_id, plan_date, task_type, jump_type, title,
+            knowledge_point_id, knowledge_name, target_id, duration_target,
+            question_target, completed, complete_time, create_time, update_time
+        )
+        VALUES
+        <foreach collection="tasks" item="item" separator=",">
+            (
+                #{item.planId}, #{item.studentId}, #{item.planDate}, #{item.taskType},
+                #{item.jumpType}, #{item.title}, #{item.knowledgePointId}, #{item.knowledgeName},
+                #{item.targetId}, #{item.durationTarget}, #{item.questionTarget},
+                #{item.completed}, #{item.completeTime}, NOW(), NOW()
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateGrowthTaskStatus">
+        UPDATE edu_growth_plan_task
+        SET completed = CASE WHEN #{completed} THEN 1 ELSE 0 END,
+            complete_time = CASE WHEN #{completed} THEN NOW() ELSE NULL END,
+            update_time = NOW()
+        WHERE id = #{taskId}
+          AND student_id = #{studentId}
+    </update>
+
+    <select id="selectQuestionTypeMastery" resultType="com.yub.edu.biz.dto.StudentGrowthPlanDTO$QuestionTypeMastery">
+        SELECT qkp.knowledge_point_id AS knowledgePointId,
+               q.question_type AS questionType,
+               COUNT(pr.id) AS practiceCount,
+               SUM(CASE WHEN pr.is_correct = 1 THEN 1 ELSE 0 END) AS correctCount,
+               ROUND(SUM(CASE WHEN pr.is_correct = 1 THEN 1 ELSE 0 END) * 100 / COUNT(pr.id)) AS mastery
+        FROM edu_practice_record pr
+        INNER JOIN edu_question q ON q.id = pr.question_id AND q.deleted = 0 AND q.status = 1
+        INNER JOIN edu_question_knowledge_point qkp ON qkp.question_id = pr.question_id
+        WHERE pr.user_id = #{studentId}
+          AND pr.deleted = 0
+          AND qkp.knowledge_point_id IN
+          <foreach collection="knowledgePointIds" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+        GROUP BY qkp.knowledge_point_id, q.question_type
+        ORDER BY qkp.knowledge_point_id ASC, q.question_type ASC
+    </select>
+</mapper>

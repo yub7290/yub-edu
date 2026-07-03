@@ -4,6 +4,7 @@ import com.yub.edu.biz.dto.AnswerSubmitReqDTO;
 import com.yub.edu.biz.dto.FavoriteToggleReqDTO;
 import com.yub.edu.biz.dto.NoteCreateReqDTO;
 import com.yub.edu.biz.vo.ChapterTreeNodeVO;
+import com.yub.edu.biz.vo.CoursePracticeOverviewRespVO;
 import com.yub.edu.biz.vo.FavoriteToggleRespVO;
 import com.yub.edu.biz.vo.NoteRespVO;
 import com.yub.edu.biz.vo.PracticeOverviewRespVO;
@@ -115,6 +116,22 @@ public interface PracticeService {
     void deleteNote(Long noteId);
 
     /**
+     * 更新笔记
+     *
+     * @param noteId      笔记ID
+     * @param noteContent 笔记内容
+     */
+    void updateNote(Long noteId, String noteContent);
+
+    /**
+     * 查询用户在某题目下的笔记
+     *
+     * @param questionId 题目ID
+     * @return 笔记列表
+     */
+    List<NoteRespVO> getNoteForQuestion(Long questionId);
+
+    /**
      * 获取高频错题
      *
      * @param courseId 课程ID
@@ -129,4 +146,11 @@ public interface PracticeService {
      * @return 练习会话进度
      */
     PracticeSessionRespVO continuePractice(Long courseId);
+
+    /**
+     * 获取当前用户所有课程的练习概览
+     *
+     * @return 课程练习概览列表
+     */
+    List<CoursePracticeOverviewRespVO> getAllCoursesPracticeOverview();
 }

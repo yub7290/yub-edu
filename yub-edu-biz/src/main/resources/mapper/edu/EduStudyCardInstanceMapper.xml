@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduStudyCardInstanceMapper">
+
+    <resultMap id="EduStudyCardInstanceMap" type="com.yub.edu.biz.entity.EduStudyCardInstance">
+        <id column="id" property="id"/>
+        <result column="card_id" property="cardId"/>
+        <result column="card_no" property="cardNo"/>
+        <result column="secret_code" property="secretCode"/>
+        <result column="status" property="status"/>
+        <result column="use_time" property="useTime"/>
+        <result column="user_id" property="userId"/>
+        <result column="user_account" property="userAccount"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <resultMap id="InstancePageVOMap" type="com.yub.edu.biz.vo.StudyCardInstancePageRespVO">
+        <id column="id" property="id"/>
+        <result column="card_no" property="cardNo"/>
+        <result column="status" property="status"/>
+        <result column="use_time" property="useTime"/>
+        <result column="user_account" property="userAccount"/>
+    </resultMap>
+
+    <select id="selectPage" resultMap="InstancePageVOMap">
+        SELECT sci.id,
+               CONCAT(sci.card_no, ' - ', sci.secret_code) AS card_no,
+               sci.status, sci.use_time, sci.user_account
+        FROM edu_study_card_instance sci
+        WHERE sci.card_id = #{cardId} AND sci.deleted = 0
+        <if test="query.status != null">
+            AND sci.status = #{query.status}
+        </if>
+        <if test="query.cardNo != null and query.cardNo != ''">
+            AND sci.card_no LIKE CONCAT('%', #{query.cardNo}, '%')
+        </if>
+        <if test="query.userAccount != null and query.userAccount != ''">
+            AND sci.user_account LIKE CONCAT('%', #{query.userAccount}, '%')
+        </if>
+        ORDER BY sci.id DESC
+    </select>
+
+    <select id="selectByCardNo" resultMap="EduStudyCardInstanceMap">
+        SELECT id, card_id, card_no, secret_code, status, use_time, user_id, user_account,
+               create_time, update_time, deleted
+        FROM edu_study_card_instance
+        WHERE card_no = #{cardNo} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByUserId" resultMap="EduStudyCardInstanceMap">
+        SELECT id, card_id, card_no, secret_code, status, use_time, user_id, user_account,
+               create_time, update_time, deleted
+        FROM edu_study_card_instance
+        WHERE user_id = #{userId} AND deleted = 0
+        ORDER BY use_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_study_card_instance (card_id, card_no, secret_code, status,
+                user_id, user_account, create_time, update_time)
+        VALUES (#{cardId}, #{cardNo}, #{secretCode}, #{status},
+                #{userId}, #{userAccount}, NOW(), NOW())
+    </insert>
+
+    <insert id="batchInsert">
+        INSERT INTO edu_study_card_instance (card_id, card_no, secret_code, status,
+                create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.cardId}, #{item.cardNo}, #{item.secretCode}, #{item.status},
+             NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE edu_study_card_instance SET status = #{status}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="useCard">
+        UPDATE edu_study_card_instance
+        SET status = 1, use_time = NOW(), user_id = #{userId}, user_account = #{userAccount}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="rollbackById">
+        UPDATE edu_study_card_instance SET status = 2, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="bindUser">
+        UPDATE edu_study_card_instance SET user_id = #{userId}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(1) FROM edu_study_card_instance
+        WHERE user_id = #{userId} AND deleted = 0
+    </select>
+
+    <select id="countUsedByUserId" resultType="long">
+        SELECT COUNT(1) FROM edu_study_card_instance
+        WHERE user_id = #{userId} AND status = 1 AND deleted = 0
+    </select>
+
+    <select id="countUsedByCardId" resultType="int">
+        SELECT COUNT(1) FROM edu_study_card_instance
+        WHERE card_id = #{cardId} AND status = 1 AND deleted = 0
+    </select>
+
+    <select id="countAvailableByCardId" resultType="int">
+        SELECT COUNT(1) FROM edu_study_card_instance
+        WHERE card_id = #{cardId} AND status = 0 AND deleted = 0
+    </select>
+
+    <select id="selectById" resultMap="EduStudyCardInstanceMap">
+        SELECT id, card_id, card_no, secret_code, status, use_time, user_id, user_account,
+               create_time, update_time, deleted
+        FROM edu_study_card_instance
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <update id="updateById">
+        UPDATE edu_study_card_instance
+        SET status = #{status}, use_time = #{useTime}, user_id = #{userId},
+            user_account = #{userAccount}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteByCardId">
+        UPDATE edu_study_card_instance SET deleted = 1 WHERE card_id = #{cardId}
+    </update>
+
+    <update id="bindUserByCardId">
+        UPDATE edu_study_card_instance
+        SET status = 1, user_id = #{userId}, use_time = NOW(), update_time = NOW()
+        WHERE id = (
+            SELECT id FROM (
+                SELECT id FROM edu_study_card_instance
+                WHERE card_id = #{cardId} AND status = 0 AND deleted = 0
+                ORDER BY create_time ASC LIMIT 1
+            ) tmp
+        )
+    </update>
+
+</mapper>

@@ -5,16 +5,21 @@ import com.yub.common.constant.RedisKeyConstants;
 import com.yub.common.enums.StatusEnum;
 import com.yub.common.util.IdUtils;
 import com.yub.edu.biz.dto.StudentLoginReqDTO;
+import com.yub.edu.biz.entity.EduLoginLog;
 import com.yub.edu.biz.entity.EduStudent;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
+import com.yub.edu.biz.mapper.EduLoginLogMapper;
+import com.yub.edu.biz.mapper.EduPointsRecordMapper;
 import com.yub.edu.biz.mapper.EduStudentMapper;
+import com.yub.edu.biz.service.PointsService;
 import com.yub.edu.biz.service.StudentAuthService;
 import com.yub.edu.biz.vo.CaptchaRespVO;
 import com.yub.edu.biz.vo.StudentInfoRespVO;
 import com.yub.edu.biz.vo.StudentLoginRespVO;
 import com.yub.framework.redis.RedisUtils;
 import com.yub.framework.security.JwtProvider;
+import com.yub.system.service.param.SysParamService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +46,10 @@ public class StudentAuthServiceImpl implements StudentAuthService {
     private final EduStudentMapper eduStudentMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final EduLoginLogMapper eduLoginLogMapper;
+    private final PointsService pointsService;
+    private final SysParamService sysParamService;
+    private final EduPointsRecordMapper eduPointsRecordMapper;
 
     private static final int CAPTCHA_EXPIRE_MINUTES = 5;
     private static final int CAPTCHA_WIDTH = 130;
@@ -102,6 +111,9 @@ public class StudentAuthServiceImpl implements StudentAuthService {
         // 7. 更新最后登录时间
         eduStudentMapper.updateLastLoginTime(student.getId());
 
+        // 8. 登录积分奖励（best-effort，失败不影响登录）
+        awardLoginPoints(student.getId());
+
         log.info("学员登录成功: account={}, ip={}", student.getAccount(), ip);
 
         return StudentLoginRespVO.builder()
@@ -158,11 +170,36 @@ public class StudentAuthServiceImpl implements StudentAuthService {
                 .id(student.getId())
                 .account(student.getAccount())
                 .name(student.getName())
+                .nickName(student.getNickName())
                 .avatarUrl(student.getAvatarUrl())
                 .studentNo(student.getStudentNo())
                 .gender(student.getGender())
                 .phone(student.getPhone())
                 .email(student.getEmail())
                 .build();
+    }
+
+    /**
+     * 登录积分奖励（best-effort，异常不影响登录流程）
+     *
+     * @param userId 用户ID
+     */
+    private void awardLoginPoints(Long userId) {
+        try {
+            String pointsStr = sysParamService.getValueByCode("points_login");
+            int points = pointsStr != null ? Integer.parseInt(pointsStr) : 0;
+            if (points <= 0) {
+                return;
+            }
+            String maxStr = sysParamService.getValueByCode("points_login_daily_max");
+            int dailyMax = maxStr != null ? Integer.parseInt(maxStr) : 1;
+            int todayCount = eduPointsRecordMapper.countTodayByUserIdAndBizType(userId, "login");
+            if (todayCount >= dailyMax) {
+                return;
+            }
+            pointsService.earnPoints(userId, points, 1, "登录奖励", null, "login");
+        } catch (Exception e) {
+            log.warn("登录积分发放失败, userId={}", userId, e);
+        }
     }
 }

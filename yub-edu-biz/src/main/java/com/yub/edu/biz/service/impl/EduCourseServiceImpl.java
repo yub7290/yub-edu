@@ -2,8 +2,11 @@ package com.yub.edu.biz.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.yub.common.model.PageParam;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
+import com.yub.edu.api.dto.app.MyCoursePageQueryDTO;
+import com.yub.edu.api.vo.app.MyCourseVO;
 import com.yub.edu.biz.dto.CourseCreateReqDTO;
 import com.yub.edu.biz.dto.CourseQueryDTO;
 import com.yub.edu.biz.dto.CourseUpdateReqDTO;
@@ -236,5 +239,17 @@ public class EduCourseServiceImpl implements EduCourseService {
     @Override
     public List<EduCourse> studentList(Long cateId, Integer tabType, String keyword) {
         return eduCourseMapper.selectStudentList(cateId, tabType, keyword);
+    }
+
+    @Override
+    public PageResult<MyCourseVO> myCourse(PageQuery<MyCoursePageQueryDTO> pageQuery) {
+        PageParam pageParam = pageQuery.getPageParam();
+        PageHelper.startPage(pageParam.getPageNum(), pageParam.getPageSize(), pageParam.getOrderBy());
+
+        MyCoursePageQueryDTO queryParam = pageQuery.getQueryParam();
+        queryParam.setStudentId(SecurityUtils.getCurrentUserId());
+        List<MyCourseVO> myCourseVOList = eduCourseMapper.myCourse(queryParam);
+
+        return PageResult.of(myCourseVOList, new PageInfo<>(myCourseVOList).getTotal());
     }
 }

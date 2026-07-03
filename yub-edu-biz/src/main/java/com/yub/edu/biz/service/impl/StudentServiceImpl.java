@@ -4,6 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
+import com.yub.edu.api.dto.app.ProfileInfoUpdateDTO;
 import com.yub.framework.security.SecurityUtils;
 import com.yub.framework.util.BeanUtils;
 import com.yub.edu.biz.dto.StudentCreateReqDTO;
@@ -16,6 +17,7 @@ import com.yub.edu.biz.mapper.EduStudentMapper;
 import com.yub.edu.biz.service.StudentService;
 import com.yub.edu.biz.vo.StudentDetailRespVO;
 import com.yub.edu.biz.vo.StudentPageRespVO;
+import com.yub.edu.api.vo.app.ProfileInfoRespVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -225,5 +227,71 @@ public class StudentServiceImpl implements StudentService {
         }
         eduStudentMapper.updatePassword(id, passwordEncoder.encode(DEFAULT_PASSWORD_SM3));
         log.info("学员 {} 密码已重置为默认密码，操作者={}", id, SecurityUtils.getCurrentUserId());
+    }
+
+    @Override
+    public ProfileInfoRespVO getProfileInfo(Long id) {
+        EduStudent student = eduStudentMapper.selectById(id);
+        if (student == null) {
+            throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
+        }
+
+        return ProfileInfoRespVO.builder()
+                .id(student.getId())
+                .nickname(student.getNickName())
+                .avatarUrl(student.getAvatarUrl())
+                .realName(student.getName())
+                .phone(student.getPhone())
+                .email(student.getEmail())
+                .gender(student.getGender())
+                .birthday(student.getBirthDate())
+                .schoolName(student.getSchool())
+                .build();
+    }
+
+    @Override
+    public void updateProfileInfo(Long id, ProfileInfoUpdateDTO req) {
+        EduStudent student = eduStudentMapper.selectById(id);
+        if (student == null) {
+            throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
+        }
+
+        // 只更新前端允许修改的字段
+        student.setAvatarUrl(req.getAvatarUrl());
+        student.setNickName(req.getNickname());
+        student.setPhone(req.getPhone());
+        student.setEmail(req.getEmail());
+        student.setGender(req.getGender());
+        if (req.getBirthday() != null) {
+            student.setBirthDate(req.getBirthday());
+        }
+        student.setSchool(req.getSchoolName());
+
+        eduStudentMapper.updateById(student);
+    }
+
+    @Override
+    public void changePassword(Long id, String oldPasswordSm3, String newPasswordSm3) {
+        EduStudent student = eduStudentMapper.selectById(id);
+        if (student == null) {
+            throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
+        }
+
+        // 校验原密码
+        if (!passwordEncoder.matches(oldPasswordSm3, student.getPassword())) {
+            throw new EduException(EduErrorCode.OLD_PASSWORD_ERROR);
+        }
+
+        // 校验新密码强度：大写字母、小写字母、数字、符号 至少满足三项
+        int strongCount = (newPasswordSm3.matches(".*[A-Z].*") ? 1 : 0)
+                        + (newPasswordSm3.matches(".*[a-z].*") ? 1 : 0)
+                        + (newPasswordSm3.matches(".*\\d.*") ? 1 : 0)
+                        + (newPasswordSm3.matches(".*[^A-Za-z0-9].*") ? 1 : 0);
+        if (strongCount < 3) {
+            throw new EduException(EduErrorCode.PASSWORD_STRENGTH_ERROR);
+        }
+
+        // 保存新密码
+        eduStudentMapper.updatePassword(id, passwordEncoder.encode(newPasswordSm3));
     }
 }

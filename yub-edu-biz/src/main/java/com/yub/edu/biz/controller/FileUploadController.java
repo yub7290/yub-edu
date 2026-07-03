@@ -71,7 +71,7 @@ public class FileUploadController {
         if (!DIR_PATTERN.matcher(directory).matches()) {
             return Response.error(400, "存储目录格式不合法");
         }
-        String url = fileUploadService.upload(file, directory);
+        String url = fileUploadService.uploadToQiniu(file, directory);
         return Response.success(url);
     }
 }

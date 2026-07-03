@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduLoginLogMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_login_log (student_id, ip, user_agent, status, error_msg, create_time)
+        VALUES (#{studentId}, #{ip}, #{userAgent}, #{status}, #{errorMsg}, NOW())
+    </insert>
+
+    <select id="selectByStudentId" resultType="com.yub.edu.biz.entity.EduLoginLog">
+        SELECT id, student_id, ip, user_agent, status, error_msg, create_time
+        FROM edu_login_log
+        WHERE student_id = #{studentId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

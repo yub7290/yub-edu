@@ -57,7 +57,7 @@ public class FileUploadServiceImpl implements FileUploadService {
     public String upload(MultipartFile file, String directory) {
         if (isQiniuConfigured()) {
             try {
-                return uploadToQiniu(file, directory);
+                return doUploadToQiniu(file, directory);
             } catch (Exception e) {
                 log.warn("七牛云上传失败，回退到本地存储: {}", e.getMessage());
                 return uploadToLocal(file, directory);
@@ -66,10 +66,23 @@ public class FileUploadServiceImpl implements FileUploadService {
         return uploadToLocal(file, directory);
     }
 
+    @Override
+    public String uploadToQiniu(MultipartFile file, String directory) {
+        if (!isQiniuConfigured()) {
+            throw new BaseException(ResponseCode.SERVICE_UNAVAILABLE);
+        }
+        try {
+            return doUploadToQiniu(file, directory);
+        } catch (Exception e) {
+            log.error("qiniu upload failed, directory={}", directory, e);
+            throw new BaseException(ResponseCode.SERVICE_UNAVAILABLE, e);
+        }
+    }
+
     /**
      * 上传到七牛云 — 直接使用配置的 domain 拼接 URL
      */
-    private String uploadToQiniu(MultipartFile file, String directory) throws IOException {
+    private String doUploadToQiniu(MultipartFile file, String directory) throws IOException {
         Configuration cfg = new Configuration(Region.autoRegion());
         UploadManager uploadManager = new UploadManager(cfg);
 
@@ -162,7 +175,9 @@ public class FileUploadServiceImpl implements FileUploadService {
                 && qiniuConfig.getSecretKey() != null
                 && !"your-secret-key".equals(qiniuConfig.getSecretKey())
                 && qiniuConfig.getBucket() != null
-                && !qiniuConfig.getBucket().isEmpty();
+                && !qiniuConfig.getBucket().isEmpty()
+                && qiniuConfig.getDomain() != null
+                && !qiniuConfig.getDomain().isEmpty();
     }
 
     @Override

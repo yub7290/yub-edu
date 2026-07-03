@@ -131,7 +131,7 @@ public class StudentHomeController {
      * 搜索课程
      */
     @GetMapping("/search")
-    public Response<HomeSearchRespVO> search(@RequestParam(required = false) String keyword) {
+    public Response<HomeSearchRespVO> search(@RequestParam(name = "keyword", required = false) String keyword) {
         return Response.success(HomeSearchRespVO.builder().list(new ArrayList<>()).build());
     }
 

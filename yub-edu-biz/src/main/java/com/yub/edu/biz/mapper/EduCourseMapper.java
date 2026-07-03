@@ -1,5 +1,7 @@
 package com.yub.edu.biz.mapper;
 
+import com.yub.edu.api.dto.app.MyCoursePageQueryDTO;
+import com.yub.edu.api.vo.app.MyCourseVO;
 import com.yub.edu.biz.dto.CourseQueryDTO;
 import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.vo.CoursePageRespVO;
@@ -122,4 +124,11 @@ public interface EduCourseMapper {
      * @return 影响行数
      */
     int deletePhysicallyById(@Param("id") Long id);
+
+    /**
+     * 我的课程
+     * @param queryParam 查询参数
+     * @return 查询结果
+     */
+    List<MyCourseVO> myCourse(@Param("queryParam") MyCoursePageQueryDTO queryParam);
 }

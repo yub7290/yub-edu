@@ -37,9 +37,9 @@ public class EduKnowledgeCategoryController {
     @Log(value = "新增知识点分类", type = "CREATE")
     @PostMapping
     public Response<Long> create(@RequestParam String name,
-                                 @RequestParam(required = false) String description,
-                                 @RequestParam(defaultValue = "0") Long parentId,
-                                 @RequestParam(defaultValue = "0") Integer sort) {
+                                 @RequestParam(name = "description", required = false) String description,
+                                 @RequestParam(name = "parentId", defaultValue = "0") Long parentId,
+                                 @RequestParam(name = "sort", defaultValue = "0") Integer sort) {
         return Response.success(service.create(name, description, parentId, sort));
     }
 
@@ -47,9 +47,9 @@ public class EduKnowledgeCategoryController {
     @PutMapping("/{id}")
     public Response<Void> update(@PathVariable Long id,
                                  @RequestParam String name,
-                                 @RequestParam(required = false) String description,
-                                 @RequestParam(defaultValue = "0") Long parentId,
-                                 @RequestParam(defaultValue = "0") Integer sort) {
+                                 @RequestParam(name = "description", required = false) String description,
+                                 @RequestParam(name = "parentId", defaultValue = "0") Long parentId,
+                                 @RequestParam(name = "sort", defaultValue = "0") Integer sort) {
         service.update(id, name, description, parentId, sort);
         return Response.success();
     }

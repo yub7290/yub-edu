@@ -49,10 +49,10 @@ public class StudentExamController {
      */
     @GetMapping("/exam/list")
     public Response<ExamListRespVO> list(
-            @RequestParam(required = false) Long courseId,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
+            @RequestParam(name = "courseId", required = false) Long courseId,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "1") Integer page,
+            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         return Response.success(studentExamService.list(courseId, keyword, page, pageSize));
     }
 

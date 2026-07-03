@@ -6,8 +6,10 @@ import com.yub.edu.biz.dto.AnswerSubmitReqDTO;
 import com.yub.edu.biz.dto.ContinuePracticeReqDTO;
 import com.yub.edu.biz.dto.FavoriteToggleReqDTO;
 import com.yub.edu.biz.dto.NoteCreateReqDTO;
+import com.yub.edu.biz.dto.NoteUpdateReqDTO;
 import com.yub.edu.biz.service.PracticeService;
 import com.yub.edu.biz.vo.ChapterTreeNodeVO;
+import com.yub.edu.biz.vo.CoursePracticeOverviewRespVO;
 import com.yub.edu.biz.vo.FavoriteToggleRespVO;
 import com.yub.edu.biz.vo.NoteRespVO;
 import com.yub.edu.biz.vo.PracticeOverviewRespVO;
@@ -38,7 +40,7 @@ public class PracticeController {
      * 练习概览
      */
     @GetMapping("/overview")
-    public Response<PracticeOverviewRespVO> overview(@RequestParam Long courseId) {
+    public Response<PracticeOverviewRespVO> overview(@RequestParam(name = "courseId") Long courseId) {
         return Response.success(practiceService.getPracticeOverview(courseId));
     }
 
@@ -46,7 +48,7 @@ public class PracticeController {
      * 章节树
      */
     @GetMapping("/chapter-tree")
-    public Response<List<ChapterTreeNodeVO>> chapterTree(@RequestParam Long courseId) {
+    public Response<List<ChapterTreeNodeVO>> chapterTree(@RequestParam(name = "courseId") Long courseId) {
         return Response.success(practiceService.getChapterTree(courseId));
     }
 
@@ -67,9 +69,9 @@ public class PracticeController {
      */
     @GetMapping("/questions")
     public Response<List<PracticeQuestionRespVO>> questions(
-            @RequestParam Long courseId,
-            @RequestParam(required = false) Long chapterId,
-            @RequestParam(defaultValue = "1") Integer practiceMode) {
+            @RequestParam(name = "courseId") Long courseId,
+            @RequestParam(name = "chapterId", required = false) Long chapterId,
+            @RequestParam(name = "practiceMode", defaultValue = "1") Integer practiceMode) {
         return Response.success(practiceService.getQuestions(courseId, chapterId, practiceMode));
     }
 
@@ -86,7 +88,7 @@ public class PracticeController {
      * 错题列表
      */
     @GetMapping("/wrong-questions")
-    public Response<List<PracticeQuestionSimpleVO>> wrongQuestions(@RequestParam Long courseId) {
+    public Response<List<PracticeQuestionSimpleVO>> wrongQuestions(@RequestParam(name = "courseId") Long courseId) {
         return Response.success(practiceService.getWrongQuestions(courseId));
     }
 
@@ -94,7 +96,7 @@ public class PracticeController {
      * 收藏列表
      */
     @GetMapping("/favorites")
-    public Response<List<PracticeQuestionSimpleVO>> favorites(@RequestParam Long courseId) {
+    public Response<List<PracticeQuestionSimpleVO>> favorites(@RequestParam(name = "courseId") Long courseId) {
         return Response.success(practiceService.getFavorites(courseId));
     }
 
@@ -110,7 +112,7 @@ public class PracticeController {
      * 笔记列表
      */
     @GetMapping("/notes")
-    public Response<List<NoteRespVO>> notes(@RequestParam Long courseId) {
+    public Response<List<NoteRespVO>> notes(@RequestParam(name = "courseId") Long courseId) {
         return Response.success(practiceService.getNotes(courseId));
     }
 
@@ -134,10 +136,36 @@ public class PracticeController {
     }
 
     /**
+     * 更新笔记
+     */
+    @Log(value = "更新笔记", type = "UPDATE")
+    @PutMapping("/notes/{noteId}")
+    public Response<Void> updateNote(@PathVariable Long noteId, @RequestBody NoteUpdateReqDTO dto) {
+        practiceService.updateNote(noteId, dto.getNoteContent());
+        return Response.success();
+    }
+
+    /**
+     * 查询用户在某题目下的笔记
+     */
+    @GetMapping("/notes/question/{questionId}")
+    public Response<List<NoteRespVO>> getNoteForQuestion(@PathVariable Long questionId) {
+        return Response.success(practiceService.getNoteForQuestion(questionId));
+    }
+
+    /**
      * 高频错题
      */
     @GetMapping("/high-freq-wrong")
-    public Response<List<PracticeQuestionSimpleVO>> highFreqWrong(@RequestParam Long courseId) {
+    public Response<List<PracticeQuestionSimpleVO>> highFreqWrong(@RequestParam(name = "courseId") Long courseId) {
         return Response.success(practiceService.getHighFreqWrong(courseId));
+    }
+
+    /**
+     * 获取当前用户所有课程的练习概览
+     */
+    @GetMapping("/all-courses-overview")
+    public Response<List<CoursePracticeOverviewRespVO>> allCoursesOverview() {
+        return Response.success(practiceService.getAllCoursesPracticeOverview());
     }
 }

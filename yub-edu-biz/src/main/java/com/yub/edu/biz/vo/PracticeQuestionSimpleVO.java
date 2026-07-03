@@ -33,6 +33,9 @@ public class PracticeQuestionSimpleVO {
     /** 难度 1-5 */
     private Integer difficulty;
 
+    /** 课程ID */
+    private Long courseId;
+
     /** 错题次数（仅错题列表用） */
     private Integer wrongCount;
 

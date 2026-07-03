@@ -68,10 +68,10 @@ public class StudentCourseController {
      */
     @GetMapping("/list")
     public Response<CourseListRespVO> list(
-            @RequestParam(defaultValue = "0") Long cateId,
-            @RequestParam(defaultValue = "0") Integer tabType,
-            @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
+            @RequestParam(name = "cateId", defaultValue = "0") Long cateId,
+            @RequestParam(name = "tabType", defaultValue = "0") Integer tabType,
+            @RequestParam(name = "page", defaultValue = "1") Integer page,
+            @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize) {
         PageHelper.startPage(page, pageSize);
         List<EduCourse> list = eduCourseService.studentList(cateId, tabType, null);
         PageInfo<EduCourse> pageInfo = new PageInfo<>(list);
@@ -92,9 +92,9 @@ public class StudentCourseController {
      */
     @GetMapping("/search")
     public Response<CourseListRespVO> search(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") Long cateId,
-            @RequestParam(defaultValue = "0") Integer tabType) {
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "cateId", defaultValue = "0") Long cateId,
+            @RequestParam(name = "tabType", defaultValue = "0") Integer tabType) {
         List<EduCourse> list = eduCourseService.studentList(cateId, tabType, keyword);
         List<CourseRecommendedRespVO> voList = list.stream().map(c ->
             CourseRecommendedRespVO.builder()

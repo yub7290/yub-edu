@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduChapterVideoMapper">
+
+    <resultMap id="EduChapterVideoMap" type="com.yub.edu.biz.entity.EduChapterVideo">
+        <id column="id" property="id"/>
+        <result column="chapter_id" property="chapterId"/>
+        <result column="video_name" property="videoName"/>
+        <result column="video_url" property="videoUrl"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, chapter_id, video_name, video_url, file_size, sort,
+        create_time, update_time, create_by, deleted
+    </sql>
+
+    <select id="selectByChapterId" resultMap="EduChapterVideoMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_chapter_video
+        WHERE chapter_id = #{chapterId} AND deleted = 0
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectByChapterIds" resultMap="EduChapterVideoMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_chapter_video
+        WHERE deleted = 0
+        AND chapter_id IN
+        <foreach collection="chapterIds" item="chapterId" open="(" separator="," close=")">
+            #{chapterId}
+        </foreach>
+        ORDER BY chapter_id ASC, sort ASC, id ASC
+    </select>
+
+    <insert id="batchInsert">
+        INSERT INTO edu_chapter_video (chapter_id, video_name, video_url, file_size, sort, create_time, update_time, create_by)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.chapterId}, #{item.videoName}, #{item.videoUrl}, #{item.fileSize}, #{item.sort}, NOW(), NOW(), #{item.createBy})
+        </foreach>
+    </insert>
+
+    <update id="deleteByChapterId">
+        UPDATE edu_chapter_video SET deleted = 1, update_time = NOW()
+        WHERE chapter_id = #{chapterId} AND deleted = 0
+    </update>
+</mapper>

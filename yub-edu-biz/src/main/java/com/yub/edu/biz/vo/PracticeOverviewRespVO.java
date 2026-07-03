@@ -27,6 +27,9 @@ public class PracticeOverviewRespVO {
     /** 已练习次数（含重做） */
     private Integer practicedCount;
 
+    /** 总答题次数（含重做，用于计算通过率） */
+    private Integer totalAttempts;
+
     /** 通过率（百分比） */
     private Integer passRate;
 

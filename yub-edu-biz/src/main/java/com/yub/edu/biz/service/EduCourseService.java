@@ -2,6 +2,8 @@ package com.yub.edu.biz.service;
 
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
+import com.yub.edu.api.dto.app.MyCoursePageQueryDTO;
+import com.yub.edu.api.vo.app.MyCourseVO;
 import com.yub.edu.biz.dto.CourseCreateReqDTO;
 import com.yub.edu.biz.dto.CourseQueryDTO;
 import com.yub.edu.biz.dto.CourseUpdateReqDTO;
@@ -100,4 +102,11 @@ public interface EduCourseService {
      * @return 课程列表
      */
     List<EduCourse> studentList(Long cateId, Integer tabType, String keyword);
+
+    /**
+     * 我的课程
+     * @param pageQuery 分页查询参数
+     * @return 分页结果
+     */
+    PageResult<MyCourseVO> myCourse(PageQuery<MyCoursePageQueryDTO> pageQuery);
 }

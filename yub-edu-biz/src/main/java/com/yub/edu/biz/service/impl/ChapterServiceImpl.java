@@ -4,10 +4,12 @@ import com.yub.edu.biz.dto.ChapterCreateReqDTO;
 import com.yub.edu.biz.dto.ChapterUpdateReqDTO;
 import com.yub.edu.biz.entity.EduChapter;
 import com.yub.edu.biz.entity.EduChapterKnowledgePoint;
+import com.yub.edu.biz.entity.EduChapterVideo;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduChapterMapper;
 import com.yub.edu.biz.mapper.EduChapterKnowledgePointMapper;
+import com.yub.edu.biz.mapper.EduChapterVideoMapper;
 import com.yub.edu.biz.service.ChapterService;
 import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class ChapterServiceImpl implements ChapterService {
 
     private final EduChapterMapper eduChapterMapper;
     private final EduChapterKnowledgePointMapper eduChapterKnowledgePointMapper;
+    private final EduChapterVideoMapper eduChapterVideoMapper;
 
     @Override
     public List<EduChapter> getTree(Long courseId) {
@@ -51,6 +54,7 @@ public class ChapterServiceImpl implements ChapterService {
         }
         // 加载关联知识点ID列表
         chapter.setKnowledgePointIds(eduChapterKnowledgePointMapper.selectKnowledgePointIdsByChapterId(id));
+        chapter.setVideoList(eduChapterVideoMapper.selectByChapterId(id));
         return chapter;
     }
 
@@ -78,6 +82,7 @@ public class ChapterServiceImpl implements ChapterService {
         if (dto.getKnowledgePointIds() != null && !dto.getKnowledgePointIds().isEmpty()) {
             saveChapterKnowledgePoints(chapter.getId(), dto.getKnowledgePointIds(), userId);
         }
+        saveChapterVideos(chapter.getId(), dto.getVideoList(), userId);
 
         return chapter.getId();
     }
@@ -109,6 +114,10 @@ public class ChapterServiceImpl implements ChapterService {
                 saveChapterKnowledgePoints(dto.getId(), dto.getKnowledgePointIds(), chapter.getUpdateBy());
             }
         }
+        if (dto.getVideoList() != null) {
+            eduChapterVideoMapper.deleteByChapterId(dto.getId());
+            saveChapterVideos(dto.getId(), dto.getVideoList(), chapter.getUpdateBy());
+        }
     }
 
     @Override
@@ -125,6 +134,7 @@ public class ChapterServiceImpl implements ChapterService {
         eduChapterMapper.deleteById(id);
         // 删除章节-知识点关联
         eduChapterKnowledgePointMapper.deleteByChapterId(id);
+        eduChapterVideoMapper.deleteByChapterId(id);
     }
 
     @Override
@@ -156,6 +166,35 @@ public class ChapterServiceImpl implements ChapterService {
             list.add(item);
         }
         eduChapterKnowledgePointMapper.batchInsert(list);
+    }
+
+    /**
+     * 批量保存章节视频
+     */
+    private void saveChapterVideos(Long chapterId, List<EduChapterVideo> videoList, Long userId) {
+        if (videoList == null || videoList.isEmpty()) {
+            return;
+        }
+        List<EduChapterVideo> list = new ArrayList<>();
+        for (int i = 0; i < videoList.size(); i++) {
+            EduChapterVideo source = videoList.get(i);
+            if (source == null || source.getVideoUrl() == null || source.getVideoUrl().isBlank()) {
+                continue;
+            }
+            EduChapterVideo item = new EduChapterVideo();
+            item.setChapterId(chapterId);
+            item.setVideoName(source.getVideoName() != null && !source.getVideoName().isBlank()
+                    ? source.getVideoName()
+                    : "视频" + (i + 1));
+            item.setVideoUrl(source.getVideoUrl());
+            item.setFileSize(source.getFileSize());
+            item.setSort(i);
+            item.setCreateBy(userId);
+            list.add(item);
+        }
+        if (!list.isEmpty()) {
+            eduChapterVideoMapper.batchInsert(list);
+        }
     }
 
     private List<EduChapter> buildChapterTree(List<EduChapter> chapters) {
