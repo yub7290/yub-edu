@@ -1,6 +1,7 @@
 package com.yub.edu.biz.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.yub.edu.biz.entity.EduChapterAttachment;
 import com.yub.edu.biz.entity.EduChapterVideo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -61,4 +62,7 @@ public class ChapterCreateReqDTO {
 
     /** 章节视频列表 */
     private List<EduChapterVideo> videoList;
+
+    /** 章节附件列表 */
+    private List<EduChapterAttachment> attachmentList;
 }

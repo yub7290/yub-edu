@@ -12,11 +12,11 @@ import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduAiConfigMapper;
 import com.yub.edu.biz.mapper.EduAiConversationMapper;
 import com.yub.edu.biz.mapper.EduAiMessageMapper;
-import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.mapper.EduChapterMapper;
 import com.yub.edu.biz.mapper.EduCourseMapper;
 import com.yub.edu.biz.mapper.EduTeacherMapper;
 import com.yub.edu.biz.service.AiChatService;
+import com.yub.edu.biz.service.AiService;
 import com.yub.edu.biz.vo.AiChatRespVO;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -25,19 +25,19 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -62,14 +62,9 @@ public class AiChatServiceImpl implements AiChatService {
     private final EduCourseMapper courseMapper;
     private final EduChapterMapper chapterMapper;
     private final EduTeacherMapper teacherMapper;
-    private final ChatLanguageModel chatModel;
-    private final RestTemplate restTemplate;
-
-    @Value("${ai.api-key}")
-    private String defaultApiKey;
-
-    @Value("${ai.base-url}")
-    private String defaultBaseUrl;
+    private final ChatModel chatModel;
+    // TODO: 架构治理 - Service间耦合: AiChatService 依赖 AiService，应通过 Manager 层解耦
+    private final AiService aiService;
 
     @Value("${ai.model}")
     private String defaultModel;
@@ -171,73 +166,8 @@ public class AiChatServiceImpl implements AiChatService {
         try {
             log.info("调用AI模型 [{}]，消息数量: {}", aiConfig.getModel(), contextMessages.size());
 
-            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(defaultApiKey);
-
-            java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
-            requestBody.put("model", aiConfig.getModel() != null ? aiConfig.getModel() : defaultModel);
-            requestBody.put("messages", contextMessages.stream().map(msg -> {
-                java.util.Map<String, Object> m = new java.util.HashMap<>();
-                m.put("role", msg.type().name().toLowerCase());
-                if (msg instanceof UserMessage) {
-                    UserMessage userMsg = (UserMessage) msg;
-                    boolean hasImage = userMsg.contents().stream()
-                            .anyMatch(c -> c instanceof ImageContent);
-
-                    if (hasImage) {
-                        java.util.List<java.util.Map<String, Object>> contentArray = new java.util.ArrayList<>();
-                        String textContent = userMsg.contents().stream()
-                                .filter(c -> c instanceof TextContent)
-                                .map(c -> ((TextContent) c).text())
-                                .collect(java.util.stream.Collectors.joining(" "));
-                        if (!textContent.isEmpty()) {
-                            java.util.Map<String, Object> textPart = new java.util.HashMap<>();
-                            textPart.put("type", "text");
-                            textPart.put("text", textContent);
-                            contentArray.add(textPart);
-                        }
-                        userMsg.contents().stream()
-                                .filter(c -> c instanceof ImageContent)
-                                .forEach(c -> {
-                                    ImageContent imgContent = (ImageContent) c;
-                                    java.util.Map<String, Object> imgPart = new java.util.HashMap<>();
-                                    imgPart.put("type", "image_url");
-                                    java.util.Map<String, String> imgUrl = new java.util.HashMap<>();
-                                    imgUrl.put("url", imgContent.image().url().toString());
-                                    imgPart.put("image_url", imgUrl);
-                                    contentArray.add(imgPart);
-                                });
-                        m.put("content", contentArray);
-                    } else {
-                        String textContent = userMsg.contents().stream()
-                                .filter(c -> c instanceof TextContent)
-                                .map(c -> ((TextContent) c).text())
-                                .collect(java.util.stream.Collectors.joining(" "));
-                        m.put("content", textContent.isEmpty() ? "" : textContent);
-                    }
-                } else if (msg instanceof AiMessage) {
-                    m.put("content", ((AiMessage) msg).text());
-                } else if (msg instanceof SystemMessage) {
-                    m.put("content", ((SystemMessage) msg).text());
-                }
-                return m;
-            }).collect(java.util.stream.Collectors.toList()));
-            requestBody.put("max_tokens", aiConfig.getMaxTokens() != null ? aiConfig.getMaxTokens() : 2000);
-
-            org.springframework.http.HttpEntity<java.util.Map<String, Object>> entity =
-                    new org.springframework.http.HttpEntity<>(requestBody, headers);
-
-            org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(
-                    defaultBaseUrl + "/chat/completions",
-                    entity,
-                    String.class);
-
-            log.info("AI API 响应: {}", response.getBody());
-
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.getBody());
-            aiReply = root.path("choices").path(0).path("message").path("content").asText();
+            List<ChatMessage> finalContextMessages = contextMessages;
+            aiReply = aiService.completeSync(finalContextMessages);
 
             log.info("AI回复内容: {}", aiReply);
         } catch (Exception e) {
@@ -370,98 +300,10 @@ public class AiChatServiceImpl implements AiChatService {
 
                 log.info("开始流式调用AI [{}]，消息数量: {}", modelName, finalContextMessages.size());
 
-                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-                headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-                headers.setBearerAuth(defaultApiKey);
+                String fullResponseStr = aiService.completeStream(finalContextMessages, emitter);
+                fullResponse.append(fullResponseStr);
 
-                java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
-                requestBody.put("model", modelName);
-                requestBody.put("stream", true);
-                requestBody.put("messages", finalContextMessages.stream().map(msg -> {
-                    java.util.Map<String, Object> m = new java.util.HashMap<>();
-                    m.put("role", msg.type().name().toLowerCase());
-                    if (msg instanceof UserMessage) {
-                        UserMessage userMsg = (UserMessage) msg;
-                        boolean hasImage = userMsg.contents().stream()
-                                .anyMatch(c -> c instanceof ImageContent);
-
-                        if (hasImage) {
-                            java.util.List<java.util.Map<String, Object>> contentArray = new java.util.ArrayList<>();
-                            String textContent = userMsg.contents().stream()
-                                    .filter(c -> c instanceof TextContent)
-                                    .map(c -> ((TextContent) c).text())
-                                    .collect(java.util.stream.Collectors.joining(" "));
-                            if (!textContent.isEmpty()) {
-                                java.util.Map<String, Object> textPart = new java.util.HashMap<>();
-                                textPart.put("type", "text");
-                                textPart.put("text", textContent);
-                                contentArray.add(textPart);
-                            }
-                            userMsg.contents().stream()
-                                    .filter(c -> c instanceof ImageContent)
-                                    .forEach(c -> {
-                                        ImageContent imgContent = (ImageContent) c;
-                                        java.util.Map<String, Object> imgPart = new java.util.HashMap<>();
-                                        imgPart.put("type", "image_url");
-                                        java.util.Map<String, String> imgUrl = new java.util.HashMap<>();
-                                        imgUrl.put("url", imgContent.image().url().toString());
-                                        imgPart.put("image_url", imgUrl);
-                                        contentArray.add(imgPart);
-                                    });
-                            m.put("content", contentArray);
-                        } else {
-                            String textContent = userMsg.contents().stream()
-                                    .filter(c -> c instanceof TextContent)
-                                    .map(c -> ((TextContent) c).text())
-                                    .collect(java.util.stream.Collectors.joining(" "));
-                            m.put("content", textContent.isEmpty() ? "" : textContent);
-                        }
-                    } else if (msg instanceof AiMessage) {
-                        m.put("content", ((AiMessage) msg).text());
-                    } else if (msg instanceof SystemMessage) {
-                        m.put("content", ((SystemMessage) msg).text());
-                    }
-                    return m;
-                }).collect(java.util.stream.Collectors.toList()));
-                requestBody.put("max_tokens", maxTokens);
-
-                org.springframework.http.HttpEntity<java.util.Map<String, Object>> entity =
-                        new org.springframework.http.HttpEntity<>(requestBody, headers);
-
-                org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> response =
-                        restTemplate.exchange(
-                                defaultBaseUrl + "/chat/completions",
-                                org.springframework.http.HttpMethod.POST,
-                                entity,
-                                org.springframework.core.io.Resource.class);
-
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(response.getBody().getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (line.startsWith("data: ")) {
-                            String data = line.substring(6).trim();
-                            if ("[DONE]".equals(data)) {
-                                break;
-                            }
-                            try {
-                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(data);
-                                String content = root.path("choices").path(0).path("delta").path("content").asText("");
-                                if (!content.isEmpty()) {
-                                    fullResponse.append(content);
-                                    emitter.send(SseEmitter.event()
-                                            .name("token")
-                                            .data(content));
-                                }
-                            } catch (Exception e) {
-                                log.warn("解析SSE数据失败: {}", data, e);
-                            }
-                        }
-                    }
-                }
-
-                log.info("AI流式调用完成，回复长度: {}", fullResponse.length());
+                log.info("AI流式调用完成，回复长度: {}", fullResponse.length());                log.info("AI流式调用完成，回复长度: {}", fullResponse.length());
 
                 emitter.send(SseEmitter.event()
                         .name("done")

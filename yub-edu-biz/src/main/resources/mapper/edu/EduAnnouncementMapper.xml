@@ -37,6 +37,9 @@
         <if test="status != null">
             AND status = #{status}
         </if>
+        <if test="teacherId != null">
+            AND course_id IN (SELECT id FROM edu_course WHERE teacher_id = #{teacherId} AND deleted = 0)
+        </if>
         ORDER BY id DESC
     </select>
 
@@ -52,6 +55,9 @@
         </if>
         <if test="status != null">
             AND status = #{status}
+        </if>
+        <if test="teacherId != null">
+            AND course_id IN (SELECT id FROM edu_course WHERE teacher_id = #{teacherId} AND deleted = 0)
         </if>
     </select>
 

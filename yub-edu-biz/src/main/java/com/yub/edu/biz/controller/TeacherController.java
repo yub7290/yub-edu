@@ -129,7 +129,7 @@ public class TeacherController {
      */
     @Log(value = "切换教师状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         teacherService.changeStatus(id, dto.getStatus());
         return Response.success();
     }

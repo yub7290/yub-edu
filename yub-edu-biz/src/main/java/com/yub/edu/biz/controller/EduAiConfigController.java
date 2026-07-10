@@ -3,7 +3,7 @@ package com.yub.edu.biz.controller;
 import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduAiConfig;
-import com.yub.edu.biz.mapper.EduAiConfigMapper;
+import com.yub.edu.biz.service.EduAiConfigService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -25,7 +25,7 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class EduAiConfigController {
 
-    private final EduAiConfigMapper aiConfigMapper;
+    private final EduAiConfigService aiConfigService;
 
     /**
      * 获取课程AI助教配置
@@ -34,8 +34,8 @@ public class EduAiConfigController {
      * @return AI助教配置
      */
     @GetMapping("/{courseId}")
-    public Response<EduAiConfig> getConfig(@PathVariable Long courseId) {
-        EduAiConfig config = aiConfigMapper.selectByCourseId(courseId);
+    public Response<EduAiConfig> getConfig(@PathVariable("courseId") Long courseId) {
+        EduAiConfig config = aiConfigService.selectByCourseId(courseId);
         if (config == null) {
             // 返回默认配置
             config = new EduAiConfig();
@@ -59,7 +59,7 @@ public class EduAiConfigController {
     @Log(value = "配置AI助教", type = "UPDATE")
     @PostMapping
     public Response<Void> saveConfig(@Valid @RequestBody AiConfigSaveDTO dto) {
-        EduAiConfig existing = aiConfigMapper.selectByCourseId(dto.getCourseId());
+        EduAiConfig existing = aiConfigService.selectByCourseId(dto.getCourseId());
         if (existing != null) {
             existing.setEnabled(dto.getEnabled());
             existing.setSystemPrompt(dto.getSystemPrompt());
@@ -67,7 +67,7 @@ public class EduAiConfigController {
             existing.setDailyLimit(dto.getDailyLimit());
             existing.setTemperature(dto.getTemperature());
             existing.setMaxTokens(dto.getMaxTokens());
-            aiConfigMapper.update(existing);
+            aiConfigService.update(existing);
         } else {
             EduAiConfig config = new EduAiConfig();
             config.setCourseId(dto.getCourseId());
@@ -77,7 +77,7 @@ public class EduAiConfigController {
             config.setDailyLimit(dto.getDailyLimit());
             config.setTemperature(dto.getTemperature());
             config.setMaxTokens(dto.getMaxTokens());
-            aiConfigMapper.insert(config);
+            aiConfigService.insert(config);
         }
         return Response.success();
     }

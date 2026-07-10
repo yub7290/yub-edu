@@ -5,7 +5,7 @@ import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.PricePlanCreateReqDTO;
 import com.yub.edu.biz.dto.PricePlanUpdateReqDTO;
 import com.yub.edu.biz.entity.EduCoursePricePlan;
-import com.yub.edu.biz.mapper.EduCoursePricePlanMapper;
+import com.yub.edu.biz.service.EduCoursePricePlanService;
 import com.yub.framework.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EduCoursePricePlanController {
 
-    private final EduCoursePricePlanMapper pricePlanMapper;
+    private final EduCoursePricePlanService pricePlanService;
 
     /**
      * 查询课程的价格方案列表
@@ -36,8 +36,8 @@ public class EduCoursePricePlanController {
      * @return 价格方案列表
      */
     @GetMapping("/list/{courseId}")
-    public Response<List<EduCoursePricePlan>> list(@PathVariable Long courseId) {
-        return Response.success(pricePlanMapper.selectByCourseId(courseId));
+    public Response<List<EduCoursePricePlan>> list(@PathVariable("courseId") Long courseId) {
+        return Response.success(pricePlanService.selectByCourseId(courseId));
     }
 
     /**
@@ -55,7 +55,7 @@ public class EduCoursePricePlanController {
         plan.setCreateBy(userId);
         plan.setUpdateBy(userId);
         if (plan.getSort() == null) plan.setSort(0);
-        pricePlanMapper.insert(plan);
+        pricePlanService.insert(plan);
         return Response.success(plan.getId());
     }
 
@@ -68,14 +68,14 @@ public class EduCoursePricePlanController {
     @Log(value = "编辑价格方案", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@Valid @RequestBody PricePlanUpdateReqDTO dto) {
-        EduCoursePricePlan exist = pricePlanMapper.selectById(dto.getId());
+        EduCoursePricePlan exist = pricePlanService.selectById(dto.getId());
         if (exist == null) {
             return Response.error(404, "价格方案不存在");
         }
         EduCoursePricePlan plan = new EduCoursePricePlan();
         BeanUtils.copyProperties(dto, plan);
         plan.setUpdateBy(SecurityUtils.getCurrentUserId());
-        pricePlanMapper.updateById(plan);
+        pricePlanService.updateById(plan);
         return Response.success();
     }
 
@@ -87,8 +87,8 @@ public class EduCoursePricePlanController {
      */
     @Log(value = "删除价格方案", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
-        pricePlanMapper.deleteById(id);
+    public Response<Void> delete(@PathVariable("id") Long id) {
+        pricePlanService.deleteById(id);
         return Response.success();
     }
 }

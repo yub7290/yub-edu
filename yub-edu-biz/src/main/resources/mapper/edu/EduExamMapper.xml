@@ -116,12 +116,16 @@
         <if test="query.status != null">
             AND e.status = #{query.status}
         </if>
+        <if test="query.teacherId != null">
+            AND c.teacher_id = #{query.teacherId}
+        </if>
         ORDER BY e.id DESC
     </select>
 
     <select id="selectPageCount" resultType="long">
         SELECT COUNT(*)
         FROM edu_exam e
+        LEFT JOIN edu_course c ON e.course_id = c.id AND c.deleted = 0
         WHERE e.deleted = 0
         <if test="query.title != null and query.title != ''">
             AND e.title LIKE CONCAT('%', #{query.title}, '%')
@@ -131,6 +135,9 @@
         </if>
         <if test="query.status != null">
             AND e.status = #{query.status}
+        </if>
+        <if test="query.teacherId != null">
+            AND c.teacher_id = #{query.teacherId}
         </if>
     </select>
 

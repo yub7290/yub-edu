@@ -63,7 +63,7 @@ public class StudentExamController {
      * @return 考试详情
      */
     @GetMapping("/exam/info/{id}")
-    public Response<ExamInfoRespVO> info(@PathVariable Long id) {
+    public Response<ExamInfoRespVO> info(@PathVariable("id") Long id) {
         return Response.success(studentExamService.info(id));
     }
 
@@ -100,7 +100,7 @@ public class StudentExamController {
     @Deprecated
     @Log(value = "清空考试历史成绩", type = "DELETE")
     @DeleteMapping("/exam/history/{examId}")
-    public Response<Void> clearHistory(@PathVariable Long examId) {
+    public Response<Void> clearHistory(@PathVariable("examId") Long examId) {
         studentExamService.clearHistory(examId);
         return Response.success();
     }
@@ -112,7 +112,7 @@ public class StudentExamController {
      * @return 结课考试信息
      */
     @GetMapping("/course/{courseId}/final-exam")
-    public Response<CourseFinalExamRespVO> getCourseFinalExam(@PathVariable Long courseId) {
+    public Response<CourseFinalExamRespVO> getCourseFinalExam(@PathVariable("courseId") Long courseId) {
         return Response.success(studentExamService.getCourseFinalExam(courseId));
     }
 
@@ -124,7 +124,7 @@ public class StudentExamController {
      */
     @Log(value = "开始考试", type = "CREATE")
     @PostMapping("/exam/{examId}/start")
-    public Response<ExamStartRespVO> startExam(@PathVariable Long examId) {
+    public Response<ExamStartRespVO> startExam(@PathVariable("examId") Long examId) {
         return Response.success(studentExamService.startExam(examId));
     }
 
@@ -136,7 +136,7 @@ public class StudentExamController {
      */
     @Log(value = "考试心跳更新", type = "UPDATE")
     @PutMapping("/exam/record/{recordId}/heartbeat")
-    public Response<Void> heartbeat(@PathVariable Long recordId) {
+    public Response<Void> heartbeat(@PathVariable("recordId") Long recordId) {
         studentExamService.heartbeat(recordId);
         return Response.success();
     }
@@ -148,7 +148,7 @@ public class StudentExamController {
      * @return 考试结果
      */
     @GetMapping("/exam/record/{recordId}/result")
-    public Response<ExamResultRespVO> getExamResult(@PathVariable Long recordId) {
+    public Response<ExamResultRespVO> getExamResult(@PathVariable("recordId") Long recordId) {
         return Response.success(studentExamService.getExamResult(recordId));
     }
 }

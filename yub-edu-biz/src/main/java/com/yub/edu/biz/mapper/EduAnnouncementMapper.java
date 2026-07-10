@@ -27,7 +27,8 @@ public interface EduAnnouncementMapper {
      */
     List<EduAnnouncement> selectPage(@Param("courseId") Long courseId,
                                      @Param("title") String title,
-                                     @Param("status") Integer status);
+                                     @Param("status") Integer status,
+                                     @Param("teacherId") Long teacherId);
 
     /**
      * 查询公告总数（分页）
@@ -35,11 +36,13 @@ public interface EduAnnouncementMapper {
      * @param courseId 课程ID
      * @param title    公告标题（模糊搜索）
      * @param status   状态
+     * @param teacherId 教师ID（教师端过滤）
      * @return 总数
      */
     int selectPageCount(@Param("courseId") Long courseId,
                         @Param("title") String title,
-                        @Param("status") Integer status);
+                        @Param("status") Integer status,
+                        @Param("teacherId") Long teacherId);
 
     /**
      * 查询某课程已启用的公告列表（按时间倒序）

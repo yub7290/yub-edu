@@ -28,4 +28,7 @@ public class QiniuConfig {
 
     /** CDN 域名 */
     private String domain;
+
+    /** 存储区域：z0=华东 z1=华北 z2=华南 na0=北美 as0=东南亚 */
+    private String region = "z2";
 }

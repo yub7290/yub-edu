@@ -94,6 +94,14 @@ public interface EduCourseService {
     List<EduCourse> listRecommended();
 
     /**
+     * 根据ID查询课程
+     *
+     * @param id 课程ID
+     * @return 课程
+     */
+    EduCourse selectById(Long id);
+
+    /**
      * 学生端查询课程列表
      *
      * @param cateId  分类ID（可为null）

@@ -47,7 +47,8 @@ public class EduAnnouncementServiceImpl implements EduAnnouncementService {
         List<EduAnnouncement> list = mapper.selectPage(
                 queryParam.getCourseId(),
                 queryParam.getTitle(),
-                queryParam.getStatus()
+                queryParam.getStatus(),
+                queryParam.getTeacherId()
         );
         PageInfo<EduAnnouncement> pageInfo = new PageInfo<>(list);
 

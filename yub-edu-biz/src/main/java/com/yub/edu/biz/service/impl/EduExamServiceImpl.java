@@ -274,4 +274,9 @@ public class EduExamServiceImpl implements EduExamService {
         }
         eduExamMapper.updateStatus(id, status);
     }
+
+    @Override
+    public EduExam selectById(Long id) {
+        return eduExamMapper.selectById(id);
+    }
 }

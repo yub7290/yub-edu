@@ -8,9 +8,9 @@ import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduPointsProduct;
 import com.yub.edu.biz.entity.EduStudyCard;
-import com.yub.edu.biz.mapper.EduPointsProductMapper;
-import com.yub.edu.biz.mapper.EduStudyCardInstanceMapper;
-import com.yub.edu.biz.mapper.EduStudyCardMapper;
+import com.yub.edu.biz.service.EduPointsProductService;
+import com.yub.edu.biz.service.EduStudyCardInstanceService;
+import com.yub.edu.biz.service.EduStudyCardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,9 +37,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EduPointsProductController {
 
-    private final EduPointsProductMapper eduPointsProductMapper;
-    private final EduStudyCardMapper eduStudyCardMapper;
-    private final EduStudyCardInstanceMapper eduStudyCardInstanceMapper;
+    private final EduPointsProductService eduPointsProductService;
+    private final EduStudyCardService eduStudyCardService;
+    private final EduStudyCardInstanceService eduStudyCardInstanceService;
 
     /**
      * 分页查询积分商品
@@ -53,7 +53,7 @@ public class EduPointsProductController {
         String name = param != null ? (String) param.get("name") : null;
         Integer status = param != null ? (Integer) param.get("status") : null;
         PageHelper.startPage(query.getPageParam().getPageNum(), query.getPageParam().getPageSize());
-        List<EduPointsProduct> list = eduPointsProductMapper.selectPage(name, status);
+        List<EduPointsProduct> list = eduPointsProductService.selectPage(name, status);
         PageInfo<EduPointsProduct> pageInfo = new PageInfo<>(list);
         fillStudyCardStock(list);
         return Response.success(PageResult.of(list, pageInfo.getTotal()));
@@ -67,11 +67,11 @@ public class EduPointsProductController {
      */
     @GetMapping("/{id}")
     public Response<EduPointsProduct> getDetail(@PathVariable("id") Long id) {
-        EduPointsProduct product = eduPointsProductMapper.selectById(id);
+        EduPointsProduct product = eduPointsProductService.selectById(id);
         if (product != null && Integer.valueOf(2).equals(product.getProductType())
                 && product.getStudyCardId() != null) {
             product.setStockCount(
-                    eduStudyCardInstanceMapper.countAvailableByCardId(product.getStudyCardId()));
+                    eduStudyCardInstanceService.countAvailableByCardId(product.getStudyCardId()));
         }
         return Response.success(product);
     }
@@ -88,7 +88,7 @@ public class EduPointsProductController {
         if (product.getStatus() == null) {
             product.setStatus(1);
         }
-        eduPointsProductMapper.insert(product);
+        eduPointsProductService.insert(product);
         return Response.success();
     }
 
@@ -101,7 +101,7 @@ public class EduPointsProductController {
     @Log(value = "编辑积分商品", type = "UPDATE")
     @PutMapping
     public Response<Void> update(@RequestBody EduPointsProduct product) {
-        eduPointsProductMapper.updateById(product);
+        eduPointsProductService.updateById(product);
         return Response.success();
     }
 
@@ -114,7 +114,7 @@ public class EduPointsProductController {
     @Log(value = "删除积分商品", type = "DELETE")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable("id") Long id) {
-        eduPointsProductMapper.deleteById(id);
+        eduPointsProductService.deleteById(id);
         return Response.success();
     }
 
@@ -128,7 +128,7 @@ public class EduPointsProductController {
     @Log(value = "切换商品状态", type = "UPDATE")
     @PutMapping("/{id}/status")
     public Response<Void> changeStatus(@PathVariable("id") Long id, @RequestBody Map<String, Integer> body) {
-        eduPointsProductMapper.updateStatus(id, body.get("status"));
+        eduPointsProductService.updateStatus(id, body.get("status"));
         return Response.success();
     }
 
@@ -139,7 +139,7 @@ public class EduPointsProductController {
      */
     @GetMapping("/study-cards")
     public Response<List<EduStudyCard>> getStudyCardOptions() {
-        return Response.success(eduStudyCardMapper.selectSimpleList());
+        return Response.success(eduStudyCardService.selectSimpleList());
     }
 
     /**
@@ -151,7 +151,7 @@ public class EduPointsProductController {
         for (EduPointsProduct product : list) {
             if (Integer.valueOf(2).equals(product.getProductType()) && product.getStudyCardId() != null) {
                 try {
-                    int available = eduStudyCardInstanceMapper.countAvailableByCardId(product.getStudyCardId());
+                    int available = eduStudyCardInstanceService.countAvailableByCardId(product.getStudyCardId());
                     product.setStockCount(available);
                 } catch (Exception e) {
                     // 查询失败时保持原值

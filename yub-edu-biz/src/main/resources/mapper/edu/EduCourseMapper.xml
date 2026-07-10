@@ -21,6 +21,7 @@
         <result column="free_end_time" property="freeEndTime"/>
         <result column="allow_trial" property="allowTrial"/>
         <result column="teacher" property="teacher"/>
+        <result column="teacher_id" property="teacherId"/>
         <result column="student_count" property="studentCount"/>
         <result column="view_count" property="viewCount"/>
         <result column="chapter_count" property="chapterCount"/>
@@ -45,6 +46,7 @@
         <result column="course_type" property="courseType"/>
         <result column="major_name" property="majorName"/>
         <result column="teacher" property="teacher"/>
+        <result column="teacher_id" property="teacherId"/>
         <result column="chapter_count" property="chapterCount"/>
         <result column="question_count" property="questionCount"/>
         <result column="exam_count" property="examCount"/>
@@ -58,13 +60,13 @@
         id, name, image_url, major_id, course_type, status, recommended, sort,
         learning_objectives, introduction, months_required, total_price,
         is_free, is_free_limited, free_start_time, free_end_time, allow_trial,
-        teacher, student_count, view_count, chapter_count, question_count,
+        teacher, teacher_id, student_count, view_count, chapter_count, question_count,
         exam_count, video_count, create_time, update_time, create_by, update_by, deleted
     </sql>
 
     <select id="selectPage" resultMap="CoursePageVOMap">
         SELECT c.id, c.name, c.image_url, c.total_price, c.is_free, c.status, c.recommended,
-               c.course_type, c.teacher, c.chapter_count, c.question_count, c.exam_count,
+               c.course_type, c.teacher, c.teacher_id, c.chapter_count, c.question_count, c.exam_count,
                c.video_count, c.student_count, c.view_count, c.create_time,
                m.name AS major_name
         FROM edu_course c
@@ -73,11 +75,17 @@
         <if test="query.name != null and query.name != ''">
             AND c.name LIKE CONCAT('%', #{query.name}, '%')
         </if>
-        <if test="query.majorId != null">
-            AND c.major_id = #{query.majorId}
+        <if test="query.majorId != null and query.majorId != ''">
+            AND c.major_id IN
+            <foreach collection="query.majorId.split(',')" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
         </if>
         <if test="query.status != null">
             AND c.status = #{query.status}
+        </if>
+        <if test="query.teacherId != null">
+            AND c.teacher_id = #{query.teacherId}
         </if>
         ORDER BY c.sort ASC, c.id DESC
     </select>
@@ -99,11 +107,11 @@
         INSERT INTO edu_course (name, image_url, major_id, course_type, status, recommended, sort,
                                 learning_objectives, introduction, months_required, total_price,
                                 is_free, is_free_limited, free_start_time, free_end_time, allow_trial,
-                                teacher, create_time, update_time, create_by, update_by)
+                                teacher, teacher_id, create_time, update_time, create_by, update_by)
         VALUES (#{name}, #{imageUrl}, #{majorId}, #{courseType}, #{status}, #{recommended}, #{sort},
                 #{learningObjectives}, #{introduction}, #{monthsRequired}, #{totalPrice},
                 #{isFree}, #{isFreeLimited}, #{freeStartTime}, #{freeEndTime}, #{allowTrial},
-                #{teacher}, NOW(), NOW(), #{createBy}, #{updateBy})
+                #{teacher}, #{teacherId}, NOW(), NOW(), #{createBy}, #{updateBy})
     </insert>
 
     <update id="updateById">
@@ -115,7 +123,7 @@
             total_price = #{totalPrice}, is_free = #{isFree},
             is_free_limited = #{isFreeLimited}, free_start_time = #{freeStartTime},
             free_end_time = #{freeEndTime}, allow_trial = #{allowTrial},
-            teacher = #{teacher}, update_time = NOW(), update_by = #{updateBy}
+            teacher = #{teacher}, teacher_id = #{teacherId}, update_time = NOW(), update_by = #{updateBy}
         WHERE id = #{id} AND deleted = 0
     </update>
 

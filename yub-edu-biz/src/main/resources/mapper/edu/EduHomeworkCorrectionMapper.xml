@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduHomeworkCorrectionMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduHomeworkCorrection">
+        <id column="id" property="id"/>
+        <result column="course_id" property="courseId"/>
+        <result column="student_id" property="studentId"/>
+        <result column="images" property="images"/>
+        <result column="total_questions" property="totalQuestions"/>
+        <result column="correct_count" property="correctCount"/>
+        <result column="score" property="score"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, course_id, student_id, images, total_questions, correct_count, score,
+        status, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_homework_correction
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT h.id, h.course_id, h.student_id, h.images, h.total_questions,
+               h.correct_count, h.score, h.status, h.create_time,
+               c.name AS courseName, s.name AS studentName
+        FROM edu_homework_correction h
+        LEFT JOIN edu_course c ON h.course_id = c.id
+        LEFT JOIN edu_student s ON h.student_id = s.id
+        WHERE h.deleted = 0
+        <if test="params.courseId != null">
+            AND h.course_id = #{params.courseId}
+        </if>
+        <if test="params.studentId != null">
+            AND h.student_id = #{params.studentId}
+        </if>
+        <if test="params.studentName != null and params.studentName != ''">
+            AND s.name LIKE CONCAT('%', #{params.studentName}, '%')
+        </if>
+        <if test="params.status != null">
+            AND h.status = #{params.status}
+        </if>
+        <if test="params.teacherId != null">
+            AND h.course_id IN (SELECT id FROM edu_course WHERE teacher_id = #{params.teacherId} AND deleted = 0)
+        </if>
+        <if test="params.groupId != null">
+            AND h.student_id IN (SELECT student_id FROM edu_student_group_member WHERE group_id = #{params.groupId})
+        </if>
+        ORDER BY h.create_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_homework_correction (course_id, student_id, images, total_questions,
+               correct_count, score, status, create_time, update_time, deleted)
+        VALUES (#{courseId}, #{studentId}, #{images}, #{totalQuestions},
+               #{correctCount}, #{score}, #{status}, NOW(), NOW(), 0)
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_homework_correction
+        <set>
+            <if test="totalQuestions != null">total_questions = #{totalQuestions},</if>
+            <if test="correctCount != null">correct_count = #{correctCount},</if>
+            <if test="score != null">score = #{score},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="softDeleteById">
+        UPDATE edu_homework_correction SET deleted = 1, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="countByCourseStudent" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM edu_homework_correction
+        WHERE course_id = #{courseId} AND student_id = #{studentId} AND deleted = 0
+    </select>
+
+</mapper>

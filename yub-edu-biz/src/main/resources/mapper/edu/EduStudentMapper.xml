@@ -62,8 +62,13 @@
     </sql>
 
     <select id="selectPage" resultMap="BaseResultMap">
-        SELECT <include refid="pageColumns"/>
+        SELECT DISTINCT <include refid="pageColumns"/>
         FROM edu_student t
+        <if test="query.teacherId != null">
+            JOIN edu_student_group_member gm ON t.id = gm.student_id
+            JOIN edu_student_group_course gc ON gm.group_id = gc.group_id
+            JOIN edu_course c ON gc.course_id = c.id AND c.teacher_id = #{query.teacherId} AND c.deleted = 0
+        </if>
         WHERE t.deleted = 0
         <if test="query.name != null and query.name != ''">
             AND (t.name LIKE CONCAT('%', #{query.name}, '%') OR t.pinyin_abbr LIKE CONCAT('%', #{query.name}, '%'))
@@ -178,6 +183,10 @@
 
     <update id="updateLastLoginTime">
         UPDATE edu_student SET last_login_time = NOW() WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateStudentNo">
+        UPDATE edu_student SET student_no = #{studentNo} WHERE id = #{id}
     </update>
 
 </mapper>

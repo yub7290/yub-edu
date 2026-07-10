@@ -7,11 +7,14 @@ import com.yub.edu.biz.dto.StudyCardInstanceQueryDTO;
 import com.yub.edu.biz.dto.StudyCardQueryDTO;
 import com.yub.edu.biz.dto.StudyCardUpdateReqDTO;
 import com.yub.edu.biz.dto.StudyCardUseReqDTO;
+import com.yub.edu.biz.entity.EduStudyCard;
 import com.yub.edu.biz.vo.StudyCardDetailRespVO;
 import com.yub.edu.biz.vo.StudyCardInstancePageRespVO;
 import com.yub.edu.biz.vo.StudyCardMyVO;
 import com.yub.edu.biz.vo.StudyCardPageRespVO;
 import com.yub.edu.biz.vo.StudyCardSummaryVO;
+
+import java.util.List;
 
 /**
  * 学习卡服务接口
@@ -130,4 +133,11 @@ public interface EduStudyCardService {
      * @return 汇总（总数、已使用数）
      */
     StudyCardSummaryVO getSummary();
+
+    /**
+     * 查询学习卡简单列表（仅 id + title，用于下拉选择）
+     *
+     * @return 学习卡列表
+     */
+    List<EduStudyCard> selectSimpleList();
 }

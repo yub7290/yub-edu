@@ -24,4 +24,7 @@ public class StudentQueryDTO {
 
     /** 状态（1=启用 0=禁用） */
     private Integer status;
+
+    /** 教师ID（教师端查询时由后端自动注入，仅返回该教师归属的数据） */
+    private Long teacherId;
 }

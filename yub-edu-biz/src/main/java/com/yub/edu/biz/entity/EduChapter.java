@@ -75,4 +75,7 @@ public class EduChapter {
 
     /** 章节视频列表（非持久化） */
     private List<EduChapterVideo> videoList;
+
+    /** 章节附件列表（非持久化） */
+    private List<EduChapterAttachment> attachmentList;
 }

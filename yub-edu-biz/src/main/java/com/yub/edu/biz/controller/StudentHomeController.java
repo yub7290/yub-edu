@@ -4,8 +4,8 @@ import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduTeacher;
 import com.yub.edu.biz.entity.EduTeacherTitle;
-import com.yub.edu.biz.mapper.EduTeacherTitleMapper;
 import com.yub.edu.biz.service.EduCourseService;
+import com.yub.edu.biz.service.EduTeacherTitleService;
 import com.yub.edu.biz.service.TeacherService;
 import com.yub.edu.biz.vo.CourseRecommendedRespVO;
 import com.yub.edu.biz.vo.TeacherListRespVO;
@@ -19,7 +19,7 @@ import com.yub.edu.biz.vo.HomeTeacherRespVO;
 import com.yub.edu.biz.vo.NavItemRespVO;
 import com.yub.edu.biz.vo.TeacherInfoRespVO;
 import com.yub.system.entity.system.SysBanner;
-import com.yub.system.mapper.system.SysBannerMapper;
+import com.yub.system.service.banner.SysBannerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,8 +42,8 @@ public class StudentHomeController {
 
     private final EduCourseService eduCourseService;
     private final TeacherService teacherService;
-    private final SysBannerMapper sysBannerMapper;
-    private final EduTeacherTitleMapper eduTeacherTitleMapper;
+    private final SysBannerService sysBannerService;
+    private final EduTeacherTitleService eduTeacherTitleService;
 
     /**
      * 首页基础数据（Logo、Banner、导航）
@@ -51,7 +51,7 @@ public class StudentHomeController {
     @GetMapping("/base")
     public Response<HomeBaseRespVO> base() {
         // 查询启用的Banner
-        List<SysBanner> banners = sysBannerMapper.selectAllEnabled();
+        List<SysBanner> banners = sysBannerService.selectAllEnabled();
         List<BannerItemRespVO> bannerList = banners.stream().map(b ->
             BannerItemRespVO.builder()
                     .id(b.getId())
@@ -80,7 +80,7 @@ public class StudentHomeController {
                 .distinct()
                 .toList();
         Map<Long, String> titleMap = titleIds.isEmpty() ? Collections.emptyMap() :
-                eduTeacherTitleMapper.selectBatchByIds(titleIds).stream()
+                eduTeacherTitleService.selectBatchByIds(titleIds).stream()
                 .collect(Collectors.toMap(EduTeacherTitle::getId, EduTeacherTitle::getName));
 
         List<TeacherRecommendedRespVO> voList = teachers.stream().map(t -> {
@@ -158,7 +158,7 @@ public class StudentHomeController {
                 .distinct()
                 .toList();
         Map<Long, String> titleMap = titleIds.isEmpty() ? Collections.emptyMap() :
-                eduTeacherTitleMapper.selectBatchByIds(titleIds).stream()
+                eduTeacherTitleService.selectBatchByIds(titleIds).stream()
                 .collect(Collectors.toMap(EduTeacherTitle::getId, EduTeacherTitle::getName));
 
         List<TeacherListRespVO> voList = teachers.stream().map(t ->

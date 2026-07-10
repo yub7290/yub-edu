@@ -2,9 +2,9 @@ package com.yub.edu.biz.controller;
 
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduChapter;
+import com.yub.edu.biz.entity.EduChapterAttachment;
 import com.yub.edu.biz.entity.EduChapterVideo;
-import com.yub.edu.biz.mapper.EduChapterMapper;
-import com.yub.edu.biz.mapper.EduChapterVideoMapper;
+import com.yub.edu.biz.service.ChapterService;
 import com.yub.edu.biz.vo.ChapterDetailRespVO;
 import com.yub.edu.biz.vo.ChapterItemRespVO;
 import com.yub.edu.biz.vo.ChapterListRespVO;
@@ -27,20 +27,22 @@ import java.util.*;
 @RequiredArgsConstructor
 public class StudentChapterController {
 
-    private final EduChapterMapper eduChapterMapper;
-    private final EduChapterVideoMapper eduChapterVideoMapper;
+    private final ChapterService chapterService;
 
     /**
      * 章节详情
      */
     @GetMapping("/detail")
     public Response<ChapterDetailRespVO> detail(@RequestParam Long chId, @RequestParam Long cid) {
-        EduChapter chapter = eduChapterMapper.selectById(chId);
-        if (chapter == null) {
+        EduChapter chapter;
+        try {
+            chapter = chapterService.getDetail(chId);
+        } catch (Exception e) {
             return Response.success(null);
         }
 
-        List<EduChapterVideo> videoList = eduChapterVideoMapper.selectByChapterId(chId);
+        List<EduChapterVideo> videoList = chapter.getVideoList() != null ? chapter.getVideoList() : Collections.emptyList();
+        List<EduChapterAttachment> attachmentList = chapter.getAttachmentList() != null ? chapter.getAttachmentList() : Collections.emptyList();
         boolean inLiveTime = isInLiveTime(chapter, LocalDateTime.now());
         String mediaType = inLiveTime ? "live" : "video";
         String mediaSrc = inLiveTime || videoList.isEmpty() ? "" : videoList.get(0).getVideoUrl();
@@ -50,7 +52,7 @@ public class StudentChapterController {
                 .mediaSrc(mediaSrc)
                 .mediaType(mediaType)
                 .article(chapter.getContentText() != null ? chapter.getContentText() : "")
-                .attachList(new ArrayList<>())
+                .attachList(attachmentList)
                 .videoList(videoList)
                 .build());
     }
@@ -71,7 +73,7 @@ public class StudentChapterController {
      */
     @GetMapping("/list")
     public Response<ChapterListRespVO> list(@RequestParam Long cid) {
-        List<EduChapter> chapters = eduChapterMapper.selectTreeByCourseId(cid);
+        List<EduChapter> chapters = chapterService.getTree(cid);
         List<ChapterItemRespVO> list = chapters.stream().map(ch ->
             ChapterItemRespVO.builder()
                     .id(ch.getId())

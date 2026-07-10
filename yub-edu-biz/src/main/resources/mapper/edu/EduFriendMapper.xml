@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduFriendMapper">
+
+    <resultMap id="FriendVOMap" type="com.yub.edu.biz.vo.FriendVO">
+        <id column="rel_id" property="id"/>
+        <result column="friend_id" property="friendId"/>
+        <result column="name" property="name"/>
+        <result column="nick_name" property="nickName"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="student_no" property="studentNo"/>
+        <result column="school" property="school"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="rel_create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, student_id, friend_id, create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_friend (student_id, friend_id, create_time, update_time)
+        VALUES (#{studentId}, #{friendId}, NOW(), NOW())
+    </insert>
+
+    <select id="selectMyFriends" resultMap="FriendVOMap">
+        SELECT f.id            AS rel_id,
+               f.friend_id     AS friend_id,
+               s.name           AS name,
+               s.nick_name      AS nick_name,
+               s.avatar_url     AS avatar_url,
+               s.student_no     AS student_no,
+               s.school         AS school,
+               s.last_login_time AS last_login_time,
+               f.create_time    AS rel_create_time
+        FROM edu_friend f
+                 LEFT JOIN edu_student s ON s.id = f.friend_id AND s.deleted = 0
+        WHERE f.student_id = #{ownerId}
+          AND f.deleted = 0
+        ORDER BY f.create_time DESC
+    </select>
+
+    <select id="countByPair" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_friend
+        WHERE student_id = #{studentId}
+          AND friend_id = #{friendId}
+          AND deleted = 0
+    </select>
+
+    <update id="deletePair">
+        UPDATE edu_friend
+        SET deleted = 1, update_time = NOW()
+        WHERE deleted = 0
+          AND ((student_id = #{a} AND friend_id = #{b})
+            OR (student_id = #{b} AND friend_id = #{a}))
+    </update>
+
+</mapper>

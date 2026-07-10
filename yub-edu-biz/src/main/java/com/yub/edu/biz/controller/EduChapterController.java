@@ -34,7 +34,7 @@ public class EduChapterController {
      * @return 章节树
      */
     @GetMapping("/tree/{courseId}")
-    public Response<List<EduChapter>> tree(@PathVariable Long courseId) {
+    public Response<List<EduChapter>> tree(@PathVariable("courseId") Long courseId) {
         return Response.success(chapterService.getTree(courseId));
     }
 
@@ -45,7 +45,7 @@ public class EduChapterController {
      * @return 章节详情
      */
     @GetMapping("/{id}")
-    public Response<EduChapter> getDetail(@PathVariable Long id) {
+    public Response<EduChapter> getDetail(@PathVariable("id") Long id) {
         return Response.success(chapterService.getDetail(id));
     }
 
@@ -82,7 +82,7 @@ public class EduChapterController {
      */
     @Log(value = "删除章节", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         chapterService.delete(id);
         return Response.success();
     }
@@ -94,7 +94,7 @@ public class EduChapterController {
      * @return 知识点ID列表
      */
     @GetMapping("/{id}/knowledge")
-    public Response<List<Long>> getKnowledge(@PathVariable Long id) {
+    public Response<List<Long>> getKnowledge(@PathVariable("id") Long id) {
         return Response.success(chapterService.getKnowledgePointIds(id));
     }
 
@@ -107,7 +107,7 @@ public class EduChapterController {
      */
     @Log(value = "更新章节关联知识点", type = "UPDATE")
     @PutMapping("/{id}/knowledge")
-    public Response<Void> updateKnowledge(@PathVariable Long id, @RequestBody List<Long> knowledgePointIds) {
+    public Response<Void> updateKnowledge(@PathVariable("id") Long id, @RequestBody List<Long> knowledgePointIds) {
         chapterService.updateKnowledgePoints(id, knowledgePointIds);
         return Response.success();
     }

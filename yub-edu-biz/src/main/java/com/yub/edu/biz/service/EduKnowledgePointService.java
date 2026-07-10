@@ -32,4 +32,12 @@ public interface EduKnowledgePointService {
     void update(KnowledgePointUpdateReqDTO dto);
 
     void delete(Long id);
+
+    /**
+     * 根据ID批量查询知识点
+     *
+     * @param ids 知识点ID列表
+     * @return 知识点列表
+     */
+    List<EduKnowledgePoint> selectBatchByIds(List<Long> ids);
 }

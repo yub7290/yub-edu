@@ -22,6 +22,8 @@ public enum EduErrorCode implements ErrorCode {
     MAJOR_HAS_CHILDREN(200003, "该专业下存在子专业，无法删除"),
     /** 专业下存在课程无法删除 */
     MAJOR_HAS_COURSES(200004, "该专业下存在课程，无法删除"),
+    /** 不能移动到自身的子级下（循环引用） */
+    MAJOR_CYCLE(200005, "不能将分类移动到其子级下"),
 
     /** 课程不存在 */
     COURSE_NOT_FOUND(200011, "课程不存在"),
@@ -87,6 +89,13 @@ public enum EduErrorCode implements ErrorCode {
     /** 学员账号已存在 */
     STUDENT_ACCOUNT_EXISTS(200102, "学员账号已存在"),
 
+    /** 好友关系不存在 */
+    FRIEND_NOT_FOUND(200821, "好友关系不存在"),
+    /** 该好友已添加 */
+    FRIEND_ALREADY(200822, "该好友已添加"),
+    /** 不能添加自己为好友 */
+    FRIEND_SELF(200823, "不能添加自己为好友"),
+
     /** 验证码错误 */
     CAPTCHA_ERROR(200201, "验证码错误"),
     /** 账号或密码错误 */
@@ -101,6 +110,11 @@ public enum EduErrorCode implements ErrorCode {
     TOKEN_EXPIRED(200204, "Token已过期"),
     /** Token无效 */
     TOKEN_INVALID(200205, "Token无效"),
+
+    /** 教师账号或密码错误 */
+    TEACHER_PASSWORD_ERROR(200211, "账号或密码错误"),
+    /** 教师账号已被禁用 */
+    TEACHER_ACCOUNT_DISABLED(200212, "账号已被禁用"),
 
     /** 学员未学习该课程 */
     COURSE_NOT_STUDIED(200301, "请先学习该课程后再使用AI助教"),
@@ -151,7 +165,78 @@ public enum EduErrorCode implements ErrorCode {
     ADDRESS_NOT_FOUND(200801, "地址不存在"),
 
     /** 参数错误 */
-    PARAM_INVALID(200901, "参数错误");
+    PARAM_INVALID(200901, "参数错误"),
+
+    // ========== 资金/支付 20091x ==========
+    /** 资金账户不存在 */
+    FUND_ACCOUNT_NOT_FOUND(200910, "资金账户不存在"),
+    /** 余额不足 */
+    BALANCE_INSUFFICIENT(200911, "余额不足"),
+    /** 支付订单不存在 */
+    PAYMENT_ORDER_NOT_FOUND(200912, "支付订单不存在"),
+    /** 支付订单已过期 */
+    PAYMENT_ORDER_EXPIRED(200913, "支付订单已过期"),
+    /** 支付金额与订单不一致 */
+    PAYMENT_AMOUNT_MISMATCH(200914, "支付金额与订单不一致"),
+    /** 课程订单不存在 */
+    COURSE_ORDER_NOT_FOUND(200915, "课程订单不存在"),
+    /** 重复支付 */
+    DUPLICATE_PAYMENT(200916, "重复支付"),
+    /** 退款失败 */
+    REFUND_FAILED(200917, "退款失败"),
+
+    // ========== OAuth 20095x ==========
+    /** 不支持的OAuth平台 */
+    OAUTH_PLATFORM_NOT_SUPPORTED(200950, "不支持的OAuth平台"),
+    /** OAuth授权码已过期或无效 */
+    OAUTH_CODE_INVALID(200951, "授权码已过期或无效"),
+    /** 该社交账号已被其他用户绑定 */
+    OAUTH_ALREADY_BOUND_OTHER(200952, "该社交账号已被其他用户绑定"),
+    /** 该平台已绑定其他账号，请先解绑 */
+    OAUTH_PLATFORM_ALREADY_BOUND(200953, "该平台已绑定其他账号，请先解绑"),
+    /** OAuth state无效或已过期 */
+    OAUTH_STATE_INVALID(200954, "授权状态无效或已过期，请重试"),
+    /** 未绑定该平台 */
+    OAUTH_NOT_BOUND(200955, "未绑定该平台"),
+    /** OAuth配置缺失 */
+    OAUTH_CONFIG_MISSING(200956, "OAuth配置缺失，请联系管理员"),
+    // ========== 作业批改 20080x ==========
+    /** 作业批改记录不存在 */
+    HOMEWORK_CORRECTION_NOT_FOUND(200801, "作业批改记录不存在"),
+    /** 图片数量超出限制 */
+    HOMEWORK_IMAGE_LIMIT(200802, "图片数量需在1-9张之间"),
+    /** 作业批改提交失败 */
+    HOMEWORK_SUBMIT_FAILED(200803, "作业批改提交失败，请稍后重试"),
+    /** 作业题目不存在 */
+    HOMEWORK_QUESTION_NOT_FOUND(200804, "作业题目不存在"),
+
+    /** 获取第三方用户信息失败 */
+    OAUTH_USERINFO_FAILED(200957, "获取第三方用户信息失败"),
+
+    // ========== 学员组 20100x ==========
+    /** 学员组不存在 */
+    STUDENT_GROUP_NOT_FOUND(201001, "学员组不存在"),
+    /** 学员组名称已存在 */
+    STUDENT_GROUP_NAME_EXISTS(201002, "学员组名称已存在"),
+    /** 学员组下存在关联学员，无法删除 */
+    STUDENT_GROUP_HAS_MEMBERS(201003, "该学员组下存在关联学员，无法删除"),
+    /** 学员组下存在关联课程，无法删除 */
+    STUDENT_GROUP_HAS_COURSES(201004, "该学员组下存在关联课程，无法删除"),
+
+    // ========== 通知 20110x ==========
+    /** 通知不存在 */
+    NOTICE_NOT_FOUND(201101, "通知不存在"),
+
+    // ========== 新闻资讯 / 分类 20120x ==========
+    /** 资讯不存在 */
+    NEWS_NOT_FOUND(201201, "资讯不存在"),
+    /** 资讯分类不存在 */
+    NEWS_CATEGORY_NOT_FOUND(201202, "资讯分类不存在"),
+    /** 资讯分类名称已存在 */
+    NEWS_CATEGORY_NAME_EXISTS(201203, "资讯分类名称已存在"),
+    /** 资讯分类下存在资讯，无法删除 */
+    NEWS_CATEGORY_HAS_NEWS(201204, "该分类下存在资讯，无法删除");
+
 
     private final int code;
     private final String message;

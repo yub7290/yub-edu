@@ -28,12 +28,12 @@ public class StudentCreateReqDTO {
     @Size(max = 50, message = "账号长度不能超过50个字符")
     private String account;
 
-    /** 密码（前端 SM3 哈希后的值） */
-    @NotBlank(message = "密码不能为空")
+    /** 密码（前端 SM3 哈希后的值，为空时后端自动分配默认密码） */
     @Size(min = 64, max = 64, message = "密码格式异常")
     private String password;
 
     /** 姓名 */
+    @NotBlank(message = "姓名不能为空")
     @Size(max = 50, message = "姓名长度不能超过50个字符")
     private String name;
 
@@ -119,4 +119,11 @@ public class StudentCreateReqDTO {
 
     /** 状态（1=启用 0=禁用，默认启用） */
     private Integer status = 1;
+
+    /** 将空白字符串转为 null，避免 @Pattern/@Size 对空字符串误报 */
+    public void setPhone(String phone) { this.phone = isBlank(phone) ? null : phone; }
+    public void setEmergencyPhone(String emergencyPhone) { this.emergencyPhone = isBlank(emergencyPhone) ? null : emergencyPhone; }
+    public void setIdCard(String idCard) { this.idCard = isBlank(idCard) ? null : idCard; }
+    public void setPassword(String password) { this.password = isBlank(password) ? null : password; }
+    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
 }

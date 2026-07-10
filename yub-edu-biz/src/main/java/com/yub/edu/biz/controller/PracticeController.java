@@ -130,7 +130,7 @@ public class PracticeController {
      */
     @Log(value = "删除笔记", type = "DELETE")
     @DeleteMapping("/notes/{noteId}")
-    public Response<Void> deleteNote(@PathVariable Long noteId) {
+    public Response<Void> deleteNote(@PathVariable("noteId") Long noteId) {
         practiceService.deleteNote(noteId);
         return Response.success();
     }
@@ -140,7 +140,7 @@ public class PracticeController {
      */
     @Log(value = "更新笔记", type = "UPDATE")
     @PutMapping("/notes/{noteId}")
-    public Response<Void> updateNote(@PathVariable Long noteId, @RequestBody NoteUpdateReqDTO dto) {
+    public Response<Void> updateNote(@PathVariable("noteId") Long noteId, @RequestBody NoteUpdateReqDTO dto) {
         practiceService.updateNote(noteId, dto.getNoteContent());
         return Response.success();
     }
@@ -149,7 +149,7 @@ public class PracticeController {
      * 查询用户在某题目下的笔记
      */
     @GetMapping("/notes/question/{questionId}")
-    public Response<List<NoteRespVO>> getNoteForQuestion(@PathVariable Long questionId) {
+    public Response<List<NoteRespVO>> getNoteForQuestion(@PathVariable("questionId") Long questionId) {
         return Response.success(practiceService.getNoteForQuestion(questionId));
     }
 

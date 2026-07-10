@@ -11,16 +11,18 @@ import com.yub.edu.biz.dto.CourseCreateReqDTO;
 import com.yub.edu.biz.dto.CourseQueryDTO;
 import com.yub.edu.biz.dto.CourseUpdateReqDTO;
 import com.yub.edu.biz.entity.EduCourse;
-import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduMajor;
+import com.yub.edu.biz.entity.EduTeacher;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduCourseMapper;
 import com.yub.edu.biz.mapper.EduMajorMapper;
+import com.yub.edu.biz.mapper.EduTeacherMapper;
 import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.vo.CourseDetailRespVO;
 import com.yub.edu.biz.vo.CourseOverviewRespVO;
 import com.yub.edu.biz.vo.CoursePageRespVO;
+import com.yub.framework.security.JwtProvider;
 import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ public class EduCourseServiceImpl implements EduCourseService {
 
     private final EduCourseMapper eduCourseMapper;
     private final EduMajorMapper eduMajorMapper;
+    private final EduTeacherMapper eduTeacherMapper;
 
     @Override
     public PageResult<CoursePageRespVO> page(PageQuery<CourseQueryDTO> pageQuery) {
@@ -92,6 +95,7 @@ public class EduCourseServiceImpl implements EduCourseService {
                 .freeEndTime(course.getFreeEndTime())
                 .allowTrial(course.getAllowTrial())
                 .teacher(course.getTeacher())
+                .teacherId(course.getTeacherId())
                 .studentCount(course.getStudentCount())
                 .viewCount(course.getViewCount())
                 .chapterCount(course.getChapterCount())
@@ -159,7 +163,16 @@ public class EduCourseServiceImpl implements EduCourseService {
         course.setFreeStartTime(dto.getFreeStartTime());
         course.setFreeEndTime(dto.getFreeEndTime());
         course.setAllowTrial(dto.getAllowTrial() != null ? dto.getAllowTrial() : 0);
-        course.setTeacher(dto.getTeacher());
+        // 教师端：强制归属当前登录教师，禁止前端篡改归属；管理员可自由指定
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            Long teacherId = SecurityUtils.getCurrentUserId();
+            course.setTeacherId(teacherId);
+            EduTeacher teacher = eduTeacherMapper.selectById(teacherId);
+            course.setTeacher(teacher != null ? teacher.getName() : dto.getTeacher());
+        } else {
+            course.setTeacher(dto.getTeacher());
+            course.setTeacherId(dto.getTeacherId());
+        }
         Long currentUserId = SecurityUtils.getCurrentUserId();
         course.setCreateBy(currentUserId);
         course.setUpdateBy(currentUserId);
@@ -196,7 +209,16 @@ public class EduCourseServiceImpl implements EduCourseService {
         course.setFreeStartTime(dto.getFreeStartTime());
         course.setFreeEndTime(dto.getFreeEndTime());
         course.setAllowTrial(dto.getAllowTrial() != null ? dto.getAllowTrial() : 0);
-        course.setTeacher(dto.getTeacher());
+        // 教师端：保持课程归属当前教师，禁止篡改归属
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            Long teacherId = SecurityUtils.getCurrentUserId();
+            course.setTeacherId(teacherId);
+            EduTeacher teacher = eduTeacherMapper.selectById(teacherId);
+            course.setTeacher(teacher != null ? teacher.getName() : course.getTeacher());
+        } else {
+            course.setTeacher(dto.getTeacher());
+            course.setTeacherId(dto.getTeacherId());
+        }
         course.setUpdateBy(SecurityUtils.getCurrentUserId());
         eduCourseMapper.updateById(course);
     }
@@ -229,6 +251,11 @@ public class EduCourseServiceImpl implements EduCourseService {
             throw new EduException(EduErrorCode.COURSE_NOT_FOUND);
         }
         eduCourseMapper.updateRecommended(id, recommended);
+    }
+
+    @Override
+    public EduCourse selectById(Long id) {
+        return eduCourseMapper.selectById(id);
     }
 
     @Override

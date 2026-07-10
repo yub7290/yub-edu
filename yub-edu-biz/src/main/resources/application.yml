@@ -31,8 +31,14 @@ mybatis:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 
+# PageHelper 分页配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+
 jwt:
-  access-expiration: 1800000
+  access-expiration: 7200000
   refresh-expiration: 604800000
 
 # ==================== 日志框架配置 ====================
@@ -52,3 +58,15 @@ log:
     access-log-retention-days: 30
     opera-log-retention-days: 90
     batch-size: 10000
+
+# 第三方OAuth配置
+oauth:
+  wechat:
+    appId: ${OAUTH_WECHAT_APPID:}
+    appSecret: ${OAUTH_WECHAT_SECRET:}
+    redirectUri: ${OAUTH_WECHAT_REDIRECT:}
+  qq:
+    appId: ${OAUTH_QQ_APPID:}
+    appSecret: ${OAUTH_QQ_SECRET:}
+    redirectUri: ${OAUTH_QQ_REDIRECT:}
+  frontendBaseUrl: ${OAUTH_FRONTEND_BASE_URL:http://localhost:5173}

@@ -12,6 +12,8 @@ import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.vo.CourseDetailRespVO;
 import com.yub.edu.biz.vo.CourseOverviewRespVO;
 import com.yub.edu.biz.vo.CoursePageRespVO;
+import com.yub.framework.security.JwtProvider;
+import com.yub.framework.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -46,6 +48,10 @@ public class EduCourseController {
      */
     @PostMapping("/page")
     public Response<PageResult<CoursePageRespVO>> page(@RequestBody PageQuery<CourseQueryDTO> pageQuery) {
+        // 教师身份自动注入 teacherId 过滤，仅返回该教师归属的课程；管理员无此限制
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            pageQuery.getQueryParam().setTeacherId(SecurityUtils.getCurrentUserId());
+        }
         return Response.success(eduCourseService.page(pageQuery));
     }
 
@@ -56,7 +62,7 @@ public class EduCourseController {
      * @return 课程详情
      */
     @GetMapping("/{id}")
-    public Response<CourseDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<CourseDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(eduCourseService.getDetail(id));
     }
 
@@ -67,7 +73,7 @@ public class EduCourseController {
      * @return 课程综述
      */
     @GetMapping("/{id}/overview")
-    public Response<CourseOverviewRespVO> getOverview(@PathVariable Long id) {
+    public Response<CourseOverviewRespVO> getOverview(@PathVariable("id") Long id) {
         return Response.success(eduCourseService.getOverview(id));
     }
 
@@ -104,7 +110,7 @@ public class EduCourseController {
      */
     @Log(value = "删除课程", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         eduCourseService.delete(id);
         return Response.success();
     }
@@ -118,7 +124,7 @@ public class EduCourseController {
      */
     @Log(value = "切换课程状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduCourseService.changeStatus(id, dto.getStatus());
         return Response.success();
     }
@@ -132,7 +138,7 @@ public class EduCourseController {
      */
     @Log(value = "设置课程推荐状态", type = "UPDATE")
     @PutMapping("/{id}/recommended")
-    public Response<Void> setRecommended(@PathVariable Long id, @Valid @RequestBody StatusReqDTO recommended) {
+    public Response<Void> setRecommended(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO recommended) {
         eduCourseService.setRecommended(id, recommended.getStatus());
         return Response.success();
     }

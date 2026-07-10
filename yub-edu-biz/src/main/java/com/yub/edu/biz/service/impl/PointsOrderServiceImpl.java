@@ -37,6 +37,7 @@ public class PointsOrderServiceImpl implements PointsOrderService {
     private final EduPointsOrderMapper orderMapper;
     private final EduPointsProductMapper productMapper;
     private final EduStudyCardInstanceMapper cardInstanceMapper;
+    // TODO: 架构治理 - Service间耦合: PointsOrderService 依赖 PointsService，应通过 Manager 层解耦
     private final PointsService pointsService;
 
     /**

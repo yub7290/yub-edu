@@ -9,6 +9,8 @@ import com.yub.edu.biz.dto.AnnouncementQueryDTO;
 import com.yub.edu.biz.dto.AnnouncementUpdateReqDTO;
 import com.yub.edu.biz.service.EduAnnouncementService;
 import com.yub.edu.biz.vo.AnnouncementVO;
+import com.yub.framework.security.JwtProvider;
+import com.yub.framework.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -43,6 +45,10 @@ public class EduAnnouncementController {
      */
     @PostMapping("/page")
     public Response<PageResult<AnnouncementVO>> page(@RequestBody PageQuery<AnnouncementQueryDTO> pageQuery) {
+        // 教师身份自动注入 teacherId 过滤，仅返回该教师归属课程的公告；管理员无此限制
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            pageQuery.getQueryParam().setTeacherId(SecurityUtils.getCurrentUserId());
+        }
         return Response.success(eduAnnouncementService.page(pageQuery));
     }
 
@@ -53,7 +59,7 @@ public class EduAnnouncementController {
      * @return 公告详情
      */
     @GetMapping("/{id}")
-    public Response<AnnouncementVO> getDetail(@PathVariable Long id) {
+    public Response<AnnouncementVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(eduAnnouncementService.getDetail(id));
     }
 
@@ -90,7 +96,7 @@ public class EduAnnouncementController {
      */
     @Log(value = "删除公告", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         eduAnnouncementService.delete(id);
         return Response.success();
     }

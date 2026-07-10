@@ -33,7 +33,7 @@ public class StudentAnnouncementController {
      * @return 公告列表
      */
     @GetMapping("/{courseId}/announcement/list")
-    public Response<List<AnnouncementVO>> list(@PathVariable Long courseId) {
+    public Response<List<AnnouncementVO>> list(@PathVariable("courseId") Long courseId) {
         return Response.success(eduAnnouncementService.listByCourse(courseId));
     }
 
@@ -44,7 +44,7 @@ public class StudentAnnouncementController {
      * @return 公告详情
      */
     @GetMapping("/announcement/{id}")
-    public Response<AnnouncementVO> getDetail(@PathVariable Long id) {
+    public Response<AnnouncementVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(eduAnnouncementService.getActiveDetail(id));
     }
 }

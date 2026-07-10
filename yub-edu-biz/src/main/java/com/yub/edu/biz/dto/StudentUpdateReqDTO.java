@@ -1,5 +1,6 @@
 package com.yub.edu.biz.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -27,6 +28,7 @@ public class StudentUpdateReqDTO {
     private String avatarUrl;
 
     /** 姓名 */
+    @NotBlank(message = "姓名不能为空")
     @Size(max = 50, message = "姓名长度不能超过50个字符")
     private String name;
 
@@ -112,4 +114,10 @@ public class StudentUpdateReqDTO {
 
     /** 状态（1=启用 0=禁用） */
     private Integer status;
+
+    /** 将空白字符串转为 null，避免 @Pattern/@Size 对空字符串误报 */
+    public void setPhone(String phone) { this.phone = isBlank(phone) ? null : phone; }
+    public void setEmergencyPhone(String emergencyPhone) { this.emergencyPhone = isBlank(emergencyPhone) ? null : emergencyPhone; }
+    public void setIdCard(String idCard) { this.idCard = isBlank(idCard) ? null : idCard; }
+    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
 }

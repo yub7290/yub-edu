@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -98,5 +99,13 @@ public class EduKnowledgePointServiceImpl implements EduKnowledgePointService {
         EduKnowledgePoint pt = mapper.selectById(id);
         if (pt == null) throw new EduException(EduErrorCode.KNOWLEDGE_POINT_NOT_FOUND);
         mapper.deleteById(id);
+    }
+
+    @Override
+    public List<EduKnowledgePoint> selectBatchByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return mapper.selectBatchByIds(ids);
     }
 }

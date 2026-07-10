@@ -2,6 +2,7 @@ package com.yub.edu.biz.service;
 
 import com.yub.edu.biz.dto.MajorCreateReqDTO;
 import com.yub.edu.biz.dto.MajorQueryDTO;
+import com.yub.edu.biz.dto.MajorSortReqDTO;
 import com.yub.edu.biz.dto.MajorUpdateReqDTO;
 import com.yub.edu.biz.entity.EduMajor;
 import com.yub.edu.biz.vo.MajorDetailRespVO;
@@ -78,4 +79,11 @@ public interface EduMajorService {
      * @param recommended 推荐状态
      */
     void changeRecommended(Long id, Integer recommended);
+
+    /**
+     * 批量更新专业的层级与排序（拖拽排序）
+     *
+     * @param items 整棵树的最新顺序项集合
+     */
+    void updateSortBatch(List<MajorSortReqDTO.MajorSortItem> items);
 }

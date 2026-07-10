@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduPaymentOrderMapper">
+
+    <resultMap id="EduPaymentOrderMap" type="com.yub.edu.biz.entity.EduPaymentOrder">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="payment_channel" property="paymentChannel"/>
+        <result column="amount" property="amount"/>
+        <result column="status" property="status"/>
+        <result column="channel_order_no" property="channelOrderNo"/>
+        <result column="paid_at" property="paidAt"/>
+        <result column="expire_at" property="expireAt"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, order_no, user_id, payment_channel, amount, status,
+        channel_order_no, paid_at, expire_at, create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_payment_order (order_no, user_id, payment_channel, amount, status,
+                expire_at, create_time, update_time, deleted)
+        VALUES (#{orderNo}, #{userId}, #{paymentChannel}, #{amount}, #{status},
+                #{expireAt}, NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectByOrderNo" resultMap="EduPaymentOrderMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_payment_order
+        WHERE order_no = #{orderNo} AND deleted = 0
+    </select>
+
+    <update id="updateToPaying">
+        UPDATE edu_payment_order
+        SET status = 1, update_time = NOW()
+        WHERE order_no = #{orderNo} AND status = 0 AND deleted = 0
+    </update>
+
+    <update id="updateToPaid">
+        UPDATE edu_payment_order
+        SET status = 2, channel_order_no = #{channelOrderNo},
+            paid_at = NOW(), update_time = NOW()
+        WHERE order_no = #{orderNo} AND status = 1 AND deleted = 0
+    </update>
+
+    <update id="updateToClosed">
+        UPDATE edu_payment_order
+        SET status = 3, update_time = NOW()
+        WHERE order_no = #{orderNo} AND (status = 0 OR status = 1) AND deleted = 0
+    </update>
+
+</mapper>

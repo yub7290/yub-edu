@@ -5,6 +5,7 @@ import com.yub.common.constant.RedisKeyConstants;
 import com.yub.common.enums.StatusEnum;
 import com.yub.common.util.IdUtils;
 import com.yub.edu.biz.dto.StudentLoginReqDTO;
+import com.yub.edu.biz.dto.StudentRegisterReqDTO;
 import com.yub.edu.biz.entity.EduLoginLog;
 import com.yub.edu.biz.entity.EduStudent;
 import com.yub.edu.biz.exception.EduErrorCode;
@@ -12,7 +13,9 @@ import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduLoginLogMapper;
 import com.yub.edu.biz.mapper.EduPointsRecordMapper;
 import com.yub.edu.biz.mapper.EduStudentMapper;
+import com.yub.edu.biz.service.OAuthService;
 import com.yub.edu.biz.service.PointsService;
+import com.yub.edu.biz.service.EduFriendService;
 import com.yub.edu.biz.service.StudentAuthService;
 import com.yub.edu.biz.vo.CaptchaRespVO;
 import com.yub.edu.biz.vo.StudentInfoRespVO;
@@ -26,8 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 
 /**
@@ -47,9 +52,14 @@ public class StudentAuthServiceImpl implements StudentAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final EduLoginLogMapper eduLoginLogMapper;
+    // TODO: 架构治理 - Service间耦合: StudentAuthService 依赖 PointsService，应通过 Manager 层解耦
     private final PointsService pointsService;
+    // TODO: 架构治理 - 跨模块依赖: yub-edu 模块不应直接依赖 yub-system 的 Service
     private final SysParamService sysParamService;
     private final EduPointsRecordMapper eduPointsRecordMapper;
+    // TODO: 架构治理 - Service间耦合: StudentAuthService 依赖 OAuthService，应通过 Manager 层解耦
+    private final OAuthService oAuthService;
+    private final EduFriendService friendService;
 
     private static final int CAPTCHA_EXPIRE_MINUTES = 5;
     private static final int CAPTCHA_WIDTH = 130;
@@ -99,9 +109,9 @@ public class StudentAuthServiceImpl implements StudentAuthService {
             throw new EduException(EduErrorCode.STUDENT_ACCOUNT_DISABLED);
         }
 
-        // 5. 生成JWT
-        String accessToken = jwtProvider.generateAccessToken(student.getId(), student.getAccount(), new HashMap<>());
-        String refreshToken = jwtProvider.generateRefreshToken(student.getId());
+        // 5. 生成JWT（使用 STUDENT 类型标识，避免被当作 ADMIN 处理）
+        String accessToken = jwtProvider.generateAccessToken(student.getId(), student.getAccount(), JwtProvider.USER_TYPE_STUDENT, new HashMap<>());
+        String refreshToken = jwtProvider.generateRefreshToken(student.getId(), JwtProvider.USER_TYPE_STUDENT);
 
         // 6. 存储RefreshToken到Redis
         String refreshSetKey = STUDENT_REFRESH_TOKEN_PREFIX + student.getId();
@@ -123,13 +133,82 @@ public class StudentAuthServiceImpl implements StudentAuthService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void register(StudentRegisterReqDTO reqDTO) {
+        // 1. 验证码校验
+        String captchaKey = RedisKeyConstants.CAPTCHA_PREFIX + reqDTO.getCaptchaKey();
+        String storedCode = RedisUtils.getAndDelete(captchaKey).orElse("").toString();
+        if (StringUtils.isBlank(storedCode) || !storedCode.equalsIgnoreCase(reqDTO.getCaptchaCode())) {
+            throw new EduException(EduErrorCode.CAPTCHA_ERROR);
+        }
+
+        // 2. 账号唯一性校验（含已删除账号，避免复用）
+        EduStudent existed = eduStudentMapper.selectByAccountIncludeDeleted(reqDTO.getAccount());
+        if (existed != null) {
+            throw new EduException(EduErrorCode.STUDENT_ACCOUNT_EXISTS);
+        }
+
+        // 3. 创建学员（前端传 SM3 哈希，后端 BCrypt 二次加密）
+        EduStudent student = new EduStudent();
+        student.setAccount(reqDTO.getAccount());
+        student.setPassword(passwordEncoder.encode(reqDTO.getPassword()));
+        student.setStatus(1);
+        student.setCreateTime(LocalDateTime.now());
+        student.setUpdateTime(LocalDateTime.now());
+        eduStudentMapper.insert(student);
+
+        // 4. 根据自增ID派生学员编号（保证唯一，避免覆盖其它字段）
+        String studentNo = "S" + String.format("%08d", student.getId());
+        eduStudentMapper.updateStudentNo(student.getId(), studentNo);
+
+        // 5. 邀请关系：建立双向好友 + 发放邀请/被邀请积分（best-effort）
+        Long inviterId = reqDTO.getInviterId();
+        if (inviterId != null && !inviterId.equals(student.getId())) {
+            EduStudent inviter = eduStudentMapper.selectById(inviterId);
+            if (inviter != null) {
+                friendService.addFriend(inviter.getId(), student.getId());
+                awardInvitePoints(inviter.getId(), student.getId());
+            }
+        }
+
+        log.info("学员注册成功: account={}, studentId={}, inviterId={}",
+                student.getAccount(), student.getId(), inviterId);
+    }
+
+    /**
+     * 邀请注册积分奖励（best-effort，异常不影响注册流程）
+     *
+     * @param inviterId 邀请人ID
+     * @param newUserId 被邀请人ID
+     */
+    private void awardInvitePoints(Long inviterId, Long newUserId) {
+        try {
+            String pointsStr = sysParamService.getValueByCode("points_share_register");
+            int points = pointsStr != null ? Integer.parseInt(pointsStr) : 0;
+            if (points <= 0) {
+                return;
+            }
+            pointsService.earnPoints(inviterId, points, 1, "邀请注册奖励", null, "share_register");
+            pointsService.earnPoints(newUserId, points, 1, "被邀请注册奖励", null, "share_register");
+        } catch (Exception e) {
+            log.warn("邀请注册积分发放失败, inviterId={}, newUserId={}", inviterId, newUserId, e);
+        }
+    }
+
+    @Override
     public StudentLoginRespVO refresh(String refreshToken) {
         Claims claims = jwtProvider.parseTokenIfValid(refreshToken);
         if (claims == null) {
             throw new EduException(EduErrorCode.TOKEN_EXPIRED);
         }
 
-        String studentId = claims.getSubject();
+        // 从 JWT Subject 中解析纯数字学员ID（格式: STUDENT:{id}）
+        String rawSubject = claims.getSubject();
+        String studentIdStr = rawSubject.contains(":")
+                ? rawSubject.substring(rawSubject.indexOf(":") + 1)
+                : rawSubject;
+        Long studentId = Long.valueOf(studentIdStr);
+
         String refreshSetKey = STUDENT_REFRESH_TOKEN_PREFIX + studentId;
         String lockKey = "lock:" + refreshSetKey;
         RedisUtils.lock(lockKey);
@@ -138,13 +217,13 @@ public class StudentAuthServiceImpl implements StudentAuthService {
                 throw new EduException(EduErrorCode.TOKEN_INVALID);
             }
 
-            EduStudent student = eduStudentMapper.selectById(Long.valueOf(studentId));
+            EduStudent student = eduStudentMapper.selectById(studentId);
             if (student == null || StatusEnum.isDisabled(student.getStatus())) {
                 throw new EduException(EduErrorCode.STUDENT_ACCOUNT_DISABLED);
             }
 
-            String newAccessToken = jwtProvider.generateAccessToken(student.getId(), student.getAccount(), new HashMap<>());
-            String newRefreshToken = jwtProvider.generateRefreshToken(student.getId());
+            String newAccessToken = jwtProvider.generateAccessToken(student.getId(), student.getAccount(), JwtProvider.USER_TYPE_STUDENT, new HashMap<>());
+            String newRefreshToken = jwtProvider.generateRefreshToken(student.getId(), JwtProvider.USER_TYPE_STUDENT);
 
             RedisUtils.removeFromSet(refreshSetKey, refreshToken);
             RedisUtils.addToSet(refreshSetKey, newRefreshToken);
@@ -177,6 +256,16 @@ public class StudentAuthServiceImpl implements StudentAuthService {
                 .phone(student.getPhone())
                 .email(student.getEmail())
                 .build();
+    }
+
+    @Override
+    public String getOAuthLoginUrl(String platform) {
+        return oAuthService.getLoginAuthorizeUrl(platform);
+    }
+
+    @Override
+    public String handleOAuthLoginCallback(String code, String state) {
+        return oAuthService.handleLoginCallback(code, state);
     }
 
     /**

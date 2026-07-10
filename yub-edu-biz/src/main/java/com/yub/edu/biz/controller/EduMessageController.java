@@ -7,7 +7,7 @@ import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.MessageQueryDTO;
 import com.yub.edu.biz.entity.EduMessage;
-import com.yub.edu.biz.mapper.EduMessageMapper;
+import com.yub.edu.biz.service.EduMessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EduMessageController {
 
-    private final EduMessageMapper eduMessageMapper;
+    private final EduMessageService eduMessageService;
 
     /**
      * 分页查询留言列表
@@ -37,7 +37,7 @@ public class EduMessageController {
     @PostMapping("/page")
     public Response<PageResult<EduMessage>> page(@RequestBody com.yub.common.model.PageQuery<MessageQueryDTO> query) {
         PageHelper.startPage(query.getPageParam().getPageNum(), query.getPageParam().getPageSize());
-        List<EduMessage> list = eduMessageMapper.selectPage(query.getQueryParam());
+        List<EduMessage> list = eduMessageService.selectPage(query.getQueryParam());
         PageInfo<EduMessage> pageInfo = new PageInfo<>(list);
         return Response.success(PageResult.of(list, pageInfo.getTotal()));
     }
@@ -50,12 +50,12 @@ public class EduMessageController {
      */
     @Log(value = "删除留言", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
-        EduMessage exist = eduMessageMapper.selectById(id);
+    public Response<Void> delete(@PathVariable("id") Long id) {
+        EduMessage exist = eduMessageService.selectById(id);
         if (exist == null) {
             return Response.error(404, "留言不存在");
         }
-        eduMessageMapper.deleteById(id);
+        eduMessageService.deleteById(id);
         return Response.success();
     }
 }

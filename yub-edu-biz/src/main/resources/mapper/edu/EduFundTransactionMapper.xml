@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduFundTransactionMapper">
+
+    <resultMap id="EduFundTransactionMap" type="com.yub.edu.biz.entity.EduFundTransaction">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="transaction_type" property="transactionType"/>
+        <result column="amount" property="amount"/>
+        <result column="balance_after" property="balanceAfter"/>
+        <result column="related_id" property="relatedId"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, transaction_type, amount, balance_after,
+        related_id, description, create_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_fund_transaction (user_id, transaction_type, amount, balance_after,
+                related_id, description, create_time, deleted)
+        VALUES (#{userId}, #{transactionType}, #{amount}, #{balanceAfter},
+                #{relatedId}, #{description}, NOW(), 0)
+    </insert>
+
+    <select id="selectPage" resultMap="EduFundTransactionMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_fund_transaction
+        WHERE user_id = #{userId} AND deleted = 0
+        <if test="transactionType != null and transactionType != ''">
+            AND transaction_type = #{transactionType}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectAllPage" resultMap="EduFundTransactionMap">
+        SELECT t.id, t.user_id, t.transaction_type, t.amount, t.balance_after,
+               t.related_id, t.description, t.create_time
+        FROM edu_fund_transaction t
+        WHERE t.deleted = 0
+        <if test="userId != null">
+            AND t.user_id = #{userId}
+        </if>
+        <if test="userName != null and userName != ''">
+            AND t.user_id IN (SELECT su.id FROM sys_user su WHERE su.name LIKE CONCAT('%', #{userName}, '%') AND su.deleted = 0)
+        </if>
+        <if test="transactionType != null and transactionType != ''">
+            AND t.transaction_type = #{transactionType}
+        </if>
+        <if test="startTime != null and startTime != ''">
+            AND t.create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND t.create_time &lt;= #{endTime}
+        </if>
+        ORDER BY t.create_time DESC
+    </select>
+
+</mapper>

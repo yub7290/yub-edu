@@ -70,6 +70,9 @@ public class EduCourse {
     /** 教师 */
     private String teacher;
 
+    /** 教师ID */
+    private Long teacherId;
+
     /** 学员数 */
     private Integer studentCount;
 

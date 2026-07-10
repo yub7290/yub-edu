@@ -4,9 +4,9 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
+import com.yub.common.util.SM3Utils;
 import com.yub.edu.api.dto.app.ProfileInfoUpdateDTO;
-import com.yub.framework.security.SecurityUtils;
-import com.yub.framework.util.BeanUtils;
+import com.yub.edu.api.vo.app.ProfileInfoRespVO;
 import com.yub.edu.biz.dto.StudentCreateReqDTO;
 import com.yub.edu.biz.dto.StudentQueryDTO;
 import com.yub.edu.biz.dto.StudentUpdateReqDTO;
@@ -17,9 +17,12 @@ import com.yub.edu.biz.mapper.EduStudentMapper;
 import com.yub.edu.biz.service.StudentService;
 import com.yub.edu.biz.vo.StudentDetailRespVO;
 import com.yub.edu.biz.vo.StudentPageRespVO;
-import com.yub.edu.api.vo.app.ProfileInfoRespVO;
+import com.yub.framework.security.SecurityUtils;
+import com.yub.framework.util.BeanUtils;
+import com.yub.system.mapper.param.SysParamMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,13 +32,16 @@ import java.time.Period;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.yub.system.constants.param.ParamConstants.SYS_DEFAULT_PASSWORD;
+import static com.yub.system.constants.param.ParamKeyConstants.USER_DEFAULT_PASSWORD;
+
 /**
  * 学员 Service 实现
  *
  * @Author: bing.yu
  * @CreateTime: 2026-06-15
  * @Description: 学员业务实现
- * @Version: 1.0.0
+ * @Version: 1.1.0
  */
 @Slf4j
 @Service
@@ -43,15 +49,26 @@ import java.util.stream.Collectors;
 public class StudentServiceImpl implements StudentService {
     private final EduStudentMapper eduStudentMapper;
     private final PasswordEncoder passwordEncoder;
+    // TODO: 架构治理 - 跨模块依赖: yub-edu 不应直接依赖 yub-system 的 Mapper
+    private final SysParamMapper sysParamMapper;
 
-    /** 默认密码 admin123 的 SM3 哈希值 */
-    private static final String DEFAULT_PASSWORD_SM3 = "667c756cf9334e328a56e44e906245c8e214c655a160f18fdb84d79c209c49cf";
+    /**
+     * 从 sys_param 获取默认密码 SM3 哈希，配置缺失时兜底 123456
+     */
+    private String getDefaultPasswordSm3() {
+        String value = sysParamMapper.selectValueByCode(USER_DEFAULT_PASSWORD);
+        return StringUtils.isNotBlank(value) ? value : SM3Utils.hash(SYS_DEFAULT_PASSWORD);
+    }
 
     @Override
     public PageResult<StudentPageRespVO> page(PageQuery<StudentQueryDTO> pageQuery) {
         PageHelper.startPage(pageQuery.getPageParam().getPageNum(), pageQuery.getPageParam().getPageSize());
         List<EduStudent> list = eduStudentMapper.selectPage(pageQuery.getQueryParam());
         PageInfo<EduStudent> pageInfo = new PageInfo<>(list);
+        log.debug("学员分页: pageNum={}, pageSize={}, total={}, listSize={}",
+                pageQuery.getPageParam().getPageNum(),
+                pageQuery.getPageParam().getPageSize(),
+                pageInfo.getTotal(), list.size());
 
         List<StudentPageRespVO> records = list.stream()
                 .map(this::convertToPageVO)
@@ -62,12 +79,9 @@ public class StudentServiceImpl implements StudentService {
 
     private StudentPageRespVO convertToPageVO(EduStudent student) {
         StudentPageRespVO vo = BeanUtils.copy(student, StudentPageRespVO.class);
-
-        // 计算年龄
         if (student.getBirthDate() != null) {
             vo.setAge(Period.between(student.getBirthDate(), LocalDate.now()).getYears());
         }
-
         return vo;
     }
 
@@ -77,14 +91,10 @@ public class StudentServiceImpl implements StudentService {
         if (student == null) {
             throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
         }
-
         StudentDetailRespVO vo = BeanUtils.copy(student, StudentDetailRespVO.class);
-
-        // 计算年龄
         if (student.getBirthDate() != null) {
             vo.setAge(Period.between(student.getBirthDate(), LocalDate.now()).getYears());
         }
-
         return vo;
     }
 
@@ -101,7 +111,7 @@ public class StudentServiceImpl implements StudentService {
         student.setAccount(req.getAccount());
         student.setPassword(passwordEncoder.encode(
                 req.getPassword() != null && !req.getPassword().isEmpty()
-                        ? req.getPassword() : DEFAULT_PASSWORD_SM3));
+                        ? req.getPassword() : getDefaultPasswordSm3()));
         student.setName(req.getName());
         student.setPinyinAbbr(req.getPinyinAbbr());
         student.setStudentNo(req.getStudentNo());
@@ -225,7 +235,7 @@ public class StudentServiceImpl implements StudentService {
         if (exist == null) {
             throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
         }
-        eduStudentMapper.updatePassword(id, passwordEncoder.encode(DEFAULT_PASSWORD_SM3));
+        eduStudentMapper.updatePassword(id, passwordEncoder.encode(getDefaultPasswordSm3()));
         log.info("学员 {} 密码已重置为默认密码，操作者={}", id, SecurityUtils.getCurrentUserId());
     }
 
@@ -235,7 +245,6 @@ public class StudentServiceImpl implements StudentService {
         if (student == null) {
             throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
         }
-
         return ProfileInfoRespVO.builder()
                 .id(student.getId())
                 .nickname(student.getNickName())
@@ -255,8 +264,6 @@ public class StudentServiceImpl implements StudentService {
         if (student == null) {
             throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
         }
-
-        // 只更新前端允许修改的字段
         student.setAvatarUrl(req.getAvatarUrl());
         student.setNickName(req.getNickname());
         student.setPhone(req.getPhone());
@@ -266,7 +273,6 @@ public class StudentServiceImpl implements StudentService {
             student.setBirthDate(req.getBirthday());
         }
         student.setSchool(req.getSchoolName());
-
         eduStudentMapper.updateById(student);
     }
 
@@ -276,22 +282,16 @@ public class StudentServiceImpl implements StudentService {
         if (student == null) {
             throw new EduException(EduErrorCode.STUDENT_NOT_FOUND);
         }
-
-        // 校验原密码
         if (!passwordEncoder.matches(oldPasswordSm3, student.getPassword())) {
             throw new EduException(EduErrorCode.OLD_PASSWORD_ERROR);
         }
-
-        // 校验新密码强度：大写字母、小写字母、数字、符号 至少满足三项
         int strongCount = (newPasswordSm3.matches(".*[A-Z].*") ? 1 : 0)
-                        + (newPasswordSm3.matches(".*[a-z].*") ? 1 : 0)
-                        + (newPasswordSm3.matches(".*\\d.*") ? 1 : 0)
-                        + (newPasswordSm3.matches(".*[^A-Za-z0-9].*") ? 1 : 0);
+                + (newPasswordSm3.matches(".*[a-z].*") ? 1 : 0)
+                + (newPasswordSm3.matches(".*\\d.*") ? 1 : 0)
+                + (newPasswordSm3.matches(".*[^A-Za-z0-9].*") ? 1 : 0);
         if (strongCount < 3) {
             throw new EduException(EduErrorCode.PASSWORD_STRENGTH_ERROR);
         }
-
-        // 保存新密码
         eduStudentMapper.updatePassword(id, passwordEncoder.encode(newPasswordSm3));
     }
 }

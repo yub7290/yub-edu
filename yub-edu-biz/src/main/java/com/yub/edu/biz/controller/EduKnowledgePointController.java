@@ -36,19 +36,19 @@ public class EduKnowledgePointController {
     }
 
     @GetMapping("/list-by-category/{categoryId}")
-    public Response<List<EduKnowledgePoint>> listByCategory(@PathVariable Long categoryId) {
+    public Response<List<EduKnowledgePoint>> listByCategory(@PathVariable("categoryId") Long categoryId) {
         return Response.success(service.listByCategoryId(categoryId));
     }
 
     @GetMapping("/list-by-course/{courseId}")
     public Response<List<EduKnowledgePoint>> listByCourse(
-            @PathVariable Long courseId,
+            @PathVariable("courseId") Long courseId,
             @RequestParam(name = "categoryId", required = false) Long categoryId) {
         return Response.success(service.listByCourseId(courseId, categoryId));
     }
 
     @GetMapping("/{id}")
-    public Response<EduKnowledgePoint> getDetail(@PathVariable Long id) {
+    public Response<EduKnowledgePoint> getDetail(@PathVariable("id") Long id) {
         return Response.success(service.getDetail(id));
     }
 
@@ -67,7 +67,7 @@ public class EduKnowledgePointController {
 
     @Log(value = "删除知识点", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         service.delete(id);
         return Response.success();
     }

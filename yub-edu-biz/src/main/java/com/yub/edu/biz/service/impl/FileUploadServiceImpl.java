@@ -83,7 +83,11 @@ public class FileUploadServiceImpl implements FileUploadService {
      * 上传到七牛云 — 直接使用配置的 domain 拼接 URL
      */
     private String doUploadToQiniu(MultipartFile file, String directory) throws IOException {
-        Configuration cfg = new Configuration(Region.autoRegion());
+        Configuration cfg = new Configuration(getRegion(qiniuConfig.getRegion()));
+        // 大文件上传需要较长超时，默认30s不够
+        cfg.connectTimeout = 10;
+        cfg.writeTimeout = 600;   // 10分钟（配合 Nginx proxy_request_buffering off 够用）
+        cfg.readTimeout = 60;
         UploadManager uploadManager = new UploadManager(cfg);
 
         Auth auth = Auth.create(qiniuConfig.getAccessKey(), qiniuConfig.getSecretKey());
@@ -222,5 +226,41 @@ public class FileUploadServiceImpl implements FileUploadService {
         if (!validType) {
             throw new BaseException(ResponseCode.FILE_TYPE_NOT_ALLOWED);
         }
+    }
+
+    /** 允许的附件文件扩展名（小写） */
+    private static final Set<String> ALLOWED_FILE_EXTENSIONS = Set.of(
+            "doc", "docx", "pdf", "xls", "xlsx", "ppt", "pptx",
+            "zip", "rar", "7z", "txt",
+            "png", "jpg", "jpeg", "gif",
+            "mp4", "avi", "mov", "flv", "wmv", "mkv"
+    );
+
+    /** 最大附件字节数（100MB） */
+    private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
+
+    @Override
+    public void validateFile(MultipartFile file) {
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BaseException(ResponseCode.FILE_SIZE_EXCEEDED);
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw new BaseException(ResponseCode.FILE_TYPE_NOT_ALLOWED);
+        }
+        String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        if (!ALLOWED_FILE_EXTENSIONS.contains(ext)) {
+            throw new BaseException(ResponseCode.FILE_TYPE_NOT_ALLOWED);
+        }
+    }
+
+    /**
+     * 根据区域代码返回七牛云 Region 对象
+     *
+     * @param region 区域代码（z0/z1/z2/na0/as0）
+     * @return Region 对象
+     */
+    private Region getRegion(String region) {
+        return Region.autoRegion();
     }
 }

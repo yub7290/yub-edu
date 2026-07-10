@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduNewsMapper">
+
+    <resultMap id="NewsVOMap" type="com.yub.edu.biz.vo.NewsVO">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="summary" property="summary"/>
+        <result column="cover_url" property="coverUrl"/>
+        <result column="content" property="content"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="source" property="source"/>
+        <result column="author" property="author"/>
+        <result column="status" property="status"/>
+        <result column="views" property="views"/>
+        <result column="publish_time" property="publishTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        n.id, n.title, n.summary, n.cover_url, n.content, n.category_id,
+        c.name AS category_name, n.source, n.author, n.status, n.views,
+        n.publish_time, n.create_time, n.update_time, n.create_by, n.update_by, n.deleted
+    </sql>
+
+    <select id="selectPage" resultMap="NewsVOMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_news n
+        LEFT JOIN edu_news_category c ON c.id = n.category_id AND c.deleted = 0
+        WHERE n.deleted = 0
+        <if test="title != null and title != ''">
+            AND n.title LIKE CONCAT('%', #{title}, '%')
+        </if>
+        <if test="categoryId != null">
+            AND n.category_id = #{categoryId}
+        </if>
+        <if test="status != null">
+            AND n.status = #{status}
+        </if>
+        ORDER BY n.publish_time DESC, n.id DESC
+    </select>
+
+    <select id="selectById" resultMap="NewsVOMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_news n
+        LEFT JOIN edu_news_category c ON c.id = n.category_id AND c.deleted = 0
+        WHERE n.id = #{id} AND n.deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_news (title, summary, cover_url, content, category_id, source, author,
+                               status, views, publish_time, create_time, update_time, create_by, update_by)
+        VALUES (#{title}, #{summary}, #{coverUrl}, #{content}, #{categoryId}, #{source}, #{author},
+                #{status}, 0,
+                CASE WHEN #{status} = 1 THEN NOW() ELSE NULL END,
+                NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_news
+        SET title = #{title},
+            summary = #{summary},
+            cover_url = #{coverUrl},
+            content = #{content},
+            category_id = #{categoryId},
+            source = #{source},
+            author = #{author},
+            status = #{status},
+            publish_time = CASE WHEN #{status} = 1 AND publish_time IS NULL THEN NOW() ELSE publish_time END,
+            update_time = NOW(),
+            update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_news SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <select id="selectAppPage" resultMap="NewsVOMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_news n
+        LEFT JOIN edu_news_category c ON c.id = n.category_id AND c.deleted = 0
+        WHERE n.deleted = 0 AND n.status = 1
+        <if test="categoryId != null">
+            AND n.category_id = #{categoryId}
+        </if>
+        ORDER BY n.publish_time DESC, n.id DESC
+    </select>
+
+    <update id="incrementViews">
+        UPDATE edu_news SET views = IFNULL(views, 0) + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="countByCategoryId" resultType="int">
+        SELECT COUNT(*) FROM edu_news WHERE category_id = #{categoryId} AND deleted = 0
+    </select>
+</mapper>

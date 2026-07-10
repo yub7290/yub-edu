@@ -35,6 +35,14 @@ public interface EduTeacherMapper {
     EduTeacher selectById(@Param("id") Long id);
 
     /**
+     * 根据账号查询教师（排除已删除）
+     *
+     * @param account 账号
+     * @return 教师
+     */
+    EduTeacher selectByAccount(@Param("account") String account);
+
+    /**
      * 根据账号查询教师（含已删除，用于唯一性校验）
      *
      * @param account 账号
@@ -129,4 +137,12 @@ public interface EduTeacherMapper {
      * @return 影响行数
      */
     int updateRecommended(@Param("id") Long id, @Param("recommended") Integer recommended);
+
+    /**
+     * 查询教师的角色编码列表
+     *
+     * @param teacherId 教师ID
+     * @return 角色编码列表
+     */
+    List<String> selectRoleCodesByTeacherId(@Param("teacherId") Long teacherId);
 }

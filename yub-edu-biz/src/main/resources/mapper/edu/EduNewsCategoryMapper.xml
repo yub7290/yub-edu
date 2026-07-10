@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduNewsCategoryMapper">
+
+    <resultMap id="EduNewsCategoryMap" type="com.yub.edu.biz.entity.EduNewsCategory">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, name, sort_order, status, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectList" resultMap="EduNewsCategoryMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_news_category
+        WHERE deleted = 0
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="EduNewsCategoryMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_news_category
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_news_category (name, sort_order, status, create_time, update_time)
+        VALUES (#{name}, #{sortOrder}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_news_category
+        SET name = #{name},
+            sort_order = #{sortOrder},
+            status = #{status},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_news_category SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <select id="countByName" resultType="int">
+        SELECT COUNT(*)
+        FROM edu_news_category
+        WHERE deleted = 0 AND name = #{name}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+</mapper>

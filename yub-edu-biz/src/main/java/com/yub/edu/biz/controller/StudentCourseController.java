@@ -10,15 +10,14 @@ import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduExam;
 import com.yub.edu.biz.entity.EduExamRecord;
 import com.yub.edu.biz.entity.EduTeacher;
-import com.yub.edu.biz.mapper.EduAiConfigMapper;
-import com.yub.edu.biz.mapper.EduChapterMapper;
-import com.yub.edu.biz.mapper.EduCourseMapper;
-import com.yub.edu.biz.mapper.EduExamMapper;
-import com.yub.edu.biz.mapper.EduExamRecordMapper;
-import com.yub.edu.biz.mapper.EduPracticeRecordMapper;
-import com.yub.edu.biz.mapper.EduTeacherMapper;
-import com.yub.edu.biz.mapper.StudyRecordMapper;
+import com.yub.edu.biz.service.ChapterService;
+import com.yub.edu.biz.service.EduAiConfigService;
 import com.yub.edu.biz.service.EduCourseService;
+import com.yub.edu.biz.service.EduExamRecordService;
+import com.yub.edu.biz.service.EduExamService;
+import com.yub.edu.biz.service.EduPracticeRecordService;
+import com.yub.edu.biz.service.StudyRecordService;
+import com.yub.edu.biz.service.TeacherService;
 import com.yub.edu.biz.vo.CourseCategoryRespVO;
 import com.yub.edu.biz.vo.CourseExamHistoryVO;
 import com.yub.edu.biz.vo.CourseListRespVO;
@@ -45,15 +44,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StudentCourseController {
 
-    private final EduCourseMapper eduCourseMapper;
-    private final EduChapterMapper eduChapterMapper;
-    private final EduTeacherMapper eduTeacherMapper;
     private final EduCourseService eduCourseService;
-    private final EduAiConfigMapper eduAiConfigMapper;
-    private final EduExamRecordMapper eduExamRecordMapper;
-    private final EduPracticeRecordMapper eduPracticeRecordMapper;
-    private final StudyRecordMapper studyRecordMapper;
-    private final EduExamMapper eduExamMapper;
+    private final ChapterService chapterService;
+    private final TeacherService teacherService;
+    private final EduAiConfigService eduAiConfigService;
+    private final EduExamRecordService eduExamRecordService;
+    private final EduPracticeRecordService eduPracticeRecordService;
+    private final StudyRecordService studyRecordService;
+    private final EduExamService eduExamService;
 
     /**
      * 课程分类
@@ -113,7 +111,7 @@ public class StudentCourseController {
      */
     @GetMapping("/detail")
     public Response<StudentCourseDetailRespVO> detail(@RequestParam("cid") Long cid) {
-        EduCourse course = eduCourseMapper.selectById(cid);
+        EduCourse course = eduCourseService.selectById(cid);
         if (course == null) {
             return Response.success(null);
         }
@@ -127,21 +125,15 @@ public class StudentCourseController {
         courseInfo.put("desc", course.getIntroduction() != null ? course.getIntroduction() : "");
         courseInfo.put("target", course.getLearningObjectives() != null ? course.getLearningObjectives() : "");
 
-        // 章节列表
-        List<EduChapter> chapters = eduChapterMapper.selectTreeByCourseId(cid);
-        List<Map<String, Object>> chapterList = new ArrayList<>();
-        for (EduChapter ch : chapters) {
-            Map<String, Object> chMap = new HashMap<>();
-            chMap.put("id", ch.getId());
-            chMap.put("name", ch.getName());
-            chapterList.add(chMap);
-        }
+        // 章节列表（树形结构）
+        List<EduChapter> allChapters = flattenChapterTree(chapterService.getTree(cid));
+        List<Map<String, Object>> chapterList = buildChapterTreeMap(allChapters);
 
         // 教师信息
         Map<String, Object> teacherInfo = new HashMap<>();
         String teacherName = course.getTeacher();
         if (teacherName != null && !teacherName.isEmpty()) {
-            EduTeacher teacher = eduTeacherMapper.selectByName(teacherName);
+            EduTeacher teacher = teacherService.selectByName(teacherName);
             if (teacher != null) {
                 teacherInfo.put("avatar", teacher.getAvatarUrl() != null ? teacher.getAvatarUrl() : "");
                 teacherInfo.put("name", teacher.getName() != null ? teacher.getName() : "");
@@ -159,7 +151,7 @@ public class StudentCourseController {
 
         // AI助教信息
         Map<String, Object> aiAssistant = new HashMap<>();
-        EduAiConfig aiConfig = eduAiConfigMapper.selectByCourseId(cid);
+        EduAiConfig aiConfig = eduAiConfigService.selectByCourseId(cid);
         boolean aiEnabled = aiConfig != null && aiConfig.getEnabled() != null && aiConfig.getEnabled() == 1;
         aiAssistant.put("enabled", aiEnabled);
         // 默认系统提示词也返回前端，方便展示AI助教角色
@@ -179,17 +171,17 @@ public class StudentCourseController {
      * @return 综合成绩数据
      */
     @GetMapping("/{courseId}/score")
-    public Response<CourseScoreRespVO> score(@PathVariable Long courseId) {
+    public Response<CourseScoreRespVO> score(@PathVariable("courseId") Long courseId) {
         Long userId = SecurityUtils.getCurrentUserId();
 
         // 课程信息
-        EduCourse course = eduCourseMapper.selectById(courseId);
+        EduCourse course = eduCourseService.selectById(courseId);
         if (course == null) {
             return Response.success(null);
         }
 
         // 1. 考试统计
-        CourseExamStatsResult examStats = eduExamRecordMapper.selectCourseExamStats(userId, courseId);
+        CourseExamStatsResult examStats = eduExamRecordService.selectCourseExamStats(userId, courseId);
         int examAvgScore = examStats != null ? examStats.getAvgScore() : 0;
         int examMaxScore = examStats != null ? examStats.getMaxScore() : 0;
         int examTotalCount = examStats != null ? examStats.getTotalCount() : 0;
@@ -197,24 +189,24 @@ public class StudentCourseController {
         int examPassRate = examTotalCount > 0 ? examPassCount * 100 / examTotalCount : 0;
 
         // 2. 练习统计
-        int practiceTotal = eduPracticeRecordMapper.countByUserAndCourse(userId, courseId);
-        int practiceCorrect = eduPracticeRecordMapper.countCorrectByUserAndCourse(userId, courseId);
+        int practiceTotal = eduPracticeRecordService.countByUserAndCourse(userId, courseId);
+        int practiceCorrect = eduPracticeRecordService.countCorrectByUserAndCourse(userId, courseId);
         int practiceAccuracyRate = practiceTotal > 0 ? practiceCorrect * 100 / practiceTotal : 0;
 
         // 3. 章节学习进度
-        List<EduChapter> chapters = eduChapterMapper.selectTreeByCourseId(courseId);
-        int chapterTotal = chapters.size();
-        int chapterStudied = studyRecordMapper.countStudiedChapters(userId, courseId);
+        List<EduChapter> allChapters = flattenChapterTree(chapterService.getTree(courseId));
+        int chapterTotal = allChapters.size();
+        int chapterStudied = studyRecordService.countStudiedChapters(userId, courseId);
         int chapterProgressRate = chapterTotal > 0 ? chapterStudied * 100 / chapterTotal : 0;
 
         // 4. 考试历史列表
-        List<EduExamRecord> records = eduExamRecordMapper.selectByUserAndCourse(userId, courseId);
+        List<EduExamRecord> records = eduExamRecordService.selectByUserAndCourse(userId, courseId);
         // 收集 examId 列表，批量查询 exam 信息
         Set<Long> examIds = records.stream().map(EduExamRecord::getExamId).collect(Collectors.toSet());
         Map<Long, EduExam> examMap = new HashMap<>();
         if (!examIds.isEmpty()) {
             for (Long eid : examIds) {
-                EduExam exam = eduExamMapper.selectById(eid);
+                EduExam exam = eduExamService.selectById(eid);
                 if (exam != null) {
                     examMap.put(eid, exam);
                 }
@@ -254,5 +246,62 @@ public class StudentCourseController {
                 .chapterProgressRate(chapterProgressRate)
                 .examHistoryList(historyList)
                 .build());
+    }
+
+    /**
+     * 将树形章节结构展平为列表
+     *
+     * @param chapters 树形章节列表
+     * @return 展平后的章节列表
+     */
+    private List<EduChapter> flattenChapterTree(List<EduChapter> chapters) {
+        List<EduChapter> result = new ArrayList<>();
+        if (chapters == null) {
+            return result;
+        }
+        for (EduChapter ch : chapters) {
+            result.add(ch);
+            if (ch.getChildren() != null && !ch.getChildren().isEmpty()) {
+                result.addAll(flattenChapterTree(ch.getChildren()));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 将扁平章节列表构建为树形结构Map
+     *
+     * @param chapters 扁平章节列表（按parent_id, sort排序）
+     * @return 树形结构章节列表
+     */
+    private List<Map<String, Object>> buildChapterTreeMap(List<EduChapter> chapters) {
+        Map<Long, Map<String, Object>> map = new LinkedHashMap<>();
+        List<Map<String, Object>> roots = new ArrayList<>();
+        for (EduChapter ch : chapters) {
+            Map<String, Object> node = new HashMap<>();
+            node.put("id", ch.getId());
+            node.put("name", ch.getName());
+            map.put(ch.getId(), node);
+        }
+        for (EduChapter ch : chapters) {
+            Map<String, Object> node = map.get(ch.getId());
+            if (ch.getParentId() == null || ch.getParentId() == 0L) {
+                roots.add(node);
+            } else {
+                Map<String, Object> parent = map.get(ch.getParentId());
+                if (parent != null) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> children = (List<Map<String, Object>>) parent.get("children");
+                    if (children == null) {
+                        children = new ArrayList<>();
+                        parent.put("children", children);
+                    }
+                    children.add(node);
+                } else {
+                    roots.add(node);
+                }
+            }
+        }
+        return roots;
     }
 }

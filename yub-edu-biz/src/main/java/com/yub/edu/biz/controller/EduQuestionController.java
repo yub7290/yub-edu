@@ -50,7 +50,7 @@ public class EduQuestionController {
      * @return 试题详情
      */
     @GetMapping("/{id}")
-    public Response<QuestionDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<QuestionDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(eduQuestionService.getDetail(id));
     }
 
@@ -87,7 +87,7 @@ public class EduQuestionController {
      */
     @Log(value = "删除试题", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         eduQuestionService.delete(id);
         return Response.success();
     }
@@ -101,7 +101,7 @@ public class EduQuestionController {
      */
     @Log(value = "切换试题状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduQuestionService.changeStatus(id, dto.getStatus());
         return Response.success();
     }
@@ -113,7 +113,7 @@ public class EduQuestionController {
      * @return 知识点ID列表
      */
     @GetMapping("/{id}/knowledge")
-    public Response<List<Long>> getKnowledge(@PathVariable Long id) {
+    public Response<List<Long>> getKnowledge(@PathVariable("id") Long id) {
         return Response.success(eduQuestionService.getKnowledgePointIds(id));
     }
 
@@ -126,7 +126,7 @@ public class EduQuestionController {
      */
     @Log(value = "更新试题关联知识点", type = "UPDATE")
     @PutMapping("/{id}/knowledge")
-    public Response<Void> updateKnowledge(@PathVariable Long id, @RequestBody List<Long> knowledgePointIds) {
+    public Response<Void> updateKnowledge(@PathVariable("id") Long id, @RequestBody List<Long> knowledgePointIds) {
         eduQuestionService.updateKnowledgePoints(id, knowledgePointIds);
         return Response.success();
     }

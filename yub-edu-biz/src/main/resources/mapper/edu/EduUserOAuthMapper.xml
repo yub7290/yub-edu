@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduUserOAuthMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduUserOAuth">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="platform" property="platform"/>
+        <result column="open_id" property="openId"/>
+        <result column="union_id" property="unionId"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, user_id, platform, open_id, union_id, nickname, avatar_url,
+        create_time, update_time, deleted
+    </sql>
+
+    <select id="selectByUserIdAndPlatform" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_user_oauth
+        WHERE user_id = #{userId} AND platform = #{platform} AND deleted = 0
+    </select>
+
+    <select id="selectByPlatformAndOpenId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_user_oauth
+        WHERE platform = #{platform} AND open_id = #{openId} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_user_oauth (user_id, platform, open_id, union_id, nickname, avatar_url, create_time, deleted)
+        VALUES (#{userId}, #{platform}, #{openId}, #{unionId}, #{nickname}, #{avatarUrl}, NOW(), 0)
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_user_oauth
+        SET open_id = #{openId}, union_id = #{unionId}, nickname = #{nickname},
+            avatar_url = #{avatarUrl}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteByUserIdAndPlatform">
+        UPDATE edu_user_oauth
+        SET deleted = 1, update_time = NOW()
+        WHERE user_id = #{userId} AND platform = #{platform} AND deleted = 0
+    </update>
+
+</mapper>

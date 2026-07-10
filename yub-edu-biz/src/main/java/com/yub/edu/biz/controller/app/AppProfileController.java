@@ -19,10 +19,10 @@ import com.yub.edu.biz.entity.EduPointsOrder;
 import com.yub.edu.biz.entity.EduPointsProduct;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
-import com.yub.edu.biz.mapper.EduAddressMapper;
-import com.yub.edu.biz.mapper.EduLoginLogMapper;
-import com.yub.edu.biz.mapper.EduPointsProductMapper;
-import com.yub.edu.biz.mapper.EduStudyCardInstanceMapper;
+import com.yub.edu.biz.service.EduAddressService;
+import com.yub.edu.biz.service.EduLoginLogService;
+import com.yub.edu.biz.service.EduPointsProductService;
+import com.yub.edu.biz.service.EduStudyCardInstanceService;
 import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.service.PointsOrderService;
 import com.yub.edu.biz.service.PointsService;
@@ -55,12 +55,12 @@ public class AppProfileController {
 
     private final EduCourseService courseService;
     private final StudentService studentService;
-    private final EduLoginLogMapper eduLoginLogMapper;
+    private final EduLoginLogService eduLoginLogService;
     private final PointsService pointsService;
-    private final EduPointsProductMapper eduPointsProductMapper;
-    private final EduStudyCardInstanceMapper eduStudyCardInstanceMapper;
+    private final EduPointsProductService eduPointsProductService;
+    private final EduStudyCardInstanceService eduStudyCardInstanceService;
     private final PointsOrderService pointsOrderService;
-    private final EduAddressMapper addressMapper;
+    private final EduAddressService addressService;
 
     /**
      * 我的课程
@@ -114,7 +114,7 @@ public class AppProfileController {
     public Response<List<LoginLogRespVO>> loginLog() {
         Long userId = SecurityUtils.getCurrentUserId();
         List<LoginLogRespVO> list = BeanUtils.copyList(
-                eduLoginLogMapper.selectByStudentId(userId, 50),
+                eduLoginLogService.selectByStudentId(userId, 50),
                 LoginLogRespVO.class);
         return Response.success(list);
     }
@@ -151,7 +151,7 @@ public class AppProfileController {
     public Response<PageResult<PointsProductVO>> getPointsProducts(
             @RequestBody PageQuery<Void> pageQuery) {
         PageHelper.startPage(pageQuery.getPageParam().getPageNum(), pageQuery.getPageParam().getPageSize());
-        List<EduPointsProduct> products = eduPointsProductMapper.selectPage(null, 1);
+        List<EduPointsProduct> products = eduPointsProductService.selectPage(null, 1);
         PageInfo<EduPointsProduct> pageInfo = new PageInfo<>(products);
         List<PointsProductVO> voList = products.stream()
                 .map(this::toProductVO)
@@ -167,7 +167,7 @@ public class AppProfileController {
     @PostMapping("/points/exchange")
     public Response<ExchangeResultVO> exchangeProduct(@RequestBody @Validated ExchangeReqDTO req) {
         Long userId = SecurityUtils.getCurrentUserId();
-        EduPointsProduct product = eduPointsProductMapper.selectById(req.getProductId());
+        EduPointsProduct product = eduPointsProductService.selectById(req.getProductId());
         if (product == null) {
             throw new EduException(EduErrorCode.POINTS_INSUFFICIENT);
         }
@@ -175,7 +175,7 @@ public class AppProfileController {
         String receiverPhone = req.getReceiverPhone();
         String receiverAddress = req.getReceiverAddress();
         if (req.getAddressId() != null) {
-            EduAddress address = addressMapper.selectById(req.getAddressId());
+            EduAddress address = addressService.selectById(req.getAddressId());
             if (address != null) {
                 receiverName = address.getName();
                 receiverPhone = address.getPhone();

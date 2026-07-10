@@ -116,4 +116,13 @@ public interface EduStudentMapper {
      * @return 影响行数
      */
     int updateLastLoginTime(@Param("id") Long id);
+
+    /**
+     * 仅更新学员编号（注册时根据自增ID派生，避免覆盖其它字段）
+     *
+     * @param id        学员ID
+     * @param studentNo 学员编号
+     * @return 影响行数
+     */
+    int updateStudentNo(@Param("id") Long id, @Param("studentNo") String studentNo);
 }

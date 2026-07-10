@@ -141,6 +141,16 @@ public interface EduMajorMapper {
     int updateRecommended(@Param("id") Long id, @Param("recommended") Integer recommended);
 
     /**
+     * 更新专业的上级与排序（拖拽排序使用）
+     *
+     * @param id       专业ID
+     * @param parentId 上级专业ID
+     * @param sort     排序值
+     * @return 影响行数
+     */
+    int updateParentAndSort(@Param("id") Long id, @Param("parentId") Long parentId, @Param("sort") Integer sort);
+
+    /**
      * 查询回收站列表
      *
      * @return 已删除的专业列表

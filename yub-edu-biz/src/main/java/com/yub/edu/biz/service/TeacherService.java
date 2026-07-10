@@ -109,4 +109,12 @@ public interface TeacherService {
      * @param recommended 推荐状态（1=推荐 0=不推荐）
      */
     void setRecommended(Long id, Integer recommended);
+
+    /**
+     * 根据教师姓名查询
+     *
+     * @param name 教师姓名
+     * @return 教师信息
+     */
+    EduTeacher selectByName(String name);
 }

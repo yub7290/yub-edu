@@ -2,7 +2,7 @@ package com.yub.edu.biz.controller.app;
 
 import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduAddress;
-import com.yub.edu.biz.mapper.EduAddressMapper;
+import com.yub.edu.biz.service.EduAddressService;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.framework.security.SecurityUtils;
@@ -31,7 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AppAddressController {
 
-    private final EduAddressMapper addressMapper;
+    private final EduAddressService addressService;
 
     /**
      * 获取用户地址列表
@@ -41,7 +41,7 @@ public class AppAddressController {
     @GetMapping("/list")
     public Response<List<EduAddress>> list() {
         Long userId = SecurityUtils.getCurrentUserId();
-        return Response.success(addressMapper.selectByUserId(userId));
+        return Response.success(addressService.selectByUserId(userId));
     }
 
     /**
@@ -55,9 +55,9 @@ public class AppAddressController {
         Long userId = SecurityUtils.getCurrentUserId();
         address.setUserId(userId);
         if (Integer.valueOf(1).equals(address.getIsDefault())) {
-            addressMapper.clearDefault(userId);
+            addressService.clearDefault(userId);
         }
-        addressMapper.insert(address);
+        addressService.insert(address);
         return Response.success();
     }
 
@@ -72,9 +72,9 @@ public class AppAddressController {
         Long userId = SecurityUtils.getCurrentUserId();
         address.setUserId(userId);
         if (Integer.valueOf(1).equals(address.getIsDefault())) {
-            addressMapper.clearDefault(userId);
+            addressService.clearDefault(userId);
         }
-        addressMapper.updateById(address);
+        addressService.updateById(address);
         return Response.success();
     }
 
@@ -87,7 +87,7 @@ public class AppAddressController {
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable("id") Long id) {
         Long userId = SecurityUtils.getCurrentUserId();
-        addressMapper.deleteById(id, userId);
+        addressService.deleteById(id, userId);
         return Response.success();
     }
 
@@ -100,12 +100,12 @@ public class AppAddressController {
     @PutMapping("/{id}/default")
     public Response<Void> setDefault(@PathVariable("id") Long id) {
         Long userId = SecurityUtils.getCurrentUserId();
-        EduAddress existing = addressMapper.selectById(id);
+        EduAddress existing = addressService.selectById(id);
         if (existing == null || !userId.equals(existing.getUserId())) {
             throw new EduException(EduErrorCode.ADDRESS_NOT_FOUND);
         }
-        addressMapper.clearDefault(userId);
-        addressMapper.setDefault(id, userId);
+        addressService.clearDefault(userId);
+        addressService.setDefault(id, userId);
         return Response.success();
     }
 }

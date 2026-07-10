@@ -137,7 +137,7 @@ public class StudentGrowthController {
      * @return 任务状态
      */
     @PutMapping("/task/{taskId}/status")
-    public Response<StudentGrowthVO.TaskStatus> updateTaskStatus(@PathVariable Long taskId,
+    public Response<StudentGrowthVO.TaskStatus> updateTaskStatus(@PathVariable("taskId") Long taskId,
                                                                  @RequestBody(required = false) GrowthTaskStatusReqDTO dto,
                                                                  @RequestParam(name = "completed", required = false) Boolean completed) {
         Boolean safeCompleted = dto != null && dto.getCompleted() != null ? dto.getCompleted() : completed;

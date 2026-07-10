@@ -72,4 +72,7 @@ public class CourseCreateReqDTO {
     /** 教师 */
     @Size(max = 100, message = "教师名称长度不能超过100个字符")
     private String teacher;
+
+    /** 教师ID */
+    private Long teacherId;
 }

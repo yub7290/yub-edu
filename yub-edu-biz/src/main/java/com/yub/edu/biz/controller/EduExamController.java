@@ -11,6 +11,8 @@ import com.yub.edu.biz.dto.StatusReqDTO;
 import com.yub.edu.biz.service.EduExamService;
 import com.yub.edu.biz.vo.ExamDetailRespVO;
 import com.yub.edu.biz.vo.ExamPageRespVO;
+import com.yub.framework.security.JwtProvider;
+import com.yub.framework.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,6 +47,10 @@ public class EduExamController {
      */
     @PostMapping("/page")
     public Response<PageResult<ExamPageRespVO>> page(@RequestBody PageQuery<ExamQueryDTO> pageQuery) {
+        // 教师身份自动注入 teacherId 过滤，仅返回该教师归属的试卷；管理员无此限制
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            pageQuery.getQueryParam().setTeacherId(SecurityUtils.getCurrentUserId());
+        }
         return Response.success(eduExamService.page(pageQuery));
     }
 
@@ -55,7 +61,7 @@ public class EduExamController {
      * @return 试卷详情
      */
     @GetMapping("/{id}")
-    public Response<ExamDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<ExamDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(eduExamService.getDetail(id));
     }
 
@@ -92,7 +98,7 @@ public class EduExamController {
      */
     @Log(value = "删除试卷", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         eduExamService.delete(id);
         return Response.success();
     }
@@ -106,7 +112,7 @@ public class EduExamController {
      */
     @Log(value = "切换试卷状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduExamService.changeStatus(id, dto.getStatus());
         return Response.success();
     }

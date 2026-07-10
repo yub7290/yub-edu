@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduStudentGroupMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduStudentGroup">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+        <result column="member_count" property="memberCount"/>
+        <result column="course_count" property="courseCount"/>
+    </resultMap>
+
+    <resultMap id="MemberItemMap" type="com.yub.edu.biz.vo.StudentGroupDetailRespVO$MemberItem">
+        <id column="id" property="id"/>
+        <result column="student_name" property="studentName"/>
+        <result column="student_no" property="studentNo"/>
+        <result column="phone" property="phone"/>
+        <result column="avatar" property="avatar"/>
+    </resultMap>
+
+    <resultMap id="CourseItemMap" type="com.yub.edu.biz.vo.StudentGroupDetailRespVO$CourseItem">
+        <id column="id" property="id"/>
+        <result column="course_name" property="courseName"/>
+        <result column="sort_order" property="sortOrder"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, name, description, sort_order, status, create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <sql id="pageColumns">
+        t.id, t.name, t.description, t.sort_order, t.status, t.create_time, t.update_time, t.create_by, t.update_by,
+        IFNULL(mc.member_count, 0) AS member_count, IFNULL(cc.course_count, 0) AS course_count
+    </sql>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="pageColumns"/>
+        FROM edu_student_group t
+        LEFT JOIN (
+            SELECT group_id, COUNT(1) AS member_count
+            FROM edu_student_group_member
+            GROUP BY group_id
+        ) mc ON mc.group_id = t.id
+        LEFT JOIN (
+            SELECT group_id, COUNT(1) AS course_count
+            FROM edu_student_group_course
+            GROUP BY group_id
+        ) cc ON cc.group_id = t.id
+        WHERE t.deleted = 0
+        <if test="query.name != null and query.name != ''">
+            AND t.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.status != null">
+            AND t.status = #{query.status}
+        </if>
+        ORDER BY t.sort_order ASC, t.id ASC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_student_group
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_student_group
+        WHERE name = #{name} AND deleted = 0
+    </select>
+
+    <select id="selectMemberCount" resultType="int">
+        SELECT COUNT(1) FROM edu_student_group_member WHERE group_id = #{groupId}
+    </select>
+
+    <select id="selectCourseCount" resultType="int">
+        SELECT COUNT(1) FROM edu_student_group_course WHERE group_id = #{groupId}
+    </select>
+
+    <select id="selectMembers" resultMap="MemberItemMap">
+        SELECT s.id, s.name AS student_name, s.student_no, s.phone, s.avatar_url AS avatar
+        FROM edu_student_group_member m
+        LEFT JOIN edu_student s ON s.id = m.student_id AND s.deleted = 0
+        WHERE m.group_id = #{groupId}
+        ORDER BY m.create_time
+    </select>
+
+    <select id="selectCourses" resultMap="CourseItemMap">
+        SELECT c.id, c.name AS course_name, gc.sort_order
+        FROM edu_student_group_course gc
+        LEFT JOIN edu_course c ON c.id = gc.course_id AND c.deleted = 0
+        WHERE gc.group_id = #{groupId}
+        ORDER BY gc.sort_order
+    </select>
+
+    <select id="selectCoursesByGroupIdForCheck" resultType="int">
+        SELECT COUNT(1) FROM edu_student_group_course WHERE group_id = #{groupId}
+    </select>
+
+    <select id="selectMembersByGroupIdForCheck" resultType="int">
+        SELECT COUNT(1) FROM edu_student_group_member WHERE group_id = #{groupId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_student_group (name, description, sort_order, status, create_time, update_time, create_by, update_by)
+        VALUES (#{name}, #{description}, #{sortOrder}, #{status}, NOW(), NOW(), #{createBy}, #{updateBy})
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_student_group
+        SET name        = #{name},
+            description = #{description},
+            sort_order  = #{sortOrder},
+            status      = #{status},
+            update_time = NOW(),
+            update_by   = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_student_group SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE edu_student_group SET status = #{status} WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <insert id="insertCourses">
+        INSERT IGNORE INTO edu_student_group_course (group_id, course_id, sort_order, create_time, create_by)
+        VALUES
+        <foreach collection="courseIds" item="courseId" separator=",">
+            (#{groupId}, #{courseId}, 0, NOW(), #{createBy})
+        </foreach>
+    </insert>
+
+    <delete id="deleteCourses">
+        DELETE FROM edu_student_group_course
+        WHERE group_id = #{groupId}
+        AND course_id IN
+        <foreach collection="courseIds" item="courseId" open="(" separator="," close=")">
+            #{courseId}
+        </foreach>
+    </delete>
+
+    <insert id="insertMembers">
+        INSERT IGNORE INTO edu_student_group_member (group_id, student_id, create_time, create_by)
+        VALUES
+        <foreach collection="studentIds" item="studentId" separator=",">
+            (#{groupId}, #{studentId}, NOW(), #{createBy})
+        </foreach>
+    </insert>
+
+    <delete id="deleteMembers">
+        DELETE FROM edu_student_group_member
+        WHERE group_id = #{groupId}
+        AND student_id IN
+        <foreach collection="studentIds" item="studentId" open="(" separator="," close=")">
+            #{studentId}
+        </foreach>
+    </delete>
+
+    <update id="updateCourseSortOrder">
+        UPDATE edu_student_group_course
+        SET sort_order = #{sortOrder}
+        WHERE group_id = #{groupId} AND course_id = #{courseId}
+    </update>
+
+</mapper>

@@ -28,6 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EduPointsSettingController {
 
+    // TODO: 架构治理 - 跨模块依赖: yub-edu 不应直接依赖 yub-system 的 Service
     private final SysParamService sysParamService;
 
     /**

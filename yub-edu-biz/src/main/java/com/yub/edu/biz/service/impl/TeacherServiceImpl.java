@@ -4,8 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
-import com.yub.framework.security.SecurityUtils;
-import com.yub.framework.util.BeanUtils;
+import com.yub.common.util.SM3Utils;
 import com.yub.edu.biz.dto.TeacherCreateReqDTO;
 import com.yub.edu.biz.dto.TeacherQueryDTO;
 import com.yub.edu.biz.dto.TeacherUpdateReqDTO;
@@ -17,12 +16,14 @@ import com.yub.edu.biz.mapper.EduTeacherTitleMapper;
 import com.yub.edu.biz.service.TeacherService;
 import com.yub.edu.biz.vo.TeacherDetailRespVO;
 import com.yub.edu.biz.vo.TeacherPageRespVO;
+import com.yub.framework.security.SecurityUtils;
+import com.yub.framework.util.BeanUtils;
+import com.yub.system.mapper.param.SysParamMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.yub.system.constants.param.ParamConstants.SYS_DEFAULT_PASSWORD;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -45,11 +47,19 @@ import static java.util.stream.Collectors.toMap;
 @RequiredArgsConstructor
 public class TeacherServiceImpl implements TeacherService {
 
-    private static final String DEFAULT_PASSWORD_SM3 = "667c756cf9334e328a56e44e906245c8e214c655a160f18fdb84d79c209c49cf";
-
     private final EduTeacherMapper eduTeacherMapper;
     private final EduTeacherTitleMapper eduTeacherTitleMapper;
     private final PasswordEncoder passwordEncoder;
+    // TODO: 架构治理 - 跨模块依赖: yub-edu 不应直接依赖 yub-system 的 Mapper
+    private final SysParamMapper sysParamMapper;
+
+    /**
+     * 从 sys_param 获取默认密码 SM3 哈希，配置缺失时兜底 admin123
+     */
+    private String getDefaultPasswordSm3() {
+        String value = sysParamMapper.selectValueByCode(SYS_DEFAULT_PASSWORD);
+        return (value != null && !value.isBlank()) ? value : SM3Utils.hash(SYS_DEFAULT_PASSWORD);
+    }
 
     @Override
     public PageResult<TeacherPageRespVO> page(PageQuery<TeacherQueryDTO> pageQuery) {
@@ -131,7 +141,7 @@ public class TeacherServiceImpl implements TeacherService {
         EduTeacher teacher = new EduTeacher();
         teacher.setAvatarUrl(req.getAvatarUrl());
         teacher.setAccount(req.getAccount());
-        teacher.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD_SM3));
+        teacher.setPassword(passwordEncoder.encode(getDefaultPasswordSm3()));
         teacher.setName(req.getName());
         teacher.setTitleId(req.getTitleId());
         teacher.setPinyinAbbr(req.getPinyinAbbr());
@@ -232,7 +242,7 @@ public class TeacherServiceImpl implements TeacherService {
         if (exist == null) {
             throw new EduException(EduErrorCode.TEACHER_NOT_FOUND);
         }
-        eduTeacherMapper.updatePassword(id, passwordEncoder.encode(DEFAULT_PASSWORD_SM3));
+        eduTeacherMapper.updatePassword(id, passwordEncoder.encode(getDefaultPasswordSm3()));
         log.info("教师 {} 密码已重置为默认密码，操作者={}", id, SecurityUtils.getCurrentUserId());
     }
 
@@ -269,5 +279,10 @@ public class TeacherServiceImpl implements TeacherService {
             throw new EduException(EduErrorCode.TEACHER_NOT_FOUND);
         }
         eduTeacherMapper.updateRecommended(id, recommended);
+    }
+
+    @Override
+    public EduTeacher selectByName(String name) {
+        return eduTeacherMapper.selectByName(name);
     }
 }

@@ -56,6 +56,7 @@ public class EduStudyCardServiceImpl implements EduStudyCardService {
     private final EduStudyCardInstanceMapper eduStudyCardInstanceMapper;
     private final EduStudyCardCourseMapper eduStudyCardCourseMapper;
     private final EduCourseMapper eduCourseMapper;
+    // TODO: 架构治理 - 跨模块依赖: yub-edu 不应直接依赖 yub-system 的 Mapper
     private final com.yub.system.mapper.user.SysUserMapper sysUserMapper;
 
     @Override
@@ -338,6 +339,11 @@ public class EduStudyCardServiceImpl implements EduStudyCardService {
                 .totalCount(totalCount)
                 .usedCount(usedCount)
                 .build();
+    }
+
+    @Override
+    public List<EduStudyCard> selectSimpleList() {
+        return eduStudyCardMapper.selectSimpleList();
     }
 
     private void insertCourseRelations(Long cardId, List<Long> courseIds) {

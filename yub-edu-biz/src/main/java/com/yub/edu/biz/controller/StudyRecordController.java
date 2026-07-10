@@ -2,7 +2,7 @@ package com.yub.edu.biz.controller;
 
 import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
-import com.yub.edu.biz.mapper.StudyRecordMapper;
+import com.yub.edu.biz.service.StudyRecordService;
 import com.yub.edu.biz.entity.EduStudyRecord;
 import com.yub.edu.biz.vo.StudyStatsRespVO;
 import com.yub.framework.security.JwtProvider;
@@ -25,7 +25,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class StudyRecordController {
 
-    private final StudyRecordMapper studyRecordMapper;
+    private final StudyRecordService studyRecordService;
     private final JwtProvider jwtProvider;
 
     /**
@@ -40,12 +40,12 @@ public class StudyRecordController {
         Integer playSecond = Integer.valueOf(params.get("playSecond").toString());
         Integer totalStudySecond = Integer.valueOf(params.get("totalStudySecond").toString());
 
-        EduStudyRecord exist = studyRecordMapper.selectByStudentAndChapter(studentId, courseId, chapterId);
+        EduStudyRecord exist = studyRecordService.selectByStudentAndChapter(studentId, courseId, chapterId);
         if (exist != null) {
             // 更新：取较大的播放进度和学习时长
             exist.setPlaySecond(Math.max(exist.getPlaySecond(), playSecond));
             exist.setTotalStudySecond(Math.max(exist.getTotalStudySecond(), totalStudySecond));
-            studyRecordMapper.updateById(exist);
+            studyRecordService.updateById(exist);
         } else {
             // 新增
             EduStudyRecord record = new EduStudyRecord();
@@ -54,7 +54,7 @@ public class StudyRecordController {
             record.setChapterId(chapterId);
             record.setPlaySecond(playSecond);
             record.setTotalStudySecond(totalStudySecond);
-            studyRecordMapper.insert(record);
+            studyRecordService.insert(record);
         }
 
         return Response.success();
@@ -79,8 +79,8 @@ public class StudyRecordController {
     public Response<StudyStatsRespVO> stats(HttpServletRequest request) {
         Long studentId = getStudentId(request);
 
-        Integer totalStudySecond = studyRecordMapper.selectTotalStudySecond(studentId);
-        Integer courseCount = studyRecordMapper.selectCourseCount(studentId);
+        Integer totalStudySecond = studyRecordService.selectTotalStudySecond(studentId);
+        Integer courseCount = studyRecordService.selectCourseCount(studentId);
 
         return Response.success(StudyStatsRespVO.builder()
                 .courseCount(courseCount != null ? courseCount : 0)

@@ -85,6 +85,14 @@ public class EduKnowledgeCategoryServiceImpl implements EduKnowledgeCategoryServ
         mapper.deleteById(id);
     }
 
+    @Override
+    public List<EduKnowledgeCategory> selectBatchByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return mapper.selectBatchByIds(ids);
+    }
+
     private void checkNameUnique(String name, Long parentId, Long excludeId) {
         EduKnowledgeCategory exist = mapper.selectByNameAndParentId(name, parentId);
         if (exist != null && (excludeId == null || !exist.getId().equals(excludeId))) {

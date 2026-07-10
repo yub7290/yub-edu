@@ -46,4 +46,12 @@ public interface FileUploadService {
      * @throws BaseException 校验不通过时抛出对应错误码
      */
     void validateVideo(MultipartFile file);
+
+    /**
+     * 校验上传附件（大小 ≤100MB，允许常见文档和媒体格式）
+     *
+     * @param file 文件
+     * @throws BaseException 校验不通过时抛出对应错误码
+     */
+    void validateFile(MultipartFile file);
 }

@@ -90,6 +90,18 @@
         WHERE account = #{account}
     </select>
 
+    <select id="selectByAccount" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_teacher
+        WHERE account = #{account} AND deleted = 0
+    </select>
+
+    <select id="selectRoleCodesByTeacherId" resultType="java.lang.String">
+        SELECT r.code FROM sys_role r
+        INNER JOIN edu_teacher_role tr ON r.id = tr.role_id
+        WHERE tr.teacher_id = #{teacherId} AND r.deleted = 0
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO edu_teacher (avatar_url, account, password, name, title_id, pinyin_abbr, gender,
                                  phone, id_card, status, fixed_phone, email, qq, wechat,

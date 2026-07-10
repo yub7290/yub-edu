@@ -4,6 +4,7 @@ import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.MajorCreateReqDTO;
 import com.yub.edu.biz.dto.MajorQueryDTO;
+import com.yub.edu.biz.dto.MajorSortReqDTO;
 import com.yub.edu.biz.dto.MajorUpdateReqDTO;
 import com.yub.edu.biz.dto.StatusReqDTO;
 import com.yub.edu.biz.entity.EduMajor;
@@ -64,7 +65,7 @@ public class EduMajorController {
      * @return 专业详情
      */
     @GetMapping("/{id}")
-    public Response<MajorDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<MajorDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(eduMajorService.getDetail(id));
     }
 
@@ -101,7 +102,7 @@ public class EduMajorController {
      */
     @Log(value = "删除专业", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         eduMajorService.delete(id);
         return Response.success();
     }
@@ -115,7 +116,7 @@ public class EduMajorController {
      */
     @Log(value = "切换专业状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduMajorService.changeStatus(id, dto.getStatus());
         return Response.success();
     }
@@ -129,8 +130,21 @@ public class EduMajorController {
      */
     @Log(value = "切换专业推荐状态", type = "UPDATE")
     @PutMapping("/{id}/recommended")
-    public Response<Void> changeRecommended(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeRecommended(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         eduMajorService.changeRecommended(id, dto.getStatus());
+        return Response.success();
+    }
+
+    /**
+     * 拖拽排序 / 调整层级
+     *
+     * @param dto 整棵树的最新顺序
+     * @return 响应
+     */
+    @Log(value = "拖拽排序专业", type = "UPDATE")
+    @PutMapping("/sort")
+    public Response<Void> sort(@Valid @RequestBody MajorSortReqDTO dto) {
+        eduMajorService.updateSortBatch(dto.getItems());
         return Response.success();
     }
 }

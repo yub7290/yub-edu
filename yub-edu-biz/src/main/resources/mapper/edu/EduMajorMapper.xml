@@ -113,6 +113,14 @@
         UPDATE edu_major SET recommended = #{recommended} WHERE id = #{id} AND deleted = 0
     </update>
 
+    <update id="updateParentAndSort">
+        UPDATE edu_major
+        SET parent_id   = #{parentId},
+            sort        = #{sort},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
     <select id="selectRecycleList" resultMap="EduMajorMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_major

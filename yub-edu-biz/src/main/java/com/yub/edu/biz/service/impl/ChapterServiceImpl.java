@@ -3,10 +3,12 @@ package com.yub.edu.biz.service.impl;
 import com.yub.edu.biz.dto.ChapterCreateReqDTO;
 import com.yub.edu.biz.dto.ChapterUpdateReqDTO;
 import com.yub.edu.biz.entity.EduChapter;
+import com.yub.edu.biz.entity.EduChapterAttachment;
 import com.yub.edu.biz.entity.EduChapterKnowledgePoint;
 import com.yub.edu.biz.entity.EduChapterVideo;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
+import com.yub.edu.biz.mapper.EduChapterAttachmentMapper;
 import com.yub.edu.biz.mapper.EduChapterMapper;
 import com.yub.edu.biz.mapper.EduChapterKnowledgePointMapper;
 import com.yub.edu.biz.mapper.EduChapterVideoMapper;
@@ -39,6 +41,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final EduChapterMapper eduChapterMapper;
     private final EduChapterKnowledgePointMapper eduChapterKnowledgePointMapper;
     private final EduChapterVideoMapper eduChapterVideoMapper;
+    private final EduChapterAttachmentMapper eduChapterAttachmentMapper;
 
     @Override
     public List<EduChapter> getTree(Long courseId) {
@@ -55,6 +58,7 @@ public class ChapterServiceImpl implements ChapterService {
         // 加载关联知识点ID列表
         chapter.setKnowledgePointIds(eduChapterKnowledgePointMapper.selectKnowledgePointIdsByChapterId(id));
         chapter.setVideoList(eduChapterVideoMapper.selectByChapterId(id));
+        chapter.setAttachmentList(eduChapterAttachmentMapper.selectByChapterId(id));
         return chapter;
     }
 
@@ -83,6 +87,7 @@ public class ChapterServiceImpl implements ChapterService {
             saveChapterKnowledgePoints(chapter.getId(), dto.getKnowledgePointIds(), userId);
         }
         saveChapterVideos(chapter.getId(), dto.getVideoList(), userId);
+        saveChapterAttachments(chapter.getId(), dto.getAttachmentList(), userId);
 
         return chapter.getId();
     }
@@ -118,6 +123,10 @@ public class ChapterServiceImpl implements ChapterService {
             eduChapterVideoMapper.deleteByChapterId(dto.getId());
             saveChapterVideos(dto.getId(), dto.getVideoList(), chapter.getUpdateBy());
         }
+        if (dto.getAttachmentList() != null) {
+            eduChapterAttachmentMapper.deleteByChapterId(dto.getId());
+            saveChapterAttachments(dto.getId(), dto.getAttachmentList(), chapter.getUpdateBy());
+        }
     }
 
     @Override
@@ -135,6 +144,7 @@ public class ChapterServiceImpl implements ChapterService {
         // 删除章节-知识点关联
         eduChapterKnowledgePointMapper.deleteByChapterId(id);
         eduChapterVideoMapper.deleteByChapterId(id);
+        eduChapterAttachmentMapper.deleteByChapterId(id);
     }
 
     @Override
@@ -195,6 +205,49 @@ public class ChapterServiceImpl implements ChapterService {
         if (!list.isEmpty()) {
             eduChapterVideoMapper.batchInsert(list);
         }
+    }
+
+    /**
+     * 批量保存章节附件
+     */
+    private void saveChapterAttachments(Long chapterId, List<EduChapterAttachment> attachmentList, Long userId) {
+        if (attachmentList == null || attachmentList.isEmpty()) {
+            return;
+        }
+        List<EduChapterAttachment> list = new ArrayList<>();
+        for (int i = 0; i < attachmentList.size(); i++) {
+            EduChapterAttachment source = attachmentList.get(i);
+            if (source == null || source.getFileUrl() == null || source.getFileUrl().isBlank()) {
+                continue;
+            }
+            EduChapterAttachment item = new EduChapterAttachment();
+            item.setChapterId(chapterId);
+            item.setFileName(source.getFileName() != null && !source.getFileName().isBlank()
+                    ? source.getFileName()
+                    : "附件" + (i + 1));
+            item.setFileUrl(source.getFileUrl());
+            item.setFileSize(source.getFileSize());
+            item.setFileType(source.getFileType());
+            item.setSort(i);
+            item.setCreateBy(userId);
+            list.add(item);
+        }
+        if (!list.isEmpty()) {
+            eduChapterAttachmentMapper.batchInsert(list);
+        }
+    }
+
+    @Override
+    public List<EduChapterKnowledgePoint> selectByChapterIds(List<Long> chapterIds) {
+        if (chapterIds == null || chapterIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return eduChapterKnowledgePointMapper.selectByChapterIds(chapterIds);
+    }
+
+    @Override
+    public List<EduChapter> selectFlatByCourseId(Long courseId) {
+        return eduChapterMapper.selectTreeByCourseId(courseId);
     }
 
     private List<EduChapter> buildChapterTree(List<EduChapter> chapters) {

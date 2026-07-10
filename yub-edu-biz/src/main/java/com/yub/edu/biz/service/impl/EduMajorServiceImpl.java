@@ -2,6 +2,7 @@ package com.yub.edu.biz.service.impl;
 
 import com.yub.edu.biz.dto.MajorCreateReqDTO;
 import com.yub.edu.biz.dto.MajorQueryDTO;
+import com.yub.edu.biz.dto.MajorSortReqDTO;
 import com.yub.edu.biz.dto.MajorUpdateReqDTO;
 import com.yub.edu.biz.entity.EduMajor;
 import com.yub.edu.biz.exception.EduErrorCode;
@@ -172,6 +173,50 @@ public class EduMajorServiceImpl implements EduMajorService {
             throw new EduException(EduErrorCode.MAJOR_NOT_FOUND);
         }
         eduMajorMapper.updateRecommended(id, recommended);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSortBatch(List<MajorSortReqDTO.MajorSortItem> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        // 建立本次提交的 id -> item 映射，便于向上回溯父级
+        Map<Long, MajorSortReqDTO.MajorSortItem> itemMap = items.stream()
+                .collect(Collectors.toMap(MajorSortReqDTO.MajorSortItem::getId, i -> i, (a, b) -> a));
+
+        for (MajorSortReqDTO.MajorSortItem item : items) {
+            EduMajor major = eduMajorMapper.selectById(item.getId());
+            if (major == null) {
+                throw new EduException(EduErrorCode.MAJOR_NOT_FOUND);
+            }
+
+            Long parentId = item.getParentId() == null ? 0L : item.getParentId();
+
+            // 不能移动到自身下
+            if (parentId.equals(item.getId())) {
+                throw new EduException(EduErrorCode.MAJOR_CYCLE);
+            }
+
+            // 不能移动到自身的子孙节点下（避免循环引用）
+            Long cursor = parentId;
+            while (cursor != null && cursor != 0L) {
+                if (cursor.equals(item.getId())) {
+                    throw new EduException(EduErrorCode.MAJOR_CYCLE);
+                }
+                MajorSortReqDTO.MajorSortItem parentItem = itemMap.get(cursor);
+                if (parentItem != null) {
+                    cursor = parentItem.getParentId() == null ? 0L : parentItem.getParentId();
+                } else {
+                    // 父级不在本次提交中，向上查库校验
+                    EduMajor parent = eduMajorMapper.selectById(cursor);
+                    cursor = (parent != null && parent.getParentId() != null) ? parent.getParentId() : 0L;
+                }
+            }
+
+            eduMajorMapper.updateParentAndSort(item.getId(), parentId, item.getSort());
+        }
     }
 
     private void checkNameUnique(String name, Long parentId, Long excludeId) {

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduHomeworkQuestionMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduHomeworkQuestion">
+        <id column="id" property="id"/>
+        <result column="correction_id" property="correctionId"/>
+        <result column="question_no" property="questionNo"/>
+        <result column="question_content" property="questionContent"/>
+        <result column="student_answer" property="studentAnswer"/>
+        <result column="correct_answer" property="correctAnswer"/>
+        <result column="is_correct" property="isCorrect"/>
+        <result column="analysis" property="analysis"/>
+        <result column="source_image" property="sourceImage"/>
+        <result column="review_status" property="reviewStatus"/>
+        <result column="review_result" property="reviewResult"/>
+        <result column="review_answer" property="reviewAnswer"/>
+        <result column="review_analysis" property="reviewAnalysis"/>
+        <result column="reviewed_by" property="reviewedBy"/>
+        <result column="review_time" property="reviewTime"/>
+        <result column="sort" property="sort"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, correction_id, question_no, question_content, student_answer, correct_answer,
+        is_correct, analysis, source_image, review_status, review_result, review_answer,
+        review_analysis, reviewed_by, review_time, sort, create_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_homework_question
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByCorrectionId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_homework_question
+        WHERE correction_id = #{correctionId}
+        ORDER BY question_no ASC
+    </select>
+
+    <insert id="batchInsert">
+        INSERT INTO edu_homework_question (correction_id, question_no, question_content,
+               student_answer, correct_answer, is_correct, analysis, source_image,
+               review_status, sort, create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.correctionId}, #{item.questionNo}, #{item.questionContent},
+             #{item.studentAnswer}, #{item.correctAnswer}, #{item.isCorrect},
+             #{item.analysis}, #{item.sourceImage}, 0, #{item.sort}, NOW())
+        </foreach>
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_homework_question
+        <set>
+            <if test="studentAnswer != null">student_answer = #{studentAnswer},</if>
+            <if test="reviewStatus != null">review_status = #{reviewStatus},</if>
+            <if test="reviewResult != null">review_result = #{reviewResult},</if>
+            <if test="reviewAnswer != null">review_answer = #{reviewAnswer},</if>
+            <if test="reviewAnalysis != null">review_analysis = #{reviewAnalysis},</if>
+            <if test="reviewedBy != null">reviewed_by = #{reviewedBy},</if>
+            <if test="reviewTime != null">review_time = #{reviewTime},</if>
+            <if test="isCorrect != null">is_correct = #{isCorrect},</if>
+            <if test="correctAnswer != null">correct_answer = #{correctAnswer},</if>
+            <if test="analysis != null">analysis = #{analysis},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteByCorrectionId">
+        DELETE FROM edu_homework_question WHERE correction_id = #{correctionId}
+    </update>
+
+    <select id="recalculateStats" resultType="java.util.HashMap">
+        SELECT COUNT(*) AS totalQuestions,
+               SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correctCount
+        FROM edu_homework_question
+        WHERE correction_id = #{correctionId}
+    </select>
+
+</mapper>

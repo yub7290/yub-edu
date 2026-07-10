@@ -23,4 +23,12 @@ public interface EduKnowledgeCategoryService {
     void update(Long id, String name, String description, Long parentId, Integer sort);
 
     void delete(Long id);
+
+    /**
+     * 根据ID批量查询分类
+     *
+     * @param ids 分类ID列表
+     * @return 分类列表
+     */
+    List<EduKnowledgeCategory> selectBatchByIds(List<Long> ids);
 }

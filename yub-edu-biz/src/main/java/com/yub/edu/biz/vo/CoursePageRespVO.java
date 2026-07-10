@@ -52,6 +52,9 @@ public class CoursePageRespVO {
     /** 教师 */
     private String teacher;
 
+    /** 教师ID */
+    private Long teacherId;
+
     /** 章节数 */
     private Integer chapterCount;
 

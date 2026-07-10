@@ -5,6 +5,7 @@ import com.yub.common.model.PageResult;
 import com.yub.edu.biz.dto.ExamCreateReqDTO;
 import com.yub.edu.biz.dto.ExamQueryDTO;
 import com.yub.edu.biz.dto.ExamUpdateReqDTO;
+import com.yub.edu.biz.entity.EduExam;
 import com.yub.edu.biz.vo.ExamDetailRespVO;
 import com.yub.edu.biz.vo.ExamPageRespVO;
 
@@ -63,4 +64,12 @@ public interface EduExamService {
      * @param status 状态
      */
     void changeStatus(Long id, Integer status);
+
+    /**
+     * 根据ID查询试卷
+     *
+     * @param id 试卷ID
+     * @return 试卷
+     */
+    EduExam selectById(Long id);
 }

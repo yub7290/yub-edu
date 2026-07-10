@@ -30,7 +30,7 @@ public class EduKnowledgeCategoryController {
     }
 
     @GetMapping("/{id}")
-    public Response<EduKnowledgeCategory> getDetail(@PathVariable Long id) {
+    public Response<EduKnowledgeCategory> getDetail(@PathVariable("id") Long id) {
         return Response.success(service.getDetail(id));
     }
 
@@ -45,7 +45,7 @@ public class EduKnowledgeCategoryController {
 
     @Log(value = "编辑知识点分类", type = "UPDATE")
     @PutMapping("/{id}")
-    public Response<Void> update(@PathVariable Long id,
+    public Response<Void> update(@PathVariable("id") Long id,
                                  @RequestParam String name,
                                  @RequestParam(name = "description", required = false) String description,
                                  @RequestParam(name = "parentId", defaultValue = "0") Long parentId,
@@ -56,7 +56,7 @@ public class EduKnowledgeCategoryController {
 
     @Log(value = "删除知识点分类", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         service.delete(id);
         return Response.success();
     }

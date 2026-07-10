@@ -61,7 +61,7 @@ public class TeacherTitleController {
      * @return 职称详情
      */
     @GetMapping("/{id}")
-    public Response<TeacherTitleDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<TeacherTitleDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(teacherTitleService.getDetail(id));
     }
 
@@ -98,7 +98,7 @@ public class TeacherTitleController {
      */
     @Log(value = "删除教师职称", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         teacherTitleService.delete(id);
         return Response.success();
     }
@@ -112,7 +112,7 @@ public class TeacherTitleController {
      */
     @Log(value = "切换教师职称状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         teacherTitleService.changeStatus(id, dto.getStatus());
         return Response.success();
     }

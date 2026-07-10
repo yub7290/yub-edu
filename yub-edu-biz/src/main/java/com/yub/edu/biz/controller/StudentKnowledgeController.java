@@ -8,11 +8,10 @@ import com.yub.edu.biz.entity.EduKnowledgeCategory;
 import com.yub.edu.biz.entity.EduKnowledgePoint;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
-import com.yub.edu.biz.mapper.EduChapterMapper;
-import com.yub.edu.biz.mapper.EduChapterKnowledgePointMapper;
-import com.yub.edu.biz.mapper.EduCourseMapper;
-import com.yub.edu.biz.mapper.EduKnowledgeCategoryMapper;
-import com.yub.edu.biz.mapper.EduKnowledgePointMapper;
+import com.yub.edu.biz.service.ChapterService;
+import com.yub.edu.biz.service.EduCourseService;
+import com.yub.edu.biz.service.EduKnowledgeCategoryService;
+import com.yub.edu.biz.service.EduKnowledgePointService;
 import com.yub.edu.biz.vo.CourseKnowledgeRespVO;
 import com.yub.edu.biz.vo.KnowledgeDetailRespVO;
 import com.yub.edu.biz.vo.KnowledgeGroupVO;
@@ -41,11 +40,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class StudentKnowledgeController {
 
-    private final EduKnowledgePointMapper knowledgePointMapper;
-    private final EduChapterMapper eduChapterMapper;
-    private final EduChapterKnowledgePointMapper chapterKnowledgePointMapper;
-    private final EduCourseMapper eduCourseMapper;
-    private final EduKnowledgeCategoryMapper knowledgeCategoryMapper;
+    private final EduKnowledgePointService knowledgePointService;
+    private final ChapterService chapterService;
+    private final EduCourseService eduCourseService;
+    private final EduKnowledgeCategoryService knowledgeCategoryService;
 
     /**
      * 获取课程知识库（按章节分组 + 未分组）
@@ -57,22 +55,22 @@ public class StudentKnowledgeController {
      * @return 课程知识库
      */
     @GetMapping("/student/course/{courseId}/knowledge")
-    public Response<CourseKnowledgeRespVO> getCourseKnowledge(@PathVariable Long courseId) {
+    public Response<CourseKnowledgeRespVO> getCourseKnowledge(@PathVariable("courseId") Long courseId) {
         // 查询课程信息
-        EduCourse course = eduCourseMapper.selectById(courseId);
+        EduCourse course = eduCourseService.selectById(courseId);
         if (course == null) {
             throw new EduException(EduErrorCode.COURSE_NOT_FOUND);
         }
 
         // 查询该课程的章节列表
-        List<EduChapter> chapters = eduChapterMapper.selectTreeByCourseId(courseId);
+        List<EduChapter> chapters = chapterService.selectFlatByCourseId(courseId);
         List<Long> chapterIds = chapters.stream().map(EduChapter::getId).toList();
 
         // 批量查询每个章节关联的知识点ID
         Map<Long, Set<Long>> chapterKpIds = new HashMap<>();
         Set<Long> allGlobalKpIds = new HashSet<>();
         if (!chapterIds.isEmpty()) {
-            List<EduChapterKnowledgePoint> ckpList = chapterKnowledgePointMapper.selectByChapterIds(chapterIds);
+            List<EduChapterKnowledgePoint> ckpList = chapterService.selectByChapterIds(chapterIds);
             for (EduChapterKnowledgePoint ckp : ckpList) {
                 chapterKpIds.computeIfAbsent(ckp.getChapterId(), k -> new HashSet<>()).add(ckp.getKnowledgePointId());
                 allGlobalKpIds.add(ckp.getKnowledgePointId());
@@ -82,10 +80,10 @@ public class StudentKnowledgeController {
         // 查询章节关联的全局知识点
         List<EduKnowledgePoint> globalPoints = allGlobalKpIds.isEmpty()
                 ? new ArrayList<>()
-                : knowledgePointMapper.selectBatchByIds(new ArrayList<>(allGlobalKpIds));
+                : knowledgePointService.selectBatchByIds(new ArrayList<>(allGlobalKpIds));
 
         // 查询该课程专属的知识点（未分组）
-        List<EduKnowledgePoint> coursePoints = knowledgePointMapper.selectByCourseId(courseId, null);
+        List<EduKnowledgePoint> coursePoints = knowledgePointService.listByCourseId(courseId, null);
 
         // 批量查询分类名称
         Set<Long> categoryIds = new HashSet<>();
@@ -101,7 +99,7 @@ public class StudentKnowledgeController {
         }
         Map<Long, String> categoryNames = new HashMap<>();
         if (!categoryIds.isEmpty()) {
-            List<EduKnowledgeCategory> categories = knowledgeCategoryMapper.selectBatchByIds(new ArrayList<>(categoryIds));
+            List<EduKnowledgeCategory> categories = knowledgeCategoryService.selectBatchByIds(new ArrayList<>(categoryIds));
             for (EduKnowledgeCategory cat : categories) {
                 if (cat != null) {
                     categoryNames.put(cat.getId(), cat.getName());
@@ -150,17 +148,18 @@ public class StudentKnowledgeController {
      * @return 知识点详情
      */
     @GetMapping("/student/knowledge/{id}")
-    public Response<KnowledgeDetailRespVO> getKnowledgeDetail(@PathVariable Long id) {
-        EduKnowledgePoint point = knowledgePointMapper.selectById(id);
+    public Response<KnowledgeDetailRespVO> getKnowledgeDetail(@PathVariable("id") Long id) {
+        EduKnowledgePoint point = knowledgePointService.getDetail(id);
         if (point == null) {
             throw new EduException(EduErrorCode.KNOWLEDGE_POINT_NOT_FOUND);
         }
 
         String categoryName = null;
         if (point.getCategoryId() != null) {
-            EduKnowledgeCategory cat = knowledgeCategoryMapper.selectById(point.getCategoryId());
-            if (cat != null) {
-                categoryName = cat.getName();
+            // ponytail: getDetail会抛异常，此处需要null语义，用selectBatchByIds替代
+            List<EduKnowledgeCategory> cats = knowledgeCategoryService.selectBatchByIds(List.of(point.getCategoryId()));
+            if (!cats.isEmpty()) {
+                categoryName = cats.get(0).getName();
             }
         }
 

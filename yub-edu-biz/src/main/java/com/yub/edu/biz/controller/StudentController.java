@@ -15,6 +15,8 @@ import com.yub.edu.biz.service.StudentService;
 import com.yub.edu.biz.vo.StudentGrowthVO;
 import com.yub.edu.biz.vo.StudentDetailRespVO;
 import com.yub.edu.biz.vo.StudentPageRespVO;
+import com.yub.framework.security.JwtProvider;
+import com.yub.framework.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +47,10 @@ public class StudentController {
      */
     @PostMapping("/page")
     public Response<PageResult<StudentPageRespVO>> page(@RequestBody PageQuery<StudentQueryDTO> pageQuery) {
+        // 教师身份自动注入 teacherId 过滤，仅返回该教师课程下的学员；管理员无此限制
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            pageQuery.getQueryParam().setTeacherId(SecurityUtils.getCurrentUserId());
+        }
         return Response.success(studentService.page(pageQuery));
     }
 
@@ -55,7 +61,7 @@ public class StudentController {
      * @return 学员详情
      */
     @GetMapping("/{id}")
-    public Response<StudentDetailRespVO> getDetail(@PathVariable Long id) {
+    public Response<StudentDetailRespVO> getDetail(@PathVariable("id") Long id) {
         return Response.success(studentService.getDetail(id));
     }
 
@@ -66,7 +72,7 @@ public class StudentController {
      * @return 成长档案首页数据
      */
     @GetMapping("/{id}/growth/home")
-    public Response<StudentGrowthVO.HomeData> getGrowthHome(@PathVariable Long id) {
+    public Response<StudentGrowthVO.HomeData> getGrowthHome(@PathVariable("id") Long id) {
         return Response.success(studentGrowthService.getHomeData(id));
     }
 
@@ -77,7 +83,7 @@ public class StudentController {
      * @return 周报告列表
      */
     @GetMapping("/{id}/growth/week-reports")
-    public Response<List<StudentGrowthVO.WeekReport>> getGrowthWeekReports(@PathVariable Long id) {
+    public Response<List<StudentGrowthVO.WeekReport>> getGrowthWeekReports(@PathVariable("id") Long id) {
         return Response.success(studentGrowthService.getWeekReports(id));
     }
 
@@ -88,7 +94,7 @@ public class StudentController {
      * @return 学科列表
      */
     @GetMapping("/{id}/growth/subjects")
-    public Response<List<StudentGrowthVO.SubjectItem>> getGrowthSubjects(@PathVariable Long id) {
+    public Response<List<StudentGrowthVO.SubjectItem>> getGrowthSubjects(@PathVariable("id") Long id) {
         return Response.success(studentGrowthService.getSubjects(id));
     }
 
@@ -100,7 +106,7 @@ public class StudentController {
      * @return 学科图谱
      */
     @GetMapping("/{id}/growth/subject-graph")
-    public Response<StudentGrowthVO.SubjectGraph> getGrowthSubjectGraph(@PathVariable Long id,
+    public Response<StudentGrowthVO.SubjectGraph> getGrowthSubjectGraph(@PathVariable("id") Long id,
                                                                         @RequestParam(name = "subject", required = false) String subject) {
         return Response.success(studentGrowthService.getSubjectGraph(id, subject));
     }
@@ -113,7 +119,7 @@ public class StudentController {
      * @return 周计划详情
      */
     @GetMapping("/{id}/growth/week-plan")
-    public Response<StudentGrowthVO.WeekPlanDetail> getGrowthWeekPlan(@PathVariable Long id,
+    public Response<StudentGrowthVO.WeekPlanDetail> getGrowthWeekPlan(@PathVariable("id") Long id,
                                                                       @RequestParam(name = "weekIndex", required = false) Integer weekIndex) {
         return Response.success(studentGrowthService.getWeekPlanDetail(id, weekIndex));
     }
@@ -126,7 +132,7 @@ public class StudentController {
      * @return 周计划详情
      */
     @PostMapping("/{id}/growth/week-plan/regenerate")
-    public Response<StudentGrowthVO.WeekPlanDetail> regenerateGrowthWeekPlan(@PathVariable Long id,
+    public Response<StudentGrowthVO.WeekPlanDetail> regenerateGrowthWeekPlan(@PathVariable("id") Long id,
                                                                              @RequestBody(required = false) GrowthWeekPlanReqDTO dto,
                                                                              @RequestParam(name = "weekIndex", required = false) Integer weekIndex) {
         Integer safeWeekIndex = dto != null && dto.getWeekIndex() != null ? dto.getWeekIndex() : weekIndex;
@@ -142,8 +148,8 @@ public class StudentController {
      * @return 任务状态
      */
     @PutMapping("/{id}/growth/task/{taskId}/status")
-    public Response<StudentGrowthVO.TaskStatus> updateGrowthTaskStatus(@PathVariable Long id,
-                                                                       @PathVariable Long taskId,
+    public Response<StudentGrowthVO.TaskStatus> updateGrowthTaskStatus(@PathVariable("id") Long id,
+                                                                       @PathVariable("taskId") Long taskId,
                                                                        @RequestBody(required = false) GrowthTaskStatusReqDTO dto,
                                                                        @RequestParam(name = "completed", required = false) Boolean completed) {
         Boolean safeCompleted = dto != null && dto.getCompleted() != null ? dto.getCompleted() : completed;
@@ -157,7 +163,7 @@ public class StudentController {
      * @return 周计划列表
      */
     @GetMapping("/{id}/growth/week-plan/list")
-    public Response<List<StudentGrowthVO.WeekPlanDetail>> getGrowthWeekPlanList(@PathVariable Long id) {
+    public Response<List<StudentGrowthVO.WeekPlanDetail>> getGrowthWeekPlanList(@PathVariable("id") Long id) {
         return Response.success(studentGrowthService.getWeekPlanDetailList(id));
     }
 
@@ -194,7 +200,7 @@ public class StudentController {
      */
     @Log(value = "删除学员", type = "DELETE")
     @DeleteMapping("/{id}")
-    public Response<Void> delete(@PathVariable Long id) {
+    public Response<Void> delete(@PathVariable("id") Long id) {
         studentService.delete(id);
         return Response.success();
     }
@@ -221,7 +227,7 @@ public class StudentController {
      */
     @Log(value = "切换学员状态", type = "UPDATE")
     @PutMapping("/{id}/status")
-    public Response<Void> changeStatus(@PathVariable Long id, @Valid @RequestBody StatusReqDTO dto) {
+    public Response<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusReqDTO dto) {
         studentService.changeStatus(id, dto.getStatus());
         return Response.success();
     }
@@ -247,7 +253,7 @@ public class StudentController {
      */
     @Log(value = "重置学员密码", type = "UPDATE")
     @PutMapping("/{id}/reset-password")
-    public Response<Void> resetPassword(@PathVariable Long id) {
+    public Response<Void> resetPassword(@PathVariable("id") Long id) {
         studentService.resetPassword(id);
         return Response.success();
     }

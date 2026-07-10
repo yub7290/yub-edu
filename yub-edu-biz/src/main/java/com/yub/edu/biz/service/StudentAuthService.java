@@ -1,6 +1,7 @@
 package com.yub.edu.biz.service;
 
 import com.yub.edu.biz.dto.StudentLoginReqDTO;
+import com.yub.edu.biz.dto.StudentRegisterReqDTO;
 import com.yub.edu.biz.vo.CaptchaRespVO;
 import com.yub.edu.biz.vo.StudentInfoRespVO;
 import com.yub.edu.biz.vo.StudentLoginRespVO;
@@ -32,6 +33,13 @@ public interface StudentAuthService {
     StudentLoginRespVO login(StudentLoginReqDTO reqDTO, String ip);
 
     /**
+     * 学员自助注册（含可选邀请人建立双向好友、发放邀请积分）
+     *
+     * @param reqDTO 注册请求
+     */
+    void register(StudentRegisterReqDTO reqDTO);
+
+    /**
      * 刷新Token
      *
      * @param refreshToken 刷新Token
@@ -46,4 +54,21 @@ public interface StudentAuthService {
      * @return 学员信息
      */
     StudentInfoRespVO getStudentInfo(Long studentId);
+
+    /**
+     * 获取OAuth登录授权URL
+     *
+     * @param platform 平台标识(wechat/qq)
+     * @return OAuth授权URL
+     */
+    String getOAuthLoginUrl(String platform);
+
+    /**
+     * 处理OAuth登录回调（含自动注册）
+     *
+     * @param code  授权码
+     * @param state 签名状态
+     * @return 重定向到前端的URL（含token参数）
+     */
+    String handleOAuthLoginCallback(String code, String state);
 }
