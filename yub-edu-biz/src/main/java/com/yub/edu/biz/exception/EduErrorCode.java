@@ -209,6 +209,8 @@ public enum EduErrorCode implements ErrorCode {
     HOMEWORK_SUBMIT_FAILED(200803, "作业批改提交失败，请稍后重试"),
     /** 作业题目不存在 */
     HOMEWORK_QUESTION_NOT_FOUND(200804, "作业题目不存在"),
+    /** 查询批改记录未指定课程 */
+    HOMEWORK_COURSE_REQUIRED(200805, "请先选择课程"),
 
     /** 获取第三方用户信息失败 */
     OAUTH_USERINFO_FAILED(200957, "获取第三方用户信息失败"),

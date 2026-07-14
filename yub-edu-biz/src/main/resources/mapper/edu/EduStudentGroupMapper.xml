@@ -44,14 +44,16 @@
         SELECT <include refid="pageColumns"/>
         FROM edu_student_group t
         LEFT JOIN (
-            SELECT group_id, COUNT(1) AS member_count
-            FROM edu_student_group_member
-            GROUP BY group_id
+            SELECT m.group_id, COUNT(1) AS member_count
+            FROM edu_student_group_member m
+            INNER JOIN edu_student s ON s.id = m.student_id AND s.deleted = 0
+            GROUP BY m.group_id
         ) mc ON mc.group_id = t.id
         LEFT JOIN (
-            SELECT group_id, COUNT(1) AS course_count
-            FROM edu_student_group_course
-            GROUP BY group_id
+            SELECT gc.group_id, COUNT(1) AS course_count
+            FROM edu_student_group_course gc
+            INNER JOIN edu_course c ON c.id = gc.course_id AND c.deleted = 0
+            GROUP BY gc.group_id
         ) cc ON cc.group_id = t.id
         WHERE t.deleted = 0
         <if test="query.name != null and query.name != ''">
@@ -76,17 +78,21 @@
     </select>
 
     <select id="selectMemberCount" resultType="int">
-        SELECT COUNT(1) FROM edu_student_group_member WHERE group_id = #{groupId}
+        SELECT COUNT(1) FROM edu_student_group_member m
+        INNER JOIN edu_student s ON s.id = m.student_id AND s.deleted = 0
+        WHERE m.group_id = #{groupId}
     </select>
 
     <select id="selectCourseCount" resultType="int">
-        SELECT COUNT(1) FROM edu_student_group_course WHERE group_id = #{groupId}
+        SELECT COUNT(1) FROM edu_student_group_course gc
+        INNER JOIN edu_course c ON c.id = gc.course_id AND c.deleted = 0
+        WHERE gc.group_id = #{groupId}
     </select>
 
     <select id="selectMembers" resultMap="MemberItemMap">
         SELECT s.id, s.name AS student_name, s.student_no, s.phone, s.avatar_url AS avatar
         FROM edu_student_group_member m
-        LEFT JOIN edu_student s ON s.id = m.student_id AND s.deleted = 0
+        INNER JOIN edu_student s ON s.id = m.student_id AND s.deleted = 0
         WHERE m.group_id = #{groupId}
         ORDER BY m.create_time
     </select>
@@ -94,7 +100,7 @@
     <select id="selectCourses" resultMap="CourseItemMap">
         SELECT c.id, c.name AS course_name, gc.sort_order
         FROM edu_student_group_course gc
-        LEFT JOIN edu_course c ON c.id = gc.course_id AND c.deleted = 0
+        INNER JOIN edu_course c ON c.id = gc.course_id AND c.deleted = 0
         WHERE gc.group_id = #{groupId}
         ORDER BY gc.sort_order
     </select>
