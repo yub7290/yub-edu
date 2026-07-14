@@ -67,6 +67,12 @@ public enum EduErrorCode implements ErrorCode {
 
     /** 知识点不存在 */
     KNOWLEDGE_POINT_NOT_FOUND(200051, "知识点不存在"),
+    /** 知识点关系不存在 */
+    KNOWLEDGE_RELATION_NOT_FOUND(200052, "知识点关系不存在"),
+    /** 知识点关系已存在 */
+    KNOWLEDGE_RELATION_EXISTS(200053, "该知识点关系已存在"),
+    /** 不能创建自关联 */
+    KNOWLEDGE_RELATION_SELF(200054, "不能创建知识点自关联"),
 
     /** 公告不存在 */
     ANNOUNCEMENT_NOT_FOUND(200071, "公告不存在"),

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduKnowledgeRelationMapper">
+
+    <resultMap id="BaseResultMap" type="com.yub.edu.biz.entity.EduKnowledgeRelation">
+        <id column="id" property="id"/>
+        <result column="source_id" property="sourceId"/>
+        <result column="target_id" property="targetId"/>
+        <result column="relation_type" property="relationType"/>
+        <result column="description" property="description"/>
+        <result column="sort" property="sort"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, source_id, target_id, relation_type, description, sort, status,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_knowledge_relation (source_id, target_id, relation_type, description, sort, status,
+                                           create_time, update_time, create_by, update_by, deleted)
+        VALUES (#{sourceId}, #{targetId}, #{relationType}, #{description}, #{sort}, #{status},
+                NOW(), NOW(), #{createBy}, #{updateBy}, 0)
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_knowledge_relation
+        SET source_id = #{sourceId},
+            target_id = #{targetId},
+            relation_type = #{relationType},
+            description = #{description},
+            sort = #{sort},
+            status = #{status},
+            update_time = NOW(),
+            update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_knowledge_relation SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <update id="deleteByKnowledgeId">
+        UPDATE edu_knowledge_relation SET deleted = 1 WHERE source_id = #{knowledgeId} OR target_id = #{knowledgeId}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_relation
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectBySourceId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_relation
+        WHERE source_id = #{sourceId} AND deleted = 0 AND status = 1
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectByTargetId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_relation
+        WHERE target_id = #{targetId} AND deleted = 0 AND status = 1
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectByKnowledgeId" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_relation
+        WHERE (source_id = #{knowledgeId} OR target_id = #{knowledgeId}) AND deleted = 0 AND status = 1
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_relation
+        WHERE deleted = 0 AND status = 1
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="countBySourceAndTarget" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM edu_knowledge_relation
+        WHERE source_id = #{sourceId} AND target_id = #{targetId} AND deleted = 0
+    </select>
+
+    <select id="countBySourceAndTargetAndType" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM edu_knowledge_relation
+        WHERE source_id = #{sourceId} AND target_id = #{targetId} AND relation_type = #{relationType} AND deleted = 0
+    </select>
+
+</mapper>

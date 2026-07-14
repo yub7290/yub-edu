@@ -9,10 +9,9 @@ spring:
       host: 127.0.0.1
       port: 6379
       database: 0
-      password: root
 
 jwt:
-  secret: "123"
+  secret: "yub-learn-system-jwt-secret-key-256-bit-minimum"
 
 # 七牛云配置
 qiniu:
@@ -28,3 +27,9 @@ ai:
   model: ${AI_MODEL:mimo-v2.5}
   max-tokens: 200000
   timeout: 60
+
+# LangChain4j OpenAI配置
+langchain4j:
+  open-ai:
+    api-key: ${AI_API_KEY:123}
+    base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
