@@ -14,6 +14,8 @@
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="deleted" property="deleted"/>
+        <result column="courseName" property="courseName"/>
+        <result column="studentName" property="studentName"/>
     </resultMap>
 
     <sql id="baseColumns">
@@ -21,10 +23,18 @@
         status, create_time, update_time, deleted
     </sql>
 
+    <sql id="detailColumns">
+        h.id, h.course_id, h.student_id, h.images, h.total_questions, h.correct_count, h.score,
+        h.status, h.create_time, h.update_time, h.deleted,
+        c.name AS courseName, s.name AS studentName
+    </sql>
+
     <select id="selectById" resultMap="BaseResultMap">
-        SELECT <include refid="baseColumns"/>
-        FROM edu_homework_correction
-        WHERE id = #{id} AND deleted = 0
+        SELECT <include refid="detailColumns"/>
+        FROM edu_homework_correction h
+        LEFT JOIN edu_course c ON h.course_id = c.id
+        LEFT JOIN edu_student s ON h.student_id = s.id
+        WHERE h.id = #{id} AND h.deleted = 0
     </select>
 
     <select id="selectPage" resultMap="BaseResultMap">
