@@ -279,6 +279,10 @@ public class StudentGrowthVO {
      */
     @Data
     public static class SubjectGraph {
+        /** 所有节点 */
+        private List<KnowledgeNode> allNodes = new ArrayList<>();
+        /** 所有关系 */
+        private List<KnowledgeRelation> relations = new ArrayList<>();
         /** 前置节点 */
         private List<KnowledgeNode> preNodes = new ArrayList<>();
         /** 核心节点 */
@@ -289,6 +293,19 @@ public class StudentGrowthVO {
         private String goodChain = "";
         /** 薄弱链路 */
         private String weakChain = "";
+    }
+
+    /**
+     * 知识关系
+     */
+    @Data
+    public static class KnowledgeRelation {
+        /** 源节点ID */
+        private Long sourceId;
+        /** 目标节点ID */
+        private Long targetId;
+        /** 关系类型 */
+        private Integer relationType;
     }
 
     /**

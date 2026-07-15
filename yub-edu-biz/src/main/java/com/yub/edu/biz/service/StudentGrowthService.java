@@ -73,6 +73,23 @@ public interface StudentGrowthService {
     StudentGrowthVO.SubjectGraph getSubjectGraph(Long studentId, String subject);
 
     /**
+     * 获取知识点顶层分类列表（仅包含学生课程相关的分类）
+     *
+     * @param studentId 学员ID
+     * @return 分类列表
+     */
+    List<StudentGrowthVO.SubjectItem> getKnowledgeCategories(Long studentId);
+
+    /**
+     * 获取指定分类下的知识图谱（仅显示学生课程相关知识点）
+     *
+     * @param studentId   学员ID
+     * @param categoryId  分类ID
+     * @return 知识图谱
+     */
+    StudentGrowthVO.SubjectGraph getCategoryGraph(Long studentId, String categoryId);
+
+    /**
      * 获取周计划详情
      *
      * @param studentId 学员ID

@@ -51,4 +51,16 @@
         WHERE student_id = #{studentId} AND course_id = #{courseId}
     </select>
 
+    <select id="selectStudyCourseIds" resultType="java.lang.Long">
+        SELECT DISTINCT course_id
+        FROM edu_study_record
+        WHERE student_id = #{studentId}
+    </select>
+
+    <select id="selectStudyChapterIds" resultType="java.lang.Long">
+        SELECT DISTINCT chapter_id
+        FROM edu_study_record
+        WHERE student_id = #{studentId}
+    </select>
+
 </mapper>

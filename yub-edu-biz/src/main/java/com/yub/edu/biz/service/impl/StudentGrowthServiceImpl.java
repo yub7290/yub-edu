@@ -2,11 +2,23 @@ package com.yub.edu.biz.service.impl;
 
 import com.yub.edu.biz.dto.StudentGrowthPlanDTO;
 import com.yub.edu.biz.dto.StudentGrowthStatsDTO;
+import com.yub.edu.biz.entity.EduChapterKnowledgePoint;
+import com.yub.edu.biz.entity.EduKnowledgeCategory;
+import com.yub.edu.biz.entity.EduKnowledgePoint;
+import com.yub.edu.biz.entity.EduKnowledgeRelation;
 import com.yub.edu.biz.entity.EduStudent;
+import com.yub.edu.biz.mapper.EduKnowledgePointMapper;
+import com.yub.edu.biz.mapper.EduKnowledgeRelationMapper;
+import com.yub.edu.biz.mapper.EduStudentGroupMapper;
 import com.yub.edu.biz.mapper.EduStudentMapper;
 import com.yub.edu.biz.mapper.StudentGrowthMapper;
+import com.yub.edu.biz.mapper.StudyRecordMapper;
+import com.yub.edu.biz.service.ChapterService;
+import com.yub.edu.biz.service.EduKnowledgeCategoryService;
+import com.yub.edu.biz.service.EduKnowledgePointService;
 import com.yub.edu.biz.service.StudentGrowthService;
 import com.yub.edu.biz.vo.StudentGrowthVO;
+import com.yub.edu.biz.vo.StudentGroupDetailRespVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,9 +28,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -33,11 +47,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StudentGrowthServiceImpl implements StudentGrowthService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(StudentGrowthServiceImpl.class);
+
     private static final int WEEK_COUNT = 4;
     private static final DateTimeFormatter DATE_LABEL = DateTimeFormatter.ofPattern("MM/dd");
 
     private final StudentGrowthMapper studentGrowthMapper;
     private final EduStudentMapper eduStudentMapper;
+    private final EduStudentGroupMapper eduStudentGroupMapper;
+    private final EduKnowledgeCategoryService knowledgeCategoryService;
+    private final EduKnowledgePointService knowledgePointService;
+    private final EduKnowledgePointMapper knowledgePointMapper;
+    private final EduKnowledgeRelationMapper knowledgeRelationMapper;
+    private final StudyRecordMapper studyRecordMapper;
+    private final ChapterService chapterService;
 
     @Override
     public StudentGrowthVO.HomeData getHomeData(Long studentId) {
@@ -149,6 +172,197 @@ public class StudentGrowthServiceImpl implements StudentGrowthService {
         graph.setGoodChain(joinNames(graph.getPreNodes()));
         graph.setWeakChain(joinNames(nodes.stream().filter(n -> n.getMastery() < 80).limit(4).toList()));
         return graph;
+    }
+
+    @Override
+    public List<StudentGrowthVO.SubjectItem> getKnowledgeCategories(Long studentId) {
+        List<EduKnowledgeCategory> allCategories = knowledgeCategoryService.selectTree();
+        Set<Long> studentCourseKnowledgeIds = getStudentCourseKnowledgeIds(studentId);
+        
+        Map<Long, EduKnowledgePoint> knowledgeMap = knowledgePointService.selectBatchByIds(new ArrayList<>(studentCourseKnowledgeIds))
+                .stream()
+                .collect(Collectors.toMap(EduKnowledgePoint::getId, p -> p));
+        
+        Set<Long> studentCategoryIds = new HashSet<>();
+        for (EduKnowledgePoint point : knowledgeMap.values()) {
+            if (point.getCategoryId() != null) {
+                studentCategoryIds.add(point.getCategoryId());
+            }
+        }
+        
+        Map<Long, EduKnowledgeCategory> categoryMap = new HashMap<>();
+        fillCategoryMap(allCategories, categoryMap);
+        
+        Set<Long> topLevelCategoryIds = new HashSet<>();
+        for (Long catId : studentCategoryIds) {
+            Long topId = findTopLevelCategory(catId, categoryMap);
+            if (topId != null) {
+                topLevelCategoryIds.add(topId);
+            }
+        }
+        
+        List<StudentGrowthVO.SubjectItem> result = new ArrayList<>();
+        for (EduKnowledgeCategory cat : allCategories) {
+            if ((cat.getParentId() == null || cat.getParentId() == 0L) && topLevelCategoryIds.contains(cat.getId())) {
+                StudentGrowthVO.SubjectItem item = new StudentGrowthVO.SubjectItem();
+                item.setKey(String.valueOf(cat.getId()));
+                item.setName(cat.getName());
+                item.setColor(getCategoryColor(cat.getId()));
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    private Long findTopLevelCategory(Long catId, Map<Long, EduKnowledgeCategory> categoryMap) {
+        EduKnowledgeCategory cat = categoryMap.get(catId);
+        if (cat == null) {
+            return null;
+        }
+        if (cat.getParentId() == null || cat.getParentId() == 0L) {
+            return cat.getId();
+        }
+        return findTopLevelCategory(cat.getParentId(), categoryMap);
+    }
+
+    @Override
+    public StudentGrowthVO.SubjectGraph getCategoryGraph(Long studentId, String categoryId) {
+        if (categoryId == null || categoryId.trim().isEmpty()) {
+            return new StudentGrowthVO.SubjectGraph();
+        }
+        Long catId;
+        try {
+            catId = Long.parseLong(categoryId.trim());
+        } catch (NumberFormatException e) {
+            return new StudentGrowthVO.SubjectGraph();
+        }
+        List<EduKnowledgeCategory> allCategories = knowledgeCategoryService.selectTree();
+        Set<Long> categoryIds = getCategoryAndChildIds(catId, allCategories);
+
+        Set<Long> studentKnowledgeIds = getStudentCourseKnowledgeIds(studentId);
+
+        Map<Long, EduKnowledgePoint> knowledgeMap = knowledgePointService.selectBatchByIds(new ArrayList<>(studentKnowledgeIds))
+                .stream()
+                .collect(Collectors.toMap(EduKnowledgePoint::getId, p -> p));
+
+        List<StudentGrowthStatsDTO.KnowledgeMastery> masteryList = studentGrowthMapper.selectKnowledgeMastery(studentId);
+        Map<Long, Integer> masteryMap = masteryList.stream()
+                .collect(Collectors.toMap(StudentGrowthStatsDTO.KnowledgeMastery::getId, StudentGrowthStatsDTO.KnowledgeMastery::getMastery));
+
+        List<StudentGrowthStatsDTO.KnowledgeMastery> filtered = knowledgeMap.values().stream()
+                .filter(point -> point.getCategoryId() != null && categoryIds.contains(point.getCategoryId()))
+                .map(point -> {
+                    StudentGrowthStatsDTO.KnowledgeMastery m = new StudentGrowthStatsDTO.KnowledgeMastery();
+                    m.setId(point.getId());
+                    m.setName(point.getTitle());
+                    m.setMastery(masteryMap.getOrDefault(point.getId(), 0));
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        StudentGrowthVO.SubjectGraph graph = new StudentGrowthVO.SubjectGraph();
+        if (filtered.isEmpty()) {
+            return graph;
+        }
+
+        Set<Long> filteredIds = filtered.stream().map(StudentGrowthStatsDTO.KnowledgeMastery::getId).collect(Collectors.toSet());
+
+        List<EduKnowledgeRelation> relations = knowledgeRelationMapper.selectAll();
+
+        List<StudentGrowthVO.KnowledgeNode> allNodes = new ArrayList<>();
+        List<StudentGrowthVO.KnowledgeRelation> allRelations = new ArrayList<>();
+
+        Map<Long, StudentGrowthVO.KnowledgeNode> nodeMap = new HashMap<>();
+        for (StudentGrowthStatsDTO.KnowledgeMastery m : filtered) {
+            StudentGrowthVO.KnowledgeNode node = new StudentGrowthVO.KnowledgeNode();
+            node.setId(m.getId());
+            node.setName(m.getName());
+            node.setMastery(m.getMastery());
+            node.setType("core");
+            allNodes.add(node);
+            nodeMap.put(m.getId(), node);
+        }
+
+        for (EduKnowledgeRelation rel : relations) {
+            if (filteredIds.contains(rel.getSourceId()) && filteredIds.contains(rel.getTargetId())) {
+                StudentGrowthVO.KnowledgeRelation relation = new StudentGrowthVO.KnowledgeRelation();
+                relation.setSourceId(rel.getSourceId());
+                relation.setTargetId(rel.getTargetId());
+                relation.setRelationType(rel.getRelationType());
+                allRelations.add(relation);
+            }
+        }
+
+        graph.setAllNodes(allNodes);
+        graph.setRelations(allRelations);
+
+        if (!allNodes.isEmpty()) {
+            graph.setCoreNode(allNodes.get(0));
+            List<StudentGrowthVO.KnowledgeNode> otherNodes = allNodes.size() > 1 ? allNodes.subList(1, allNodes.size()) : new ArrayList<>();
+            graph.setPreNodes(otherNodes);
+        }
+
+        graph.setGoodChain("");
+        graph.setWeakChain("");
+
+        return graph;
+    }
+
+    private Set<Long> getStudentCourseKnowledgeIds(Long studentId) {
+        List<Long> chapterIds = studyRecordMapper.selectStudyChapterIds(studentId);
+        log.info("getStudentCourseKnowledgeIds: studentId={}, found {} studied chapters", studentId, chapterIds.size());
+        if (chapterIds.size() > 0) {
+            log.info("getStudentCourseKnowledgeIds: chapterIds={}", chapterIds);
+        }
+
+        if (chapterIds.isEmpty()) {
+            log.warn("getStudentCourseKnowledgeIds: no studied chapters found for studentId={}", studentId);
+            return new HashSet<>();
+        }
+
+        List<EduChapterKnowledgePoint> chapterKnowledgePoints = chapterService.selectByChapterIds(chapterIds);
+        log.info("getStudentCourseKnowledgeIds: found {} chapter-knowledge associations", chapterKnowledgePoints.size());
+        
+        Set<Long> knowledgeIds = chapterKnowledgePoints.stream()
+                .map(EduChapterKnowledgePoint::getKnowledgePointId)
+                .collect(Collectors.toSet());
+        log.info("getStudentCourseKnowledgeIds: found {} unique knowledge points", knowledgeIds.size());
+
+        return knowledgeIds;
+    }
+
+    private Set<Long> getCategoryAndChildIds(Long catId, List<EduKnowledgeCategory> allCategories) {
+        Set<Long> ids = new HashSet<>();
+        Map<Long, EduKnowledgeCategory> map = new HashMap<>();
+        fillCategoryMap(allCategories, map);
+        collectCategoryIds(catId, map, ids);
+        return ids;
+    }
+
+    private void fillCategoryMap(List<EduKnowledgeCategory> categories, Map<Long, EduKnowledgeCategory> map) {
+        for (EduKnowledgeCategory cat : categories) {
+            map.put(cat.getId(), cat);
+            if (cat.getChildren() != null) {
+                fillCategoryMap(cat.getChildren(), map);
+            }
+        }
+    }
+
+    private void collectCategoryIds(Long catId, Map<Long, EduKnowledgeCategory> map, Set<Long> ids) {
+        EduKnowledgeCategory cat = map.get(catId);
+        if (cat != null) {
+            ids.add(cat.getId());
+            if (cat.getChildren() != null) {
+                for (EduKnowledgeCategory child : cat.getChildren()) {
+                    collectCategoryIds(child.getId(), map, ids);
+                }
+            }
+        }
+    }
+
+    private String getCategoryColor(Long id) {
+        String[] colors = {"#409EFF", "#67C23A", "#E6A23C", "#F56C6C", "#909399", "#C0C4CC"};
+        return colors[(int) (id % colors.length)];
     }
 
     @Override

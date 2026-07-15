@@ -34,12 +34,7 @@ public class StudentChapterController {
      */
     @GetMapping("/detail")
     public Response<ChapterDetailRespVO> detail(@RequestParam Long chId, @RequestParam Long cid) {
-        EduChapter chapter;
-        try {
-            chapter = chapterService.getDetail(chId);
-        } catch (Exception e) {
-            return Response.success(null);
-        }
+        EduChapter chapter = chapterService.getDetail(chId);
 
         List<EduChapterVideo> videoList = chapter.getVideoList() != null ? chapter.getVideoList() : Collections.emptyList();
         List<EduChapterAttachment> attachmentList = chapter.getAttachmentList() != null ? chapter.getAttachmentList() : Collections.emptyList();

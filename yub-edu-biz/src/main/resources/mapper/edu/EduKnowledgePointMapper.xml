@@ -64,6 +64,17 @@
         ORDER BY id DESC
     </select>
 
+    <select id="selectByCourseIds" resultMap="EduKnowledgePointMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_knowledge_point
+        WHERE deleted = 0 AND status = 1
+        AND course_id IN
+        <foreach collection="courseIds" item="courseId" open="(" separator="," close=")">
+            #{courseId}
+        </foreach>
+        ORDER BY id DESC
+    </select>
+
     <select id="selectBatchByIds" resultMap="EduKnowledgePointMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_knowledge_point

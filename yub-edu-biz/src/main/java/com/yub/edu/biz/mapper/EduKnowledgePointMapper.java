@@ -24,6 +24,8 @@ public interface EduKnowledgePointMapper {
 
     List<EduKnowledgePoint> selectByCourseId(@Param("courseId") Long courseId, @Param("categoryId") Long categoryId);
 
+    List<EduKnowledgePoint> selectByCourseIds(@Param("courseIds") List<Long> courseIds);
+
     List<EduKnowledgePoint> selectBatchByIds(@Param("ids") List<Long> ids);
 
     EduKnowledgePoint selectById(@Param("id") Long id);

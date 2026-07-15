@@ -106,6 +106,45 @@ public class StudentGrowthController {
     }
 
     /**
+     * 知识点顶层分类列表（仅包含学生课程相关的分类）
+     *
+     * @return 分类列表
+     */
+    @GetMapping("/categories")
+    public Response<List<StudentGrowthVO.SubjectItem>> categories() {
+        return Response.success(studentGrowthService.getKnowledgeCategories(SecurityUtils.getCurrentUserId()));
+    }
+
+    /**
+     * 指定分类下的知识图谱（仅显示学生课程相关知识点）
+     *
+     * @param categoryId 分类ID
+     * @param studentId  学生ID（可选，未登录时使用默认值）
+     * @return 知识图谱
+     */
+    @GetMapping("/category-graph")
+    public Response<StudentGrowthVO.SubjectGraph> categoryGraph(
+            @RequestParam(name = "categoryId", required = false) String categoryId,
+            @RequestParam(name = "studentId", required = false) Long studentId) {
+        Long userId = studentId != null ? studentId : getCurrentUserIdOrNull();
+        if (userId == null) {
+            return Response.success(new StudentGrowthVO.SubjectGraph());
+        }
+        return Response.success(studentGrowthService.getCategoryGraph(userId, categoryId));
+    }
+
+    /**
+     * 获取当前用户ID，如果未登录返回null
+     */
+    private Long getCurrentUserIdOrNull() {
+        try {
+            return SecurityUtils.getCurrentUserId();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 周计划详情
      *
      * @param weekIndex 周索引

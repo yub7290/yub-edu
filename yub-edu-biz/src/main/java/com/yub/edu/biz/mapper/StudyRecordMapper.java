@@ -4,6 +4,8 @@ import com.yub.edu.biz.entity.EduStudyRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 学习记录 Mapper
  *
@@ -67,4 +69,20 @@ public interface StudyRecordMapper {
      * @return 已学习章节数
      */
     int countStudiedChapters(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
+
+    /**
+     * 查询学员学习过的所有课程ID
+     *
+     * @param studentId 学员ID
+     * @return 课程ID列表
+     */
+    List<Long> selectStudyCourseIds(@Param("studentId") Long studentId);
+
+    /**
+     * 查询学员学习过的所有章节ID
+     *
+     * @param studentId 学员ID
+     * @return 章节ID列表
+     */
+    List<Long> selectStudyChapterIds(@Param("studentId") Long studentId);
 }
