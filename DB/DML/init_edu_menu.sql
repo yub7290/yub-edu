@@ -29,13 +29,9 @@ VALUES (114, 110, '知识点', '/edu/knowledge', 'edu/knowledge/index', 'Reading
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, icon, sort, menu_type, permission, status, create_by)
 VALUES (115, 110, '通知', '/edu/notice', 'edu/notice/index', 'Bell', 5, 1, 'edu:notice:query', 1, 1);
 
--- 2.6 新闻资讯菜单
+-- 2.6 新闻咨询菜单（新闻资讯 + 资讯分类 已融合为单一界面）
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, icon, sort, menu_type, permission, status, create_by)
-VALUES (116, 110, '新闻资讯', '/edu/news', 'edu/news/index', 'Memo', 6, 1, 'edu:news:query', 1, 1);
-
--- 2.7 资讯分类菜单
-INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, icon, sort, menu_type, permission, status, create_by)
-VALUES (117, 110, '资讯分类', '/edu/news/category', 'edu/newsCategory/index', 'Collection', 7, 1, 'edu:news:category:query', 1, 1);
+VALUES (116, 110, '新闻咨询', '/edu/news', 'edu/news/index', 'Memo', 6, 1, 'edu:news:query', 1, 1);
 
 -- 2.8 缓存管理菜单
 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, component, icon, sort, menu_type, permission, status, create_by)

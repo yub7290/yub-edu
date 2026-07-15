@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -245,7 +246,21 @@ public class EduMajorServiceImpl implements EduMajorService {
         }
         sortMajorsRecursively(roots);
         populateCountsRecursively(roots);
+        normalizeChildren(roots);
         return roots;
+    }
+
+    /**
+     * 兜底：确保叶子节点的 children 为空列表而非 null（避免前端 el-tree 无法区分"无子节点"和"未加载"）
+     */
+    private void normalizeChildren(List<EduMajor> nodes) {
+        for (EduMajor node : nodes) {
+            if (node.getChildren() == null) {
+                node.setChildren(Collections.emptyList());
+            } else {
+                normalizeChildren(node.getChildren());
+            }
+        }
     }
 
     private List<EduMajor> buildFilteredTree(List<EduMajor> filteredMajors) {

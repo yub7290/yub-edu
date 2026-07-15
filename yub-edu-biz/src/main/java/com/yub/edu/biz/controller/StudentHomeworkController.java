@@ -1,8 +1,13 @@
 package com.yub.edu.biz.controller;
 
+import com.yub.common.model.PageParam;
+import com.yub.common.model.PageQuery;
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.dto.HomeworkSubmitDTO;
+import com.yub.edu.biz.dto.StudentHomeworkQueryDTO;
+import com.yub.edu.biz.exception.EduErrorCode;
+import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.service.HomeworkCorrectionService;
 import com.yub.edu.biz.vo.HomeworkCorrectionVO;
 import com.yub.edu.biz.vo.HomeworkPageVO;
@@ -44,20 +49,25 @@ public class StudentHomeworkController {
     }
 
     /**
-     * 查询当前学生的批改记录列表
+     * 分页查询当前学生的批改记录列表
+     * <p>遵循项目分页规范：POST + PageQuery 风格（queryParam 承载查询条件，pageParam 承载分页参数），
+     * 与管理端 {@code EduHomeworkController#page} 保持一致的契约。
      *
-     * @param courseId  课程ID（可选）
-     * @param pageNum   页码
-     * @param pageSize  每页条数
-     * @return 分页结果
+     * @param pageQuery 查询体（queryParam.courseId 必填，pageParam 分页可选）
+     * @return 分页结果（records / total）
      */
-    @GetMapping("/list")
-    public Response<PageResult<HomeworkPageVO>> list(
-            @RequestParam(name = "courseId", required = false) Long courseId,
-            @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+    @PostMapping("/list")
+    public Response<PageResult<HomeworkPageVO>> list(@RequestBody @Valid PageQuery<StudentHomeworkQueryDTO> pageQuery) {
+        StudentHomeworkQueryDTO queryParam = pageQuery.getQueryParam();
+        if (queryParam == null || queryParam.getCourseId() == null) {
+            throw new EduException(EduErrorCode.HOMEWORK_COURSE_REQUIRED);
+        }
+        PageParam pageParam = pageQuery.getPageParam();
+        int pageNum = pageParam != null ? pageParam.getPageNum() : 1;
+        int pageSize = pageParam != null ? pageParam.getPageSize() : 10;
+
         Long studentId = SecurityUtils.getCurrentUserId();
-        PageResult<HomeworkPageVO> result = homeworkCorrectionService.listByStudent(studentId, courseId, pageNum, pageSize);
+        PageResult<HomeworkPageVO> result = homeworkCorrectionService.listByStudent(studentId, queryParam.getCourseId(), pageNum, pageSize);
         return Response.success(result);
     }
 
