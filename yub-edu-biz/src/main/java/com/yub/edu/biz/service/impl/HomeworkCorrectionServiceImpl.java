@@ -20,6 +20,8 @@ import com.yub.edu.biz.service.HomeworkCorrectionService;
 import com.yub.edu.biz.vo.HomeworkCorrectionVO;
 import com.yub.edu.biz.vo.HomeworkPageVO;
 import com.yub.edu.biz.vo.HomeworkQuestionVO;
+import com.yub.framework.security.JwtProvider;
+import com.yub.framework.security.SecurityUtils;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
@@ -41,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -155,6 +158,79 @@ public class HomeworkCorrectionServiceImpl implements HomeworkCorrectionService 
         target.setReviewTime(LocalDateTime.now());
         questionMapper.updateById(target);
         recalculateCorrectionStats(target.getCorrectionId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int autoReviewCorrectQuestions(Long operatorId, Long correctionId) {
+        assertCorrectionOwnedByTeacher(correctionId);
+        List<EduHomeworkQuestion> questions = questionMapper.selectByCorrectionId(correctionId);
+        int count = 0;
+        LocalDateTime now = LocalDateTime.now();
+        for (EduHomeworkQuestion q : questions) {
+            // 仅对 AI 判定正确的题目批量标记已复查；采用 AI 判定答案与解析，不写回教师答案
+            if (q.getIsCorrect() != null && q.getIsCorrect() == 1) {
+                q.setReviewStatus(1);
+                q.setReviewResult(1);
+                q.setReviewAnswer(q.getCorrectAnswer());
+                q.setReviewAnalysis(q.getAnalysis());
+                q.setReviewedBy(operatorId);
+                q.setReviewTime(now);
+                questionMapper.updateById(q);
+                count++;
+            }
+        }
+        recalculateCorrectionStats(correctionId);
+        return count;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchDeleteQuestions(Long operatorId, List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        List<EduHomeworkQuestion> questions = questionMapper.selectByIds(ids);
+        if (questions.isEmpty()) {
+            return;
+        }
+        // 教师身份数据隔离校验：待删题目必须全部属于该教师名下的课程
+        if (JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            Set<Long> correctionIds = questions.stream()
+                    .map(EduHomeworkQuestion::getCorrectionId)
+                    .collect(Collectors.toSet());
+            for (Long cid : correctionIds) {
+                assertCorrectionOwnedByTeacher(cid);
+            }
+        }
+        // 物理删除（不可恢复），随后按批改记录重算统计并写回 score
+        questionMapper.deleteByIds(ids);
+        Set<Long> affectedCorrections = questions.stream()
+                .map(EduHomeworkQuestion::getCorrectionId)
+                .collect(Collectors.toSet());
+        for (Long cid : affectedCorrections) {
+            recalculateCorrectionStats(cid);
+        }
+    }
+
+    /**
+     * 校验批改记录所属课程是否归当前教师所有（仅教师身份生效，ADMIN 跳过）
+     *
+     * @param correctionId 批改记录ID
+     */
+    private void assertCorrectionOwnedByTeacher(Long correctionId) {
+        if (!JwtProvider.USER_TYPE_TEACHER.equals(SecurityUtils.getCurrentUserType())) {
+            return;
+        }
+        EduHomeworkCorrection correction = correctionMapper.selectById(correctionId);
+        if (correction == null) {
+            throw new EduException(EduErrorCode.HOMEWORK_CORRECTION_NOT_FOUND);
+        }
+        EduCourse course = courseMapper.selectById(correction.getCourseId());
+        Long teacherId = SecurityUtils.getCurrentUserId();
+        if (course == null || course.getTeacherId() == null || !course.getTeacherId().equals(teacherId)) {
+            throw new EduException(EduErrorCode.HOMEWORK_QUESTION_ACCESS_DENIED);
+        }
     }
 
     @Override

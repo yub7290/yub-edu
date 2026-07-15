@@ -51,6 +51,23 @@ public interface EduHomeworkQuestionMapper {
     EduHomeworkQuestion selectById(@Param("id") Long id);
 
     /**
+     * 根据ID列表批量查询题目
+     *
+     * @param ids 题目ID列表
+     * @return 题目列表
+     */
+    List<EduHomeworkQuestion> selectByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 根据ID列表物理删除题目
+     * <p>删除后不可恢复，由调用方负责重算批改统计
+     *
+     * @param ids 题目ID列表
+     * @return 影响行数
+     */
+    int deleteByIds(@Param("ids") List<Long> ids);
+
+    /**
      * 根据批改记录ID删除题目
      *
      * @param correctionId 批改记录ID

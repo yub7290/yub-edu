@@ -34,6 +34,13 @@
         WHERE id = #{id}
     </select>
 
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM edu_homework_question
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
     <select id="selectByCorrectionId" resultMap="BaseResultMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_homework_question
@@ -73,6 +80,12 @@
     <update id="deleteByCorrectionId">
         DELETE FROM edu_homework_question WHERE correction_id = #{correctionId}
     </update>
+
+    <delete id="deleteByIds">
+        DELETE FROM edu_homework_question
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
 
     <select id="recalculateStats" resultType="java.util.HashMap">
         SELECT COUNT(*) AS totalQuestions,

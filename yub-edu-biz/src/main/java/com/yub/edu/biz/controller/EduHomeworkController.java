@@ -2,6 +2,8 @@ package com.yub.edu.biz.controller;
 
 import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
+import com.yub.edu.biz.dto.HomeworkAutoReviewDTO;
+import com.yub.edu.biz.dto.HomeworkBatchDeleteDTO;
 import com.yub.edu.biz.dto.HomeworkReviewDTO;
 import com.yub.edu.biz.service.HomeworkCorrectionService;
 import com.yub.edu.biz.vo.HomeworkCorrectionVO;
@@ -80,6 +82,34 @@ public class EduHomeworkController {
     public Response<Void> review(@RequestBody @Valid HomeworkReviewDTO dto) {
         Long adminId = SecurityUtils.getCurrentUserId();
         homeworkCorrectionService.reviewQuestion(adminId, dto);
+        return Response.success(null);
+    }
+
+    /**
+     * 一键复查：将「AI 判定正确」的题目批量标记为已复查
+     * <p>采用 AI 判定答案，不写回教师答案；教师身份受课程归属隔离
+     *
+     * @param dto 批改记录ID
+     * @return 已复查题数
+     */
+    @PostMapping("/review/auto")
+    public Response<Integer> reviewAuto(@RequestBody @Valid HomeworkAutoReviewDTO dto) {
+        Long operatorId = SecurityUtils.getCurrentUserId();
+        int count = homeworkCorrectionService.autoReviewCorrectQuestions(operatorId, dto.getCorrectionId());
+        return Response.success(count);
+    }
+
+    /**
+     * 批量删除作业题目（物理删除，不可恢复）
+     * <p>删除后由后端自动重算总题数/正确数/得分并写回；教师身份受课程归属隔离
+     *
+     * @param dto 题目ID列表
+     * @return 操作结果
+     */
+    @PostMapping("/question/batch-delete")
+    public Response<Void> batchDeleteQuestions(@RequestBody @Valid HomeworkBatchDeleteDTO dto) {
+        Long operatorId = SecurityUtils.getCurrentUserId();
+        homeworkCorrectionService.batchDeleteQuestions(operatorId, dto.getIds());
         return Response.success(null);
     }
 
