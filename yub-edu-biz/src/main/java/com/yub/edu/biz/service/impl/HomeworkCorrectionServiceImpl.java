@@ -442,6 +442,7 @@ public class HomeworkCorrectionServiceImpl implements HomeworkCorrectionService 
                 .correctCount(c.getCorrectCount())
                 .score(c.getScore())
                 .status(c.getStatus())
+                .reviewStatus(c.getReviewStatus())
                 .createTime(c.getCreateTime())
                 .build();
     }
@@ -507,11 +508,24 @@ public class HomeworkCorrectionServiceImpl implements HomeworkCorrectionService 
                         .multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
+        // 人工复查状态：全部题目复查完成=已复查(2)，部分完成=复查中(1)，否则=未复查(0)
+        int reviewed = stats.get("reviewedCount") == null ? 0
+                : ((Number) stats.get("reviewedCount")).intValue();
+        Integer reviewStatus;
+        if (total == 0 || reviewed == 0) {
+            reviewStatus = 0;
+        } else if (reviewed >= total) {
+            reviewStatus = 2;
+        } else {
+            reviewStatus = 1;
+        }
+
         EduHomeworkCorrection update = new EduHomeworkCorrection();
         update.setId(correctionId);
         update.setTotalQuestions(total);
         update.setCorrectCount(correct);
         update.setScore(score);
+        update.setReviewStatus(reviewStatus);
         correctionMapper.updateById(update);
     }
 }

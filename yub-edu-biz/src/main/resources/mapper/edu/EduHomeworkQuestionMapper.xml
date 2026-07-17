@@ -89,7 +89,8 @@
 
     <select id="recalculateStats" resultType="java.util.HashMap">
         SELECT COUNT(*) AS totalQuestions,
-               SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correctCount
+               SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correctCount,
+               SUM(CASE WHEN review_status = 1 THEN 1 ELSE 0 END) AS reviewedCount
         FROM edu_homework_question
         WHERE correction_id = #{correctionId}
     </select>

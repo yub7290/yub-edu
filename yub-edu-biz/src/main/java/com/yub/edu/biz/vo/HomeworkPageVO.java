@@ -52,6 +52,9 @@ public class HomeworkPageVO {
     /** 状态 0:批改中 1:已完成 */
     private Integer status;
 
+    /** 人工复查状态 0:未复查 1:复查中 2:已复查 */
+    private Integer reviewStatus;
+
     /** 创建时间 */
     private LocalDateTime createTime;
 }

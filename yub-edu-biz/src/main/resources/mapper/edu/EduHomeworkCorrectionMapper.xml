@@ -39,7 +39,7 @@
 
     <select id="selectPage" resultMap="BaseResultMap">
         SELECT h.id, h.course_id, h.student_id, h.images, h.total_questions,
-               h.correct_count, h.score, h.status, h.create_time,
+               h.correct_count, h.score, h.status, h.review_status, h.create_time,
                c.name AS courseName, s.name AS studentName
         FROM edu_homework_correction h
         LEFT JOIN edu_course c ON h.course_id = c.id
@@ -56,6 +56,9 @@
         </if>
         <if test="params.status != null">
             AND h.status = #{params.status}
+        </if>
+        <if test="params.reviewStatus != null">
+            AND h.review_status = #{params.reviewStatus}
         </if>
         <if test="params.teacherId != null">
             AND h.course_id IN (SELECT id FROM edu_course WHERE teacher_id = #{params.teacherId} AND deleted = 0)
@@ -80,6 +83,7 @@
             <if test="correctCount != null">correct_count = #{correctCount},</if>
             <if test="score != null">score = #{score},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="reviewStatus != null">review_status = #{reviewStatus},</if>
             update_time = NOW()
         </set>
         WHERE id = #{id} AND deleted = 0
