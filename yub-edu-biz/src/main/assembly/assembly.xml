@@ -1,23 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <assembly xmlns="http://maven.apache.org/ASSEMBLY/4.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/4.0.0
                               http://maven.apache.org/xsd/assembly-4.0.0.xsd">
-    <id>bin</id>
+
+    <id>dist</id>
+
     <formats>
         <format>tar.gz</format>
         <format>zip</format>
     </formats>
     <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
+    <baseDirectory>${project.artifactId}</baseDirectory>
 
     <files>
-        <!-- ¿ÉÖ´ÐÐ JAR -->
+        <!-- å¯æ‰§è¡Œ JAR -->
         <file>
             <source>${project.build.directory}/${project.build.finalName}.jar</source>
             <outputDirectory>./</outputDirectory>
             <destName>${project.build.finalName}.jar</destName>
         </file>
-        <!-- Æô¶¯½Å±¾ -->
+        <!-- å¯åŠ¨è„šæœ¬ -->
         <file>
             <source>src/main/scripts/start.sh</source>
             <outputDirectory>./</outputDirectory>
@@ -26,12 +29,12 @@
     </files>
 
     <fileSets>
-        <!-- ÅäÖÃÎÄ¼þ -->
+        <!-- å¤–éƒ¨åŒ–é…ç½®æ–‡ä»¶ -->
         <fileSet>
             <directory>src/main/resources</directory>
             <outputDirectory>./config</outputDirectory>
             <includes>
-                <include>application*.yml</include>
+                <include>application-prod.yml</include>
                 <include>log4j2.xml</include>
             </includes>
         </fileSet>
