@@ -13,8 +13,8 @@
   -->
 <Configuration status="WARN" monitorInterval="60">
     <Properties>
-        <!-- 日志目录：生产环境通过 LOG_HOME 环境变量指定，默认 /var/log/learn-system -->
-        <Property name="LOG_HOME">${sys:LOG_HOME:-/var/log/learn-system}</Property>
+        <!-- 日志目录：生产环境通过 LOG_HOME 环境变量指定，默认项目目录下的logs文件夹 -->
+        <Property name="LOG_HOME">${sys:LOG_HOME:-./logs}</Property>
         <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n</Property>
         <Property name="LOG_CHARSET">UTF-8</Property>
     </Properties>

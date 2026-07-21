@@ -1,15 +1,14 @@
 package com.yub.edu.biz.controller.app;
 
 import com.yub.common.model.Response;
+import com.yub.edu.biz.service.EduShareContentService;
 import com.yub.edu.biz.service.PointsService;
+import com.yub.edu.biz.vo.ShareContentRespVO;
 import com.yub.framework.security.SecurityUtils;
 import com.yub.system.service.param.SysParamService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * APP-分享 Controller
@@ -26,6 +25,7 @@ public class AppShareController {
 
     private final PointsService pointsService;
     private final SysParamService sysParamService;
+    private final EduShareContentService shareContentService;
 
     /**
      * 记录分享行为并奖励积分
@@ -57,6 +57,16 @@ public class AppShareController {
             pointsService.earnPoints(userId, points, 1, "被邀请注册奖励", null, "share_register");
         }
         return Response.success();
+    }
+
+    /**
+     * 获取分享内容（用于分享卡片展示）
+     * @return 分享内容
+     */
+    @GetMapping("/content")
+    public Response<ShareContentRespVO> getShareContent() {
+        ShareContentRespVO vo = shareContentService.getActiveContent();
+        return Response.success(vo);
     }
 
     /**

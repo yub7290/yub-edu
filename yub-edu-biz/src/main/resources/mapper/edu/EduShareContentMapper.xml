@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduShareContentMapper">
+
+    <sql id="Base_Column_List">
+        id, title, description, image_url, content, status, sort, create_by, create_time, update_by, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_share_content (title, description, image_url, content, status, sort, create_by, create_time, update_by, update_time)
+        VALUES (#{title}, #{description}, #{imageUrl}, #{content}, #{status}, #{sort}, #{createBy}, NOW(), #{updateBy}, NOW())
+    </insert>
+
+    <update id="updateById">
+        UPDATE edu_share_content
+        SET title = #{title},
+            description = #{description},
+            image_url = #{imageUrl},
+            content = #{content},
+            status = #{status},
+            sort = #{sort},
+            update_by = #{updateBy},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE edu_share_content
+        SET deleted = 1, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectById" resultType="com.yub.edu.biz.entity.EduShareContent">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_share_content
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectActiveContent" resultType="com.yub.edu.biz.entity.EduShareContent">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_share_content
+        WHERE status = 1 AND deleted = 0
+        ORDER BY sort ASC, create_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectList" resultType="com.yub.edu.biz.entity.EduShareContent">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_share_content
+        WHERE deleted = 0
+        <if test="title != null and title != ''">
+            AND title LIKE CONCAT('%', #{title}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY sort ASC, create_time DESC
+    </select>
+
+    <select id="selectPage" resultType="com.yub.edu.biz.entity.EduShareContent">
+        SELECT <include refid="Base_Column_List"/>
+        FROM edu_share_content
+        WHERE deleted = 0
+        <if test="title != null and title != ''">
+            AND title LIKE CONCAT('%', #{title}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY sort ASC, create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_share_content
+        WHERE deleted = 0
+        <if test="title != null and title != ''">
+            AND title LIKE CONCAT('%', #{title}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+</mapper>

@@ -245,7 +245,11 @@ public enum EduErrorCode implements ErrorCode {
     /** 资讯分类名称已存在 */
     NEWS_CATEGORY_NAME_EXISTS(201203, "资讯分类名称已存在"),
     /** 资讯分类下存在资讯，无法删除 */
-    NEWS_CATEGORY_HAS_NEWS(201204, "该分类下存在资讯，无法删除");
+    NEWS_CATEGORY_HAS_NEWS(201204, "该分类下存在资讯，无法删除"),
+
+    // ========== 分享内容 20130x ==========
+    /** 分享内容不存在 */
+    SHARE_CONTENT_NOT_FOUND(201301, "分享内容不存在");
 
 
     private final int code;
