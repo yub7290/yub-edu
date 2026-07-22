@@ -177,4 +177,12 @@
         WHERE group_id = #{groupId} AND course_id = #{courseId}
     </update>
 
+    <select id="countFreeCourseByStudentId" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_student_group_member m
+        INNER JOIN edu_student_group g ON g.id = m.group_id AND g.deleted = 0 AND g.status = 1
+        INNER JOIN edu_student_group_course gc ON gc.group_id = g.id
+        WHERE m.student_id = #{studentId} AND gc.course_id = #{courseId}
+    </select>
+
 </mapper>

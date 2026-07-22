@@ -8,6 +8,7 @@ import com.yub.edu.biz.entity.EduCourseOrder;
 import com.yub.edu.biz.exception.EduErrorCode;
 import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.mapper.EduCourseOrderMapper;
+import com.yub.edu.biz.mapper.EduStudentGroupMapper;
 import com.yub.framework.util.BeanUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CourseOrderService {
     private final EduCourseOrderMapper courseOrderMapper;
+    private final EduStudentGroupMapper studentGroupMapper;
     // TODO: 架构治理 - Service间耦合: CourseOrderService 依赖 FundService，应通过 Manager 层解耦
     private final FundService fundService;
 
@@ -36,19 +38,39 @@ public class CourseOrderService {
     public EduCourseOrder purchaseByBalance(Long userId, Long courseId, String courseName, BigDecimal coursePrice) {
         EduCourseOrder existing = courseOrderMapper.selectByUserAndCourse(userId, courseId);
         if (existing != null && existing.getStatus() == 1) throw new EduException(EduErrorCode.DUPLICATE_PAYMENT);
+
+        // 检查学员是否在某个启用的分组中且该分组关联了该课程，若命中则免费
+        Integer freeCount = studentGroupMapper.countFreeCourseByStudentId(userId, courseId);
+        boolean isGroupFree = freeCount != null && freeCount > 0;
+
         String orderNo = "CO" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
-        fundService.deduct(userId, coursePrice, orderNo, courseName);
+        BigDecimal actualAmount;
+        String paymentMethod;
+
+        if (isGroupFree) {
+            // 学员组关联课程，免费
+            actualAmount = BigDecimal.ZERO;
+            paymentMethod = "GROUP_FREE";
+            log.info("学员组免费购买课程: orderNo={}, userId={}, courseId={}", orderNo, userId, courseId);
+        } else {
+            // 正常余额支付
+            actualAmount = coursePrice;
+            paymentMethod = "BALANCE";
+            fundService.deduct(userId, actualAmount, orderNo, courseName);
+        }
+
         EduCourseOrder order = new EduCourseOrder();
         order.setOrderNo(orderNo);
         order.setUserId(userId);
         order.setCourseId(courseId);
         order.setCourseName(courseName);
-        order.setAmount(coursePrice);
-        order.setPaymentMethod("BALANCE");
+        order.setAmount(actualAmount);
+        order.setPaymentMethod(paymentMethod);
         order.setStatus(1);
         order.setPaidAt(LocalDateTime.now());
         courseOrderMapper.insert(order);
-        log.info("余额购买课程成功: orderNo={}, userId={}, courseId={}", orderNo, userId, courseId);
+        log.info("课程购买成功: orderNo={}, userId={}, courseId={}, amount={}, method={}",
+                orderNo, userId, courseId, actualAmount, paymentMethod);
         return order;
     }
 

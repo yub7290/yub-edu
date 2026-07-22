@@ -217,8 +217,8 @@ public enum EduErrorCode implements ErrorCode {
     HOMEWORK_QUESTION_NOT_FOUND(200804, "作业题目不存在"),
     /** 查询批改记录未指定课程 */
     HOMEWORK_COURSE_REQUIRED(200805, "请先选择课程"),
-    /** 无权操作该作业题目（教师数据隔离） */
-    HOMEWORK_QUESTION_ACCESS_DENIED(200806, "无权操作该作业题目"),
+    /** 无权访问该作业题目 */
+    HOMEWORK_QUESTION_ACCESS_DENIED(200806, "无权访问该作业题目"),
 
     /** 获取第三方用户信息失败 */
     OAUTH_USERINFO_FAILED(200957, "获取第三方用户信息失败"),

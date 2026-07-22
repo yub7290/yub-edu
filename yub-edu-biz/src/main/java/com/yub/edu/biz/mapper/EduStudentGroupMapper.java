@@ -172,4 +172,13 @@ public interface EduStudentGroupMapper {
      */
     int updateCourseSortOrder(@Param("groupId") Long groupId, @Param("courseId") Long courseId,
                               @Param("sortOrder") Integer sortOrder);
+
+    /**
+     * 检查学员是否在某个启用的分组中且该分组关联了指定课程（用于免费判断）
+     *
+     * @param studentId 学员ID
+     * @param courseId  课程ID
+     * @return 匹配数量（>0表示可免费）
+     */
+    Integer countFreeCourseByStudentId(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
 }

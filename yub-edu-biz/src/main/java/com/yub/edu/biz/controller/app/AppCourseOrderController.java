@@ -4,7 +4,11 @@ import com.yub.common.model.PageResult;
 import com.yub.common.model.Response;
 import com.yub.edu.api.dto.app.CoursePurchaseReqDTO;
 import com.yub.edu.api.vo.app.CourseOrderVO;
+import com.yub.edu.biz.entity.EduCourse;
 import com.yub.edu.biz.entity.EduCourseOrder;
+import com.yub.edu.biz.exception.EduErrorCode;
+import com.yub.edu.biz.exception.EduException;
+import com.yub.edu.biz.mapper.EduCourseMapper;
 import com.yub.edu.biz.service.fund.CourseOrderService;
 import com.yub.framework.security.SecurityUtils;
 import com.yub.framework.util.BeanUtils;
@@ -34,6 +38,7 @@ import java.math.BigDecimal;
 public class AppCourseOrderController {
 
     private final CourseOrderService courseOrderService;
+    private final EduCourseMapper courseMapper;
 
     /**
      * 余额购买课程
@@ -44,8 +49,18 @@ public class AppCourseOrderController {
     @PostMapping("/purchase")
     public Response<CourseOrderVO> purchase(@Valid @RequestBody CoursePurchaseReqDTO dto) {
         Long userId = SecurityUtils.getCurrentUserId();
-        // TODO: 查询课程信息获取名称和价格（需注入EduCourseMapper）
-        EduCourseOrder order = courseOrderService.purchaseByBalance(userId, dto.getCourseId(), "课程", BigDecimal.ZERO);
+        // 查询课程信息获取名称和价格
+        EduCourse course = courseMapper.selectById(dto.getCourseId());
+        if (course == null) {
+            throw new EduException(EduErrorCode.COURSE_NOT_FOUND);
+        }
+        String courseName = course.getName();
+        BigDecimal coursePrice = course.getTotalPrice() != null ? course.getTotalPrice() : BigDecimal.ZERO;
+        // 课程本身免费时直接价格为0
+        if (course.getIsFree() != null && course.getIsFree() == 1) {
+            coursePrice = BigDecimal.ZERO;
+        }
+        EduCourseOrder order = courseOrderService.purchaseByBalance(userId, dto.getCourseId(), courseName, coursePrice);
         CourseOrderVO vo = BeanUtils.copy(order, CourseOrderVO.class);
         return Response.success(vo);
     }
