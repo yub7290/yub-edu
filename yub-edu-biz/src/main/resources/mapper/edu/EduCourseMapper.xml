@@ -200,11 +200,24 @@
                )              AS recent_learn_time
         FROM edu_course c
         WHERE c.deleted = 0
-          AND c.id IN (
-            SELECT DISTINCT sr.course_id
-            FROM edu_study_record sr
-            WHERE sr.student_id = #{queryParam.studentId}
-        )
+          AND (
+            EXISTS (
+                SELECT 1 FROM edu_course_order o
+                WHERE o.user_id = #{queryParam.studentId}
+                  AND o.course_id = c.id
+                  AND o.status = 1
+                  AND o.deleted = 0
+            )
+            OR EXISTS (
+                SELECT 1 FROM edu_student_group_course gc
+                WHERE gc.course_id = c.id
+                  AND gc.group_id IN (
+                    SELECT group_id FROM edu_student_group_member WHERE student_id = #{queryParam.studentId}
+                    UNION
+                    SELECT group_id FROM edu_student WHERE id = #{queryParam.studentId} AND group_id IS NOT NULL
+                  )
+            )
+          )
         ORDER BY recent_learn_time DESC
     </select>
 

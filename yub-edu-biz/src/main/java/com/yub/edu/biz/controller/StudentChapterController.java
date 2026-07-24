@@ -4,10 +4,14 @@ import com.yub.common.model.Response;
 import com.yub.edu.biz.entity.EduChapter;
 import com.yub.edu.biz.entity.EduChapterAttachment;
 import com.yub.edu.biz.entity.EduChapterVideo;
+import com.yub.edu.biz.exception.EduErrorCode;
+import com.yub.edu.biz.exception.EduException;
 import com.yub.edu.biz.service.ChapterService;
+import com.yub.edu.biz.service.CourseAccessService;
 import com.yub.edu.biz.vo.ChapterDetailRespVO;
 import com.yub.edu.biz.vo.ChapterItemRespVO;
 import com.yub.edu.biz.vo.ChapterListRespVO;
+import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,12 +32,17 @@ import java.util.*;
 public class StudentChapterController {
 
     private final ChapterService chapterService;
+    private final CourseAccessService courseAccessService;
 
     /**
      * 章节详情
      */
     @GetMapping("/detail")
     public Response<ChapterDetailRespVO> detail(@RequestParam Long chId, @RequestParam Long cid) {
+        // 学习权限校验：仅免费课 / 已购买 / 所属组已绑定课程可访问，避免视频/附件 URL 越权泄露
+        if (!courseAccessService.canAccess(SecurityUtils.getCurrentUserId(), cid)) {
+            throw new EduException(EduErrorCode.COURSE_NO_ACCESS);
+        }
         EduChapter chapter = chapterService.getDetail(chId);
 
         List<EduChapterVideo> videoList = chapter.getVideoList() != null ? chapter.getVideoList() : Collections.emptyList();
@@ -68,6 +77,10 @@ public class StudentChapterController {
      */
     @GetMapping("/list")
     public Response<ChapterListRespVO> list(@RequestParam Long cid) {
+        // 学习权限校验：章节大纲同样受课程访问权限约束
+        if (!courseAccessService.canAccess(SecurityUtils.getCurrentUserId(), cid)) {
+            throw new EduException(EduErrorCode.COURSE_NO_ACCESS);
+        }
         List<EduChapter> chapters = chapterService.getTree(cid);
         List<ChapterItemRespVO> list = chapters.stream().map(ch ->
             ChapterItemRespVO.builder()

@@ -16,4 +16,6 @@ public class StudentCourseDetailRespVO {
     private List<?> chapter;
     private Object teacher;
     private Object aiAssistant;
+    /** 当前学员是否可学习该课程（免费课/已购/组绑定） */
+    private Boolean accessible;
 }

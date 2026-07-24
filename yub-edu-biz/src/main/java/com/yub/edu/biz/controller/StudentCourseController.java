@@ -18,6 +18,7 @@ import com.yub.edu.biz.service.EduExamService;
 import com.yub.edu.biz.service.EduPracticeRecordService;
 import com.yub.edu.biz.service.StudyRecordService;
 import com.yub.edu.biz.service.TeacherService;
+import com.yub.edu.biz.service.CourseAccessService;
 import com.yub.edu.biz.vo.CourseCategoryRespVO;
 import com.yub.edu.biz.vo.CourseExamHistoryVO;
 import com.yub.edu.biz.vo.CourseListRespVO;
@@ -52,6 +53,7 @@ public class StudentCourseController {
     private final EduPracticeRecordService eduPracticeRecordService;
     private final StudyRecordService studyRecordService;
     private final EduExamService eduExamService;
+    private final CourseAccessService courseAccessService;
 
     /**
      * 课程分类
@@ -73,6 +75,11 @@ public class StudentCourseController {
         PageHelper.startPage(page, pageSize);
         List<EduCourse> list = eduCourseService.studentList(cateId, tabType, null);
         PageInfo<EduCourse> pageInfo = new PageInfo<>(list);
+
+        Long studentId = SecurityUtils.getCurrentUserId();
+        Map<Long, Boolean> accessMap = courseAccessService.batchAccessible(
+                studentId, list.stream().map(EduCourse::getId).toList());
+
         List<CourseRecommendedRespVO> voList = list.stream().map(c ->
             CourseRecommendedRespVO.builder()
                     .id(c.getId())
@@ -80,6 +87,7 @@ public class StudentCourseController {
                     .name(c.getName())
                     .courseType(c.getCourseType())
                     .teacherName(c.getTeacher())
+                    .accessible(accessMap.getOrDefault(c.getId(), false))
                     .build()
         ).toList();
         return Response.success(CourseListRespVO.builder().list(voList).total(pageInfo.getTotal()).build());
@@ -94,6 +102,11 @@ public class StudentCourseController {
             @RequestParam(name = "cateId", defaultValue = "0") Long cateId,
             @RequestParam(name = "tabType", defaultValue = "0") Integer tabType) {
         List<EduCourse> list = eduCourseService.studentList(cateId, tabType, keyword);
+
+        Long studentId = SecurityUtils.getCurrentUserId();
+        Map<Long, Boolean> accessMap = courseAccessService.batchAccessible(
+                studentId, list.stream().map(EduCourse::getId).toList());
+
         List<CourseRecommendedRespVO> voList = list.stream().map(c ->
             CourseRecommendedRespVO.builder()
                     .id(c.getId())
@@ -101,6 +114,7 @@ public class StudentCourseController {
                     .name(c.getName())
                     .courseType(c.getCourseType())
                     .teacherName(c.getTeacher())
+                    .accessible(accessMap.getOrDefault(c.getId(), false))
                     .build()
         ).toList();
         return Response.success(CourseListRespVO.builder().list(voList).total(list.size()).build());
@@ -156,11 +170,16 @@ public class StudentCourseController {
         aiAssistant.put("enabled", aiEnabled);
         // 默认系统提示词也返回前端，方便展示AI助教角色
 
+        // 课程学习权限：免费课 / 已购买 / 所属组已绑定
+        Long studentId = SecurityUtils.getCurrentUserId();
+        boolean accessible = courseAccessService.canAccess(studentId, cid);
+
         return Response.success(StudentCourseDetailRespVO.builder()
                 .course(courseInfo)
                 .chapter(chapterList)
                 .teacher(teacherInfo)
                 .aiAssistant(aiAssistant)
+                .accessible(accessible)
                 .build());
     }
 

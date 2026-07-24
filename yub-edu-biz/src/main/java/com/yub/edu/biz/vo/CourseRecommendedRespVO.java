@@ -36,4 +36,7 @@ public class CourseRecommendedRespVO {
 
     /** 资费类型（免费/限免/试学） */
     private String feeType;
+
+    /** 当前学员是否可学习该课程（免费课/已购/组绑定），不可访问时前端展示锁定态 */
+    private Boolean accessible;
 }

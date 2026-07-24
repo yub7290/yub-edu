@@ -29,6 +29,8 @@ public enum EduErrorCode implements ErrorCode {
     COURSE_NOT_FOUND(200011, "课程不存在"),
     /** 课程名称已存在 */
     COURSE_NAME_EXISTS(200012, "课程名称已存在"),
+    /** 无课程学习权限（未购买且所在学员组未绑定该课程） */
+    COURSE_NO_ACCESS(200311, "无学习权限，请先购买课程或联系管理员开通"),
 
     /** 试题不存在 */
     QUESTION_NOT_FOUND(200021, "试题不存在"),

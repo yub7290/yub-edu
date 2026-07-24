@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduCourseAccessMapper">
+
+    <!-- 学员所属组来源：兼容 edu_student_group_member 与 edu_student.group_id -->
+    <sql id="studentGroupIds">
+        SELECT group_id FROM edu_student_group_member WHERE student_id = #{studentId}
+        UNION
+        SELECT group_id FROM edu_student WHERE id = #{studentId} AND group_id IS NOT NULL
+    </sql>
+
+    <!-- 是否已支付购买该课程（status=1 且未删除） -->
+    <select id="countPaidOrderByUserAndCourse" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_course_order
+        WHERE user_id = #{userId}
+          AND course_id = #{courseId}
+          AND status = 1
+          AND deleted = 0
+    </select>
+
+    <!-- 学员所属组是否绑定该课程 -->
+    <select id="countGroupBoundCourse" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_student_group_course gc
+        WHERE gc.course_id = #{courseId}
+          AND gc.group_id IN (
+            <include refid="studentGroupIds"/>
+        )
+    </select>
+
+    <!-- 批量判断课程可访问性（免费课 / 已购 / 组绑定） -->
+    <select id="batchAccessible" resultType="com.yub.edu.biz.vo.CourseAccessFlagVO">
+        SELECT c.id AS courseId,
+               (c.is_free = 1
+                OR EXISTS (
+                    SELECT 1 FROM edu_course_order o
+                    WHERE o.user_id = #{studentId}
+                      AND o.course_id = c.id
+                      AND o.status = 1
+                      AND o.deleted = 0
+                )
+                OR EXISTS (
+                    SELECT 1 FROM edu_student_group_course gc
+                    WHERE gc.course_id = c.id
+                      AND gc.group_id IN (
+                        <include refid="studentGroupIds"/>
+                      )
+                )
+               ) AS `accessible`
+        FROM edu_course c
+        WHERE c.id IN
+        <foreach collection="courseIds" item="cid" open="(" separator="," close=")">
+            #{cid}
+        </foreach>
+    </select>
+
+</mapper>

@@ -52,6 +52,16 @@ public interface EduCourseOrderMapper {
     EduCourseOrder selectByUserAndCourse(@Param("userId") Long userId, @Param("courseId") Long courseId);
 
     /**
+     * 统计用户已支付（status=1 且未删除）的指定课程订单数
+     * <p>用于课程访问权限判定；退款(status=2)等不计入
+     *
+     * @param userId   用户ID
+     * @param courseId 课程ID
+     * @return 计数
+     */
+    int countPaidOrderByUserAndCourse(@Param("userId") Long userId, @Param("courseId") Long courseId);
+
+    /**
      * 查询用户本人的课程订单
      *
      * @param userId 用户ID
