@@ -1,18 +1,29 @@
 package com.yub.edu.biz.controller;
 
 import com.qiniu.util.Auth;
+import com.qiniu.util.StringMap;
+import com.yub.common.annotation.Log;
 import com.yub.common.model.Response;
 import com.yub.edu.biz.config.QiniuConfig;
+import com.yub.edu.biz.dto.VideoTranscodeStartReqDTO;
 import com.yub.edu.biz.service.FileUploadService;
+import com.yub.edu.biz.service.VideoTranscodeService;
+import com.yub.edu.biz.vo.VideoTranscodeRespVO;
+import com.yub.framework.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,6 +33,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -41,9 +53,12 @@ public class FileUploadController {
 
     private final FileUploadService fileUploadService;
     private final QiniuConfig qiniuConfig;
+    private final VideoTranscodeService videoTranscodeService;
 
     /** 合法目录名正则：只允许字母数字、下划线、中划线、斜杠，禁止路径穿越 */
     private static final Pattern DIR_PATTERN = Pattern.compile("^[\\w\\-/]+$");
+    private static final Set<String> HLS_SOURCE_EXTENSIONS = Set.of("mp4", "mov");
+    private static final long MAX_VIDEO_SIZE = 500L * 1024 * 1024;
 
     /**
      * 上传图片
@@ -168,20 +183,55 @@ public class FileUploadController {
      */
     @GetMapping("/qiniu-token")
     public Response<Map<String, String>> getQiniuUploadToken(
-            @RequestParam(value = "directory", defaultValue = "edu/videos") String directory,
             @RequestParam(value = "ext", defaultValue = "mp4") String ext) {
-        if (!DIR_PATTERN.matcher(directory).matches()) {
-            return Response.error(400, "存储目录格式不合法");
+        String normalizedExt = ext.toLowerCase().replace(".", "");
+        if (!HLS_SOURCE_EXTENSIONS.contains(normalizedExt)) {
+            return Response.error(1006, "视频仅支持 MP4、MOV 格式");
         }
-        String key = directory + "/" + UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        if (!StringUtils.hasText(qiniuConfig.getAccessKey())
+                || !StringUtils.hasText(qiniuConfig.getSecretKey())
+                || !StringUtils.hasText(qiniuConfig.getBucket())
+                || !StringUtils.hasText(qiniuConfig.getDomain())
+                || !StringUtils.hasText(qiniuConfig.getVideoSourcePrefix())) {
+            return Response.error(503, "七牛云配置不完整");
+        }
+        String prefix = qiniuConfig.getVideoSourcePrefix().replaceAll("^/+|/+$", "");
+        String key = prefix + "/" + UUID.randomUUID().toString().replace("-", "") + "." + normalizedExt;
         Auth auth = Auth.create(qiniuConfig.getAccessKey(), qiniuConfig.getSecretKey());
-        String upToken = auth.uploadToken(qiniuConfig.getBucket());
-        Map<String, String> result = new HashMap<>(5);
+        StringMap policy = new StringMap()
+                .put("insertOnly", 1)
+                .put("fsizeLimit", MAX_VIDEO_SIZE)
+                .put("mimeLimit", "video/mp4;video/quicktime")
+                .put("returnBody", "{\"key\":\"$(key)\",\"hash\":\"$(etag)\",\"fsize\":$(fsize)}");
+        String upToken = auth.uploadToken(qiniuConfig.getBucket(), key, 3600, policy);
+        Map<String, String> result = new HashMap<>(6);
         result.put("token", upToken);
         result.put("key", key);
         result.put("domain", qiniuConfig.getDomain());
         result.put("uploadUrl", getQiniuUploadUrl(qiniuConfig.getRegion()));
+        result.put("maxSize", String.valueOf(MAX_VIDEO_SIZE));
         return Response.success(result);
+    }
+
+    /** 上传完成后提交七牛多码率 HLS 异步转码。 */
+    @PostMapping("/video/transcode")
+    public Response<VideoTranscodeRespVO> startVideoTranscode(
+            @Valid @RequestBody VideoTranscodeStartReqDTO request) {
+        return Response.success(videoTranscodeService.start(request, SecurityUtils.getCurrentUserId()));
+    }
+
+    /** 查询七牛 pfop 状态；只有 READY 状态的视频才允许保存到章节。 */
+    @GetMapping("/video/transcode/{assetId}")
+    public Response<VideoTranscodeRespVO> getVideoTranscodeStatus(@PathVariable Long assetId) {
+        return Response.success(videoTranscodeService.refresh(assetId, SecurityUtils.getCurrentUserId()));
+    }
+
+    /** 删除当前用户上传且尚未关联章节的视频资产。 */
+    @Log(value = "删除视频资产", type = "DELETE")
+    @DeleteMapping("/video/asset/{assetId}")
+    public Response<Void> deleteVideoAsset(@PathVariable Long assetId) {
+        videoTranscodeService.delete(assetId, SecurityUtils.getCurrentUserId());
+        return Response.success();
     }
 
     /**

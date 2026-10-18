@@ -5,6 +5,7 @@
     <resultMap id="EduChapterVideoMap" type="com.yub.edu.biz.entity.EduChapterVideo">
         <id column="id" property="id"/>
         <result column="chapter_id" property="chapterId"/>
+        <result column="asset_id" property="assetId"/>
         <result column="video_name" property="videoName"/>
         <result column="video_url" property="videoUrl"/>
         <result column="file_size" property="fileSize"/>
@@ -16,7 +17,7 @@
     </resultMap>
 
     <sql id="baseColumns">
-        id, chapter_id, video_name, video_url, file_size, sort,
+        id, chapter_id, asset_id, video_name, video_url, file_size, sort,
         create_time, update_time, create_by, deleted
     </sql>
 
@@ -39,12 +40,18 @@
     </select>
 
     <insert id="batchInsert">
-        INSERT INTO edu_chapter_video (chapter_id, video_name, video_url, file_size, sort, create_time, update_time, create_by)
+        INSERT INTO edu_chapter_video (chapter_id, asset_id, video_name, video_url, file_size, sort, create_time, update_time, create_by)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.chapterId}, #{item.videoName}, #{item.videoUrl}, #{item.fileSize}, #{item.sort}, NOW(), NOW(), #{item.createBy})
+            (#{item.chapterId}, #{item.assetId}, #{item.videoName}, #{item.videoUrl}, #{item.fileSize}, #{item.sort}, NOW(), NOW(), #{item.createBy})
         </foreach>
     </insert>
+
+    <select id="countByAssetId" resultType="int">
+        SELECT COUNT(1)
+        FROM edu_chapter_video
+        WHERE asset_id = #{assetId} AND deleted = 0
+    </select>
 
     <update id="deleteByChapterId">
         UPDATE edu_chapter_video SET deleted = 1, update_time = NOW()

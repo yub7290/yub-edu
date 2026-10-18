@@ -42,6 +42,14 @@ public interface EduChapterVideoMapper {
     int batchInsert(@Param("list") List<EduChapterVideo> list);
 
     /**
+     * 统计仍被章节引用的视频资产数量
+     *
+     * @param assetId 视频资产ID
+     * @return 引用数量
+     */
+    int countByAssetId(@Param("assetId") Long assetId);
+
+    /**
      * 根据章节ID逻辑删除视频
      *
      * @param chapterId 章节ID

@@ -13,6 +13,7 @@ import com.yub.edu.biz.mapper.EduChapterMapper;
 import com.yub.edu.biz.mapper.EduChapterKnowledgePointMapper;
 import com.yub.edu.biz.mapper.EduChapterVideoMapper;
 import com.yub.edu.biz.service.ChapterService;
+import com.yub.edu.biz.service.VideoTranscodeService;
 import com.yub.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +46,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final EduChapterKnowledgePointMapper eduChapterKnowledgePointMapper;
     private final EduChapterVideoMapper eduChapterVideoMapper;
     private final EduChapterAttachmentMapper eduChapterAttachmentMapper;
+    private final VideoTranscodeService videoTranscodeService;
 
     @Override
     public List<EduChapter> getTree(Long courseId) {
@@ -58,7 +62,10 @@ public class ChapterServiceImpl implements ChapterService {
         }
         // 加载关联知识点ID列表
         chapter.setKnowledgePointIds(eduChapterKnowledgePointMapper.selectKnowledgePointIdsByChapterId(id));
-        chapter.setVideoList(eduChapterVideoMapper.selectByChapterId(id));
+        List<EduChapterVideo> videos = eduChapterVideoMapper.selectByChapterId(id);
+        videos.forEach(video -> video.setPlaybackType(
+                video.getVideoUrl() != null && video.getVideoUrl().toLowerCase().contains(".m3u8") ? "hls" : "file"));
+        chapter.setVideoList(videos);
         chapter.setAttachmentList(eduChapterAttachmentMapper.selectByChapterId(id));
         return chapter;
     }
@@ -87,7 +94,7 @@ public class ChapterServiceImpl implements ChapterService {
         if (dto.getKnowledgePointIds() != null && !dto.getKnowledgePointIds().isEmpty()) {
             saveChapterKnowledgePoints(chapter.getId(), dto.getKnowledgePointIds(), userId);
         }
-        saveChapterVideos(chapter.getId(), dto.getVideoList(), userId);
+        saveChapterVideos(chapter.getId(), dto.getVideoList(), userId, Collections.emptyList());
         saveChapterAttachments(chapter.getId(), dto.getAttachmentList(), userId);
 
         return chapter.getId();
@@ -121,8 +128,18 @@ public class ChapterServiceImpl implements ChapterService {
             }
         }
         if (dto.getVideoList() != null) {
+            List<EduChapterVideo> existingVideos = eduChapterVideoMapper.selectByChapterId(dto.getId());
+            Set<Long> retainedAssetIds = dto.getVideoList().stream()
+                    .filter(video -> video != null && video.getAssetId() != null)
+                    .map(EduChapterVideo::getAssetId)
+                    .collect(Collectors.toSet());
+            Set<Long> removedAssetIds = existingVideos.stream()
+                    .map(EduChapterVideo::getAssetId)
+                    .filter(assetId -> assetId != null && !retainedAssetIds.contains(assetId))
+                    .collect(Collectors.toCollection(HashSet::new));
             eduChapterVideoMapper.deleteByChapterId(dto.getId());
-            saveChapterVideos(dto.getId(), dto.getVideoList(), chapter.getUpdateBy());
+            saveChapterVideos(dto.getId(), dto.getVideoList(), chapter.getUpdateBy(), existingVideos);
+            removedAssetIds.forEach(videoTranscodeService::deleteIfOrphaned);
         }
         if (dto.getAttachmentList() != null) {
             eduChapterAttachmentMapper.deleteByChapterId(dto.getId());
@@ -141,11 +158,17 @@ public class ChapterServiceImpl implements ChapterService {
         if (childCount > 0) {
             throw new EduException(EduErrorCode.CHAPTER_HAS_CHILDREN);
         }
+        List<Long> assetIds = eduChapterVideoMapper.selectByChapterId(id).stream()
+                .map(EduChapterVideo::getAssetId)
+                .filter(assetId -> assetId != null)
+                .distinct()
+                .collect(Collectors.toList());
         eduChapterMapper.deleteById(id);
         // 删除章节-知识点关联
         eduChapterKnowledgePointMapper.deleteByChapterId(id);
         eduChapterVideoMapper.deleteByChapterId(id);
         eduChapterAttachmentMapper.deleteByChapterId(id);
+        assetIds.forEach(videoTranscodeService::deleteIfOrphaned);
     }
 
     @Override
@@ -182,23 +205,39 @@ public class ChapterServiceImpl implements ChapterService {
     /**
      * 批量保存章节视频
      */
-    private void saveChapterVideos(Long chapterId, List<EduChapterVideo> videoList, Long userId) {
+    private void saveChapterVideos(Long chapterId, List<EduChapterVideo> videoList, Long userId,
+                                   List<EduChapterVideo> existingVideos) {
         if (videoList == null || videoList.isEmpty()) {
             return;
         }
+        Map<Long, EduChapterVideo> existingById = existingVideos.stream()
+                .filter(video -> video.getId() != null)
+                .collect(Collectors.toMap(EduChapterVideo::getId, video -> video, (a, b) -> a));
         List<EduChapterVideo> list = new ArrayList<>();
         for (int i = 0; i < videoList.size(); i++) {
             EduChapterVideo source = videoList.get(i);
-            if (source == null || source.getVideoUrl() == null || source.getVideoUrl().isBlank()) {
-                continue;
-            }
+            if (source == null) continue;
             EduChapterVideo item = new EduChapterVideo();
             item.setChapterId(chapterId);
-            item.setVideoName(source.getVideoName() != null && !source.getVideoName().isBlank()
-                    ? source.getVideoName()
-                    : "视频" + (i + 1));
-            item.setVideoUrl(source.getVideoUrl());
-            item.setFileSize(source.getFileSize());
+            if (source.getAssetId() != null) {
+                var asset = videoTranscodeService.getReadyAsset(source.getAssetId(), userId);
+                item.setAssetId(asset.getId());
+                item.setVideoUrl(asset.getHlsUrl());
+                item.setFileSize(asset.getFileSize());
+                item.setVideoName(source.getVideoName() != null && !source.getVideoName().isBlank()
+                        ? source.getVideoName() : asset.getOriginalName());
+            } else {
+                // 只允许原样保留本章已有的存量直链，禁止浏览器提交任意播放URL。
+                EduChapterVideo legacy = source.getId() == null ? null : existingById.get(source.getId());
+                if (legacy == null || source.getVideoUrl() == null
+                        || !source.getVideoUrl().equals(legacy.getVideoUrl())) {
+                    throw new com.yub.common.exception.BaseException(EduErrorCode.VIDEO_TRANSCODE_NOT_READY);
+                }
+                item.setVideoUrl(legacy.getVideoUrl());
+                item.setFileSize(legacy.getFileSize());
+                item.setVideoName(source.getVideoName() != null && !source.getVideoName().isBlank()
+                        ? source.getVideoName() : legacy.getVideoName());
+            }
             item.setSort(i);
             item.setCreateBy(userId);
             list.add(item);

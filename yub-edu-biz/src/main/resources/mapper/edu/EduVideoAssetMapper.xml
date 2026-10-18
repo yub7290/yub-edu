@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yub.edu.biz.mapper.EduVideoAssetMapper">
+    <resultMap id="VideoAssetMap" type="com.yub.edu.biz.entity.EduVideoAsset">
+        <id column="id" property="id"/>
+        <result column="original_name" property="originalName"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="source_url" property="sourceUrl"/>
+        <result column="hls_key" property="hlsKey"/>
+        <result column="hls_url" property="hlsUrl"/>
+        <result column="persistent_id" property="persistentId"/>
+        <result column="status" property="status"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, original_name, file_size, source_key, source_url, hls_key, hls_url,
+        persistent_id, status, error_message, create_by, create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO edu_video_asset
+        (original_name, file_size, source_key, source_url, hls_key, hls_url,
+         persistent_id, status, error_message, create_by, create_time, update_time, deleted)
+        VALUES
+        (#{originalName}, #{fileSize}, #{sourceKey}, #{sourceUrl}, #{hlsKey}, #{hlsUrl},
+         #{persistentId}, #{status}, #{errorMessage}, #{createBy}, NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectById" resultMap="VideoAssetMap">
+        SELECT <include refid="columns"/> FROM edu_video_asset WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectBySourceKey" resultMap="VideoAssetMap">
+        SELECT <include refid="columns"/> FROM edu_video_asset
+        WHERE source_key = #{sourceKey} AND deleted = 0 LIMIT 1
+    </select>
+
+    <update id="updateTask">
+        UPDATE edu_video_asset
+        SET persistent_id = #{persistentId}, status = #{status}, hls_url = #{hlsUrl},
+            error_message = #{errorMessage}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="markDeleted">
+        UPDATE edu_video_asset
+        SET deleted = 1, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+</mapper>

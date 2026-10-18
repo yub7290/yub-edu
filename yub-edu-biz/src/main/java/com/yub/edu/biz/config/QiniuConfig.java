@@ -31,4 +31,16 @@ public class QiniuConfig {
 
     /** 存储区域：z0=华东 z1=华北 z2=华南 na0=北美 as0=东南亚 */
     private String region = "z2";
+
+    /** 可选的持久化处理队列；为空时使用七牛共享队列。 */
+    private String transcodePipeline;
+
+    /** 浏览器直传的原始视频目录。 */
+    private String videoSourcePrefix = "edu/chapter/source";
+
+    /** 多码率 HLS 输出目录。 */
+    private String videoHlsPrefix = "edu/chapter/hls";
+
+    /** HLS 分片秒数。 */
+    private Integer hlsSegmentSeconds = 6;
 }

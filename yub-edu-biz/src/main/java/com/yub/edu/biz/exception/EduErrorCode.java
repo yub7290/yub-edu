@@ -66,6 +66,14 @@ public enum EduErrorCode implements ErrorCode {
 
     /** 章节下存在子章节 */
     CHAPTER_HAS_CHILDREN(200042, "该章节下存在子章节，无法删除"),
+    /** 视频转码任务不存在 */
+    VIDEO_ASSET_NOT_FOUND(200043, "视频转码任务不存在"),
+    /** 视频尚未完成转码 */
+    VIDEO_TRANSCODE_NOT_READY(200044, "视频尚未完成转码，暂不能保存章节"),
+    /** 视频资源不属于当前用户 */
+    VIDEO_ASSET_FORBIDDEN(200045, "无权使用该视频资源"),
+    /** 视频仍被章节引用 */
+    VIDEO_ASSET_IN_USE(200046, "视频仍被章节使用，请先解除章节关联"),
 
     /** 知识点不存在 */
     KNOWLEDGE_POINT_NOT_FOUND(200051, "知识点不存在"),

@@ -157,13 +157,12 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     /** 允许的视频 MIME 类型 */
     private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
-            "video/mp4", "video/x-msvideo", "video/quicktime",
-            "video/x-flv", "video/x-ms-wmv", "video/x-matroska"
+            "video/mp4", "video/quicktime"
     );
 
     /** 允许的视频文件扩展名（小写） */
     private static final Set<String> ALLOWED_VIDEO_EXTENSIONS = Set.of(
-            "mp4", "avi", "mov", "flv", "wmv", "mkv"
+            "mp4", "mov"
     );
 
     /** 最大视频字节数 */

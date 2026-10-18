@@ -44,6 +44,10 @@ public class StudentChapterController {
             throw new EduException(EduErrorCode.COURSE_NO_ACCESS);
         }
         EduChapter chapter = chapterService.getDetail(chId);
+        // cid 不能只用于权限判断；必须同时校验章节归属，避免拿有权限的课程ID读取其他课程章节。
+        if (!cid.equals(chapter.getCourseId())) {
+            throw new EduException(EduErrorCode.COURSE_NO_ACCESS);
+        }
 
         List<EduChapterVideo> videoList = chapter.getVideoList() != null ? chapter.getVideoList() : Collections.emptyList();
         List<EduChapterAttachment> attachmentList = chapter.getAttachmentList() != null ? chapter.getAttachmentList() : Collections.emptyList();
@@ -82,13 +86,20 @@ public class StudentChapterController {
             throw new EduException(EduErrorCode.COURSE_NO_ACCESS);
         }
         List<EduChapter> chapters = chapterService.getTree(cid);
-        List<ChapterItemRespVO> list = chapters.stream().map(ch ->
-            ChapterItemRespVO.builder()
-                    .id(ch.getId())
-                    .chapterName(ch.getName())
-                    .build()
-        ).toList();
+        // 保留完整树结构。旧实现只映射根节点，丢弃 children，学习页只能显示一层且容易打开无视频的父章节。
+        List<ChapterItemRespVO> list = chapters.stream().map(this::toChapterItem).toList();
 
         return Response.success(ChapterListRespVO.builder().list(list).build());
+    }
+
+    private ChapterItemRespVO toChapterItem(EduChapter chapter) {
+        List<ChapterItemRespVO> children = chapter.getChildren() == null
+                ? Collections.emptyList()
+                : chapter.getChildren().stream().map(this::toChapterItem).toList();
+        return ChapterItemRespVO.builder()
+                .id(chapter.getId())
+                .chapterName(chapter.getName())
+                .children(children)
+                .build();
     }
 }

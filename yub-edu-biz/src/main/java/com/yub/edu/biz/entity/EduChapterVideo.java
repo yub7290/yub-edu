@@ -21,11 +21,17 @@ public class EduChapterVideo {
     /** 章节ID */
     private Long chapterId;
 
+    /** HLS 视频资产ID；存量直链视频为空 */
+    private Long assetId;
+
     /** 视频名称 */
     private String videoName;
 
     /** 视频URL */
     private String videoUrl;
+
+    /** 播放类型：hls/file */
+    private String playbackType;
 
     /** 文件大小（字节） */
     private Long fileSize;
