@@ -33,6 +33,8 @@ public class ExamInfoRespVO {
     /** 课程ID */
     private Long courseId;
 
+    private Integer isFinalExam;
+
     /** 课程名称 */
     private String courseName;
 

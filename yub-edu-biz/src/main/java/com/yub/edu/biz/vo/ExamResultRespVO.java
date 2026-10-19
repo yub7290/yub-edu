@@ -24,6 +24,9 @@ public class ExamResultRespVO {
     /** 考试记录ID */
     private Long recordId;
 
+    /** 0进行中、1已提交、2超时交卷。 */
+    private Integer status;
+
     /** 实际得分 */
     private Integer score;
 

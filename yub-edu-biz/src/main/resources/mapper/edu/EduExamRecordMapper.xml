@@ -36,6 +36,17 @@
                 NOW(), NOW(), 0)
     </insert>
 
+    <select id="selectAttemptStatuses" resultType="com.yub.edu.biz.dto.ExamAttemptStatusDTO">
+        SELECT r.exam_id AS examId,
+               CASE WHEN MAX(CASE WHEN r.status = 0
+                    AND TIMESTAMPADD(MINUTE, COALESCE(e.duration, 0), r.start_time) &gt; NOW()
+                    THEN 1 ELSE 0 END) = 1 THEN 1 ELSE 2 END AS attemptStatus
+        FROM edu_exam_record r INNER JOIN edu_exam e ON e.id = r.exam_id AND e.deleted = 0
+        WHERE r.user_id = #{userId} AND r.deleted = 0 AND r.exam_id IN
+        <foreach collection="examIds" item="examId" open="(" separator="," close=")">#{examId}</foreach>
+        GROUP BY r.exam_id
+    </select>
+
     <select id="selectById" resultMap="EduExamRecordMap">
         SELECT <include refid="baseColumns"/>
         FROM edu_exam_record
@@ -114,7 +125,7 @@
             COALESCE(AVG(r.score), 0) AS avgScore,
             COALESCE(MAX(r.score), 0) AS maxScore,
             COUNT(1) AS totalCount,
-            SUM(CASE WHEN r.is_pass = 1 THEN 1 ELSE 0 END) AS passCount
+            COALESCE(SUM(CASE WHEN r.is_pass = 1 THEN 1 ELSE 0 END), 0) AS passCount
         FROM edu_exam_record r
         INNER JOIN edu_exam e ON r.exam_id = e.id AND e.deleted = 0
         WHERE r.user_id = #{userId} AND e.course_id = #{courseId}

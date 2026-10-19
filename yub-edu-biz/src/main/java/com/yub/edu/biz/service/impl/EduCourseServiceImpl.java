@@ -30,6 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import com.yub.edu.biz.vo.CourseCategoryNodeVO;
 
 /**
  * 课程服务实现
@@ -43,6 +47,35 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class EduCourseServiceImpl implements EduCourseService {
+
+    @Override
+    public List<CourseCategoryNodeVO> studentCategories() {
+        List<EduMajor> majors = eduMajorMapper.selectTree();
+        Map<Long, CourseCategoryNodeVO> nodes = new LinkedHashMap<>();
+        for (EduMajor major : majors) {
+            if (!Integer.valueOf(1).equals(major.getStatus())) continue;
+            CourseCategoryNodeVO node = new CourseCategoryNodeVO();
+            node.setId(major.getId());
+            node.setName(major.getName());
+            nodes.put(major.getId(), node);
+        }
+        List<CourseCategoryNodeVO> roots = new ArrayList<>();
+        for (EduMajor major : majors) {
+            CourseCategoryNodeVO node = nodes.get(major.getId());
+            if (node == null) continue;
+            if (major.getParentId() == null || major.getParentId() == 0L) {
+                roots.add(node);
+            } else if (nodes.containsKey(major.getParentId())) {
+                nodes.get(major.getParentId()).getChildren().add(node);
+            }
+        }
+        return roots;
+    }
+
+    @Override
+    public List<EduCourse> studentTeacherCourses(Long teacherId, String teacherName) {
+        return eduCourseMapper.selectStudentTeacherCourses(teacherId, teacherName);
+    }
 
     private final EduCourseMapper eduCourseMapper;
     private final EduMajorMapper eduMajorMapper;

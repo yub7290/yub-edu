@@ -164,11 +164,22 @@
             AND major_id = #{cateId}
         </if>
         <if test="keyword != null and keyword != ''">
-            AND name LIKE CONCAT('%', #{keyword}, '%')
+            AND (name LIKE CONCAT('%', #{keyword}, '%')
+                 OR teacher LIKE CONCAT('%', #{keyword}, '%')
+                 OR teacher_id IN (SELECT id FROM edu_teacher
+                     WHERE status = 1 AND deleted = 0 AND name LIKE CONCAT('%', #{keyword}, '%')))
         </if>
         ORDER BY
         <if test="tabType == 1">view_count DESC,</if>
         sort ASC, id DESC
+    </select>
+
+    <select id="selectStudentTeacherCourses" resultMap="EduCourseMap">
+        SELECT <include refid="baseColumns"/> FROM edu_course
+        WHERE status = 1 AND deleted = 0
+          AND (teacher_id = #{teacherId}
+               OR ((teacher_id IS NULL OR teacher_id = 0) AND teacher = #{teacherName}))
+        ORDER BY sort ASC, id ASC
     </select>
 
     <select id="selectRecycleList" resultMap="EduCourseMap">

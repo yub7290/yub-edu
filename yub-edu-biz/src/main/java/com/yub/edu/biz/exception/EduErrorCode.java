@@ -61,6 +61,8 @@ public enum EduErrorCode implements ErrorCode {
     /** 考试已提交 */
     EXAM_ALREADY_SUBMITTED(200071, "考试已提交，无法重复提交"),
 
+    EXAM_START_REQUIRED(200072, "请先开始考试，再提交作答记录"),
+
     /** 章节不存在 */
     CHAPTER_NOT_FOUND(200041, "章节不存在"),
 

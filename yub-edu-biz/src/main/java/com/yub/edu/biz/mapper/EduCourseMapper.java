@@ -21,6 +21,9 @@ import java.util.List;
 @Mapper
 public interface EduCourseMapper {
 
+    List<EduCourse> selectStudentTeacherCourses(@Param("teacherId") Long teacherId,
+                                              @Param("teacherName") String teacherName);
+
     /**
      * 分页查询课程
      *

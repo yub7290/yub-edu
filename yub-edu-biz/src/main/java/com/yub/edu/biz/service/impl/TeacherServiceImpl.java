@@ -47,6 +47,11 @@ import static java.util.stream.Collectors.toMap;
 @RequiredArgsConstructor
 public class TeacherServiceImpl implements TeacherService {
 
+    @Override
+    public EduTeacher selectStudentById(Long id) {
+        return eduTeacherMapper.selectStudentById(id);
+    }
+
     private final EduTeacherMapper eduTeacherMapper;
     private final EduTeacherTitleMapper eduTeacherTitleMapper;
     private final PasswordEncoder passwordEncoder;

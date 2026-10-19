@@ -25,6 +25,8 @@ public class ExamStartRespVO {
     /** 考试记录ID */
     private Long recordId;
 
+    private String examName;
+
     /** 题目列表 */
     private List<ExamQuestionRespVO> questions;
 

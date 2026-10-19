@@ -24,6 +24,10 @@ import java.util.List;
  */
 public interface EduCourseService {
 
+    List<com.yub.edu.biz.vo.CourseCategoryNodeVO> studentCategories();
+
+    List<EduCourse> studentTeacherCourses(Long teacherId, String teacherName);
+
     /**
      * 分页查询课程
      *

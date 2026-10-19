@@ -21,6 +21,9 @@ import java.util.List;
  */
 public interface TeacherService {
 
+    /** 学生端公开资料，仅查询启用且未删除的教师。 */
+    EduTeacher selectStudentById(Long id);
+
     /**
      * 分页查询教师列表
      *

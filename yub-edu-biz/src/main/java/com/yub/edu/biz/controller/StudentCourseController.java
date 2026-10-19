@@ -60,7 +60,7 @@ public class StudentCourseController {
      */
     @GetMapping("/category")
     public Response<CourseCategoryRespVO> category() {
-        return Response.success(CourseCategoryRespVO.builder().list(new ArrayList<>()).build());
+        return Response.success(CourseCategoryRespVO.builder().list(eduCourseService.studentCategories()).build());
     }
 
     /**
@@ -76,7 +76,7 @@ public class StudentCourseController {
         List<EduCourse> list = eduCourseService.studentList(cateId, tabType, null);
         PageInfo<EduCourse> pageInfo = new PageInfo<>(list);
 
-        Long studentId = SecurityUtils.getCurrentUserId();
+        Long studentId = SecurityUtils.getCurrentUserIdOrNull();
         Map<Long, Boolean> accessMap = courseAccessService.batchAccessible(
                 studentId, list.stream().map(EduCourse::getId).toList());
 
@@ -103,7 +103,7 @@ public class StudentCourseController {
             @RequestParam(name = "tabType", defaultValue = "0") Integer tabType) {
         List<EduCourse> list = eduCourseService.studentList(cateId, tabType, keyword);
 
-        Long studentId = SecurityUtils.getCurrentUserId();
+        Long studentId = SecurityUtils.getCurrentUserIdOrNull();
         Map<Long, Boolean> accessMap = courseAccessService.batchAccessible(
                 studentId, list.stream().map(EduCourse::getId).toList());
 
@@ -126,7 +126,7 @@ public class StudentCourseController {
     @GetMapping("/detail")
     public Response<StudentCourseDetailRespVO> detail(@RequestParam("cid") Long cid) {
         EduCourse course = eduCourseService.selectById(cid);
-        if (course == null) {
+        if (course == null || !Integer.valueOf(1).equals(course.getStatus())) {
             return Response.success(null);
         }
 
@@ -171,7 +171,7 @@ public class StudentCourseController {
         // 默认系统提示词也返回前端，方便展示AI助教角色
 
         // 课程学习权限：免费课 / 已购买 / 所属组已绑定
-        Long studentId = SecurityUtils.getCurrentUserId();
+        Long studentId = SecurityUtils.getCurrentUserIdOrNull();
         boolean accessible = courseAccessService.canAccess(studentId, cid);
 
         return Response.success(StudentCourseDetailRespVO.builder()
@@ -201,10 +201,10 @@ public class StudentCourseController {
 
         // 1. 考试统计
         CourseExamStatsResult examStats = eduExamRecordService.selectCourseExamStats(userId, courseId);
-        int examAvgScore = examStats != null ? examStats.getAvgScore() : 0;
-        int examMaxScore = examStats != null ? examStats.getMaxScore() : 0;
-        int examTotalCount = examStats != null ? examStats.getTotalCount() : 0;
-        int examPassCount = examStats != null ? examStats.getPassCount() : 0;
+        int examAvgScore = examStats != null ? Objects.requireNonNullElse(examStats.getAvgScore(), 0) : 0;
+        int examMaxScore = examStats != null ? Objects.requireNonNullElse(examStats.getMaxScore(), 0) : 0;
+        int examTotalCount = examStats != null ? Objects.requireNonNullElse(examStats.getTotalCount(), 0) : 0;
+        int examPassCount = examStats != null ? Objects.requireNonNullElse(examStats.getPassCount(), 0) : 0;
         int examPassRate = examTotalCount > 0 ? examPassCount * 100 / examTotalCount : 0;
 
         // 2. 练习统计

@@ -4,6 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.yub.edu.biz.dto.ExamQueryDTO;
 import com.yub.edu.biz.dto.ExamSubmitReqDTO;
+import com.yub.edu.biz.dto.ExamAttemptStatusDTO;
 import com.yub.edu.biz.entity.EduExam;
 import com.yub.edu.biz.entity.EduExamQuestion;
 import com.yub.edu.biz.entity.EduExamRecord;
@@ -91,8 +92,14 @@ public class StudentExamServiceImpl implements StudentExamService {
         List<EduExam> exams = eduExamMapper.selectPage(query);
         PageInfo<EduExam> pageInfo = new PageInfo<>(exams);
 
-        List<ExamListRespVO.ExamItemVO> list = pageInfo.getList().stream()
-                .map(this::convertExamItem).toList();
+        Map<Long, Integer> statuses = exams.isEmpty() ? Collections.emptyMap()
+                : eduExamRecordMapper.selectAttemptStatuses(getUserId(), exams.stream().map(EduExam::getId).toList())
+                .stream().collect(Collectors.toMap(ExamAttemptStatusDTO::getExamId, ExamAttemptStatusDTO::getAttemptStatus));
+        List<ExamListRespVO.ExamItemVO> list = pageInfo.getList().stream().map(exam -> {
+            ExamListRespVO.ExamItemVO item = convertExamItem(exam);
+            item.setAttemptStatus(statuses.getOrDefault(exam.getId(), 0));
+            return item;
+        }).toList();
         return ExamListRespVO.builder().list(list).total(pageInfo.getTotal()).build();
     }
 
@@ -159,6 +166,11 @@ public class StudentExamServiceImpl implements StudentExamService {
         // 旧流程：无 recordId，创建新记录（兼容已有调用方）
         EduExam exam = eduExamMapper.selectById(dto.getExamId());
         validateExamEnabled(exam);
+        // 结课考试必须关联服务端开考记录，旧客户端也不能绕过次数及学习进度检查。
+        if (Integer.valueOf(1).equals(exam.getIsFinalExam())) {
+            throw new EduException(EduErrorCode.EXAM_START_REQUIRED);
+        }
+        validateAdmission(exam, userId);
         Long courseId = exam.getCourseId();
         Integer questionRangeType = exam.getQuestionRangeType();
         Map<Integer, Integer> expectedTypeCountMap = new HashMap<>();
@@ -337,23 +349,8 @@ public class StudentExamServiceImpl implements StudentExamService {
 
         Long userId = getUserId();
 
-        // 校验重考次数
+        validateAdmission(exam, userId);
         int submittedCount = eduExamRecordMapper.selectSubmittedCount(userId, examId);
-        int maxAttempts = exam.getMaxAttempts() != null ? exam.getMaxAttempts() : 0;
-        if (maxAttempts > 0 && submittedCount >= maxAttempts) {
-            throw new EduException(EduErrorCode.EXAM_MAX_ATTEMPTS_REACHED);
-        }
-
-        // 校验章节完成率（结课考试检查，其他考试跳过）
-        if (exam.getIsFinalExam() != null && exam.getIsFinalExam() == 1) {
-            int chapterPassRate = exam.getChapterPassRate() != null ? exam.getChapterPassRate() : 0;
-            if (chapterPassRate > 0) {
-                int chapterProgress = calculateChapterProgress(exam.getCourseId(), userId);
-                if (chapterProgress < chapterPassRate) {
-                    throw new EduException(EduErrorCode.EXAM_CHAPTER_PROGRESS_NOT_ENOUGH);
-                }
-            }
-        }
 
         // 检查是否有进行中的记录
         EduExamRecord inProgress = eduExamRecordMapper.selectInProgress(userId, examId);
@@ -362,6 +359,7 @@ public class StudentExamServiceImpl implements StudentExamService {
             List<ExamQuestionRespVO> existingQuestions = questions(examId);
             LocalDateTime endTime = inProgress.getStartTime().plusMinutes(exam.getDuration());
             return ExamStartRespVO.builder()
+                    .examName(exam.getTitle())
                     .recordId(inProgress.getId())
                     .duration(exam.getDuration())
                     .endTime(endTime)
@@ -417,6 +415,7 @@ public class StudentExamServiceImpl implements StudentExamService {
         }
         LocalDateTime endTime = record.getStartTime().plusMinutes(exam.getDuration());
         return ExamStartRespVO.builder()
+                .examName(exam.getTitle())
                 .recordId(record.getId())
                 .duration(exam.getDuration())
                 .endTime(endTime)
@@ -700,6 +699,7 @@ public class StudentExamServiceImpl implements StudentExamService {
         int unansweredCount = totalCount - correctCount - wrongCount;
         return ExamResultRespVO.builder()
                 .recordId(record.getId())
+                .status(record.getStatus())
                 .score(record.getScore())
                 .totalScore(record.getTotalScore())
                 .passScore(record.getPassScore())
@@ -735,6 +735,7 @@ public class StudentExamServiceImpl implements StudentExamService {
                 .name(exam.getTitle())
                 .subtitle(exam.getSubtitle())
                 .courseId(exam.getCourseId())
+                .isFinalExam(exam.getIsFinalExam())
                 .courseName(exam.getCourseName())
                 .duration(exam.getDuration())
                 .totalScore(exam.getTotalScore())
@@ -764,6 +765,18 @@ public class StudentExamServiceImpl implements StudentExamService {
     }
 
     // ==================== 结课考试辅助方法 ====================
+
+    private void validateAdmission(EduExam exam, Long userId) {
+        int maxAttempts = exam.getMaxAttempts() != null ? exam.getMaxAttempts() : 0;
+        if (maxAttempts > 0 && eduExamRecordMapper.selectSubmittedCount(userId, exam.getId()) >= maxAttempts) {
+            throw new EduException(EduErrorCode.EXAM_MAX_ATTEMPTS_REACHED);
+        }
+        int required = exam.getChapterPassRate() != null ? exam.getChapterPassRate() : 0;
+        if (Integer.valueOf(1).equals(exam.getIsFinalExam()) && required > 0
+                && calculateChapterProgress(exam.getCourseId(), userId) < required) {
+            throw new EduException(EduErrorCode.EXAM_CHAPTER_PROGRESS_NOT_ENOUGH);
+        }
+    }
 
     /**
      * 计算用户在课程中的章节完成率
@@ -895,8 +908,9 @@ public class StudentExamServiceImpl implements StudentExamService {
         // 更新已有记录
         int isPass = totalScore >= exam.getPassScore() ? 1 : 0;
         int status = 1;
-        eduExamRecordMapper.updateStatus(record.getId(), status, totalScore, isPass,
+        int updated = eduExamRecordMapper.updateStatus(record.getId(), status, totalScore, isPass,
                 dto.getDuration() != null ? dto.getDuration() : 0, now);
+        if (updated != 1) throw new EduException(EduErrorCode.EXAM_ALREADY_SUBMITTED);
         // 写答题明细
         saveDetails(details, record.getId());
         // 构造结果 VO

@@ -18,6 +18,8 @@ import java.util.List;
 @Mapper
 public interface EduTeacherMapper {
 
+    EduTeacher selectStudentById(@Param("id") Long id);
+
     /**
      * 分页查询教师列表
      *

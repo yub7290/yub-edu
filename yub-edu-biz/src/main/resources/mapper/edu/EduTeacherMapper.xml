@@ -184,6 +184,11 @@
         ORDER BY id ASC
     </select>
 
+    <select id="selectStudentById" resultType="com.yub.edu.biz.entity.EduTeacher">
+        SELECT id, avatar_url, name, title_id, signature, bio, rating
+        FROM edu_teacher WHERE id = #{id} AND status = 1 AND deleted = 0
+    </select>
+
     <select id="selectStudentList" resultType="com.yub.edu.biz.entity.EduTeacher">
         SELECT id, avatar_url, name, title_id, signature, rating
         FROM edu_teacher

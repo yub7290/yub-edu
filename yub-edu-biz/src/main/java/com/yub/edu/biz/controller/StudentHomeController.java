@@ -7,6 +7,10 @@ import com.yub.edu.biz.entity.EduTeacherTitle;
 import com.yub.edu.biz.service.EduCourseService;
 import com.yub.edu.biz.service.EduTeacherTitleService;
 import com.yub.edu.biz.service.TeacherService;
+import com.yub.edu.biz.service.CourseAccessService;
+import com.yub.edu.biz.exception.EduErrorCode;
+import com.yub.edu.biz.exception.EduException;
+import com.yub.framework.security.SecurityUtils;
 import com.yub.edu.biz.vo.CourseRecommendedRespVO;
 import com.yub.edu.biz.vo.TeacherListRespVO;
 import com.yub.edu.biz.vo.TeacherRecommendedRespVO;
@@ -44,6 +48,7 @@ public class StudentHomeController {
     private final TeacherService teacherService;
     private final SysBannerService sysBannerService;
     private final EduTeacherTitleService eduTeacherTitleService;
+    private final CourseAccessService courseAccessService;
 
     /**
      * 首页基础数据（Logo、Banner、导航）
@@ -140,9 +145,28 @@ public class StudentHomeController {
      */
     @GetMapping("/teacher/info")
     public Response<TeacherInfoRespVO> teacherInfo(@RequestParam Long tid) {
+        EduTeacher teacher = teacherService.selectStudentById(tid);
+        if (teacher == null) throw new EduException(EduErrorCode.TEACHER_NOT_FOUND);
+        Map<String, Object> info = new HashMap<>();
+        info.put("id", teacher.getId());
+        info.put("name", teacher.getName());
+        info.put("avatarUrl", teacher.getAvatarUrl());
+        info.put("rating", teacher.getRating());
+        info.put("desc", teacher.getBio() != null ? teacher.getBio() : teacher.getSignature());
+        List<EduTeacherTitle> titles = teacher.getTitleId() == null ? Collections.emptyList()
+                : eduTeacherTitleService.selectBatchByIds(List.of(teacher.getTitleId()));
+        info.put("titleName", titles.isEmpty() ? "" : titles.get(0).getName());
+        List<EduCourse> courses = eduCourseService.studentTeacherCourses(tid, teacher.getName());
+        Map<Long, Boolean> access = courseAccessService.batchAccessible(SecurityUtils.getCurrentUserIdOrNull(),
+                courses.stream().map(EduCourse::getId).toList());
+        List<CourseRecommendedRespVO> courseList = courses.stream().map(c -> CourseRecommendedRespVO.builder()
+                .id(c.getId()).name(c.getName()).imageUrl(c.getImageUrl()).courseType(c.getCourseType())
+                .teacherName(teacher.getName()).feeType(Integer.valueOf(1).equals(c.getIsFree()) ? "免费" : null)
+                .accessible(access.getOrDefault(c.getId(), false)).build()).toList();
+        info.put("courseCount", courseList.size());
         return Response.success(TeacherInfoRespVO.builder()
-                .info(new HashMap<>())
-                .course(new ArrayList<>())
+                .info(info)
+                .course(courseList)
                 .build());
     }
 

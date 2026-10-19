@@ -65,5 +65,8 @@ public class ExamListRespVO {
 
         /** 是否结课考试 1:是 0:否 */
         private Integer isFinalExam;
+
+        /** 当前学员作答状态：0未作答、1进行中、2已完成。 */
+        private Integer attemptStatus;
     }
 }

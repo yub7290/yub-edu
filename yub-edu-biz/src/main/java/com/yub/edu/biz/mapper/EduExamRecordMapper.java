@@ -19,6 +19,9 @@ import java.util.List;
 @Mapper
 public interface EduExamRecordMapper {
 
+    List<com.yub.edu.biz.dto.ExamAttemptStatusDTO> selectAttemptStatuses(
+            @Param("userId") Long userId, @Param("examIds") List<Long> examIds);
+
     /**
      * 插入考试记录
      *
